@@ -6,14 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Usuario, TIENDAS, IoniconName } from '../constants/data';
 import { Avatar, RolBadge } from '../components/common';
-
-const PRP  = '#7C3AED';
-const BLK  = '#09090B';
-const DRK  = '#18181B';
-const LGR  = '#F4F4F5';
-const BRD  = '#E4E4E7';
-const MTD  = '#71717A';
-const GRN  = '#25D366';
+import { PRP, BLK, DRK, LGR, BRD, MTD, GRN } from '../constants/colors';
 
 interface Props {
   usuarios: Usuario[];
@@ -72,6 +65,13 @@ export const GestionEquipoScreen: React.FC<Props> = ({ usuarios, onAgregar, onEd
     setModalVisible(true);
   };
 
+  /* ── Validación de teléfono colombiano (opcional) ── */
+  const telefonoValido = (tel: string): boolean => {
+    if (!tel.trim()) return true; // es opcional
+    const solo = tel.replace(/\D/g, '');
+    return solo.length === 10 && solo.startsWith('3');
+  };
+
   /* ── Agregar ── */
   const handleAgregar = () => {
     setError('');
@@ -79,8 +79,9 @@ export const GestionEquipoScreen: React.FC<Props> = ({ usuarios, onAgregar, onEd
     if (!cedula.trim())           { setError('Ingresa el número de cédula.'); return; }
     if (cedula.trim().length < 7) { setError('La cédula debe tener al menos 7 dígitos.'); return; }
     if (!pass.trim())             { setError('Ingresa una contraseña inicial.'); return; }
-    if (pass.trim().length < 4)   { setError('La contraseña debe tener mínimo 4 caracteres.'); return; }
+    if (pass.trim().length < 6)   { setError('La contraseña debe tener mínimo 6 caracteres.'); return; }
     if (tiendasSel.length === 0)  { setError('Asigna al menos una tienda.'); return; }
+    if (!telefonoValido(telefono)) { setError('Celular inválido. Debe tener 10 dígitos y empezar en 3 (ej: 3001234567).'); return; }
     if (usuarios.find(u => u.cedula === cedula.trim())) { setError('Ya existe un usuario con esa cédula.'); return; }
 
     onAgregar({
@@ -97,10 +98,11 @@ export const GestionEquipoScreen: React.FC<Props> = ({ usuarios, onAgregar, onEd
   /* ── Guardar edición ── */
   const handleEditar = () => {
     setError('');
-    if (!nombre.trim())           { setError('Ingresa el nombre completo.'); return; }
-    if (!pass.trim())             { setError('Ingresa la contraseña.'); return; }
-    if (pass.trim().length < 4)   { setError('La contraseña debe tener mínimo 4 caracteres.'); return; }
-    if (tiendasSel.length === 0)  { setError('Asigna al menos una tienda.'); return; }
+    if (!nombre.trim())            { setError('Ingresa el nombre completo.'); return; }
+    if (!pass.trim())              { setError('Ingresa la contraseña.'); return; }
+    if (pass.trim().length < 6)    { setError('La contraseña debe tener mínimo 6 caracteres.'); return; }
+    if (tiendasSel.length === 0)   { setError('Asigna al menos una tienda.'); return; }
+    if (!telefonoValido(telefono)) { setError('Celular inválido. Debe tener 10 dígitos y empezar en 3 (ej: 3001234567).'); return; }
 
     onEditar(editandoId!, {
       nombre:   nombre.trim().toUpperCase(),
@@ -132,7 +134,7 @@ export const GestionEquipoScreen: React.FC<Props> = ({ usuarios, onAgregar, onEd
     { label: 'Nombre completo',    icon: 'person-outline',         value: nombre,   onChange: t => { setNombre(t);   setError(''); }, placeholder: 'Ej: PEDRO TARAZONA',               capitalize: 'characters', keyboard: 'default',    secure: false },
     { label: 'Número de cédula',   icon: 'card-outline',           value: cedula,   onChange: t => { setCedula(t);   setError(''); }, placeholder: 'Será el usuario de inicio sesión', capitalize: 'none',       keyboard: 'numeric',    secure: false },
     { label: 'WhatsApp (celular)', icon: 'phone-portrait-outline', value: telefono, onChange: t => { setTelefono(t); setError(''); }, placeholder: 'Ej: 3001234567  (opcional)',       capitalize: 'none',       keyboard: 'phone-pad',  secure: false, optional: true },
-    { label: 'Contraseña inicial', icon: 'lock-closed-outline',    value: pass,     onChange: t => { setPass(t);     setError(''); }, placeholder: 'Mínimo 4 caracteres',              capitalize: 'none',       keyboard: 'default',    secure: true  },
+    { label: 'Contraseña inicial', icon: 'lock-closed-outline',    value: pass,     onChange: t => { setPass(t);     setError(''); }, placeholder: 'Mínimo 6 caracteres',              capitalize: 'none',       keyboard: 'default',    secure: true  },
   ];
 
   return (
@@ -204,7 +206,7 @@ export const GestionEquipoScreen: React.FC<Props> = ({ usuarios, onAgregar, onEd
 
               <View style={s.credRow}>
                 <Ionicons name="key-outline" size={12} color="#A1A1AA" style={{ marginRight: 5 }} />
-                <Text style={s.credTxt}>Usuario: {u.cedula} · Contraseña: {u.pass}</Text>
+                <Text style={s.credTxt}>Usuario: {u.cedula} · Contraseña: {'•'.repeat(Math.min(u.pass.length, 8))}</Text>
               </View>
 
               {u.telefono ? (

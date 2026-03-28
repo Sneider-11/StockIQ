@@ -7,12 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as XLSX from 'xlsx';
 import { Tienda, Articulo } from '../constants/data';
-
-const PRP = '#7C3AED';
-const BLK = '#09090B';
-const LGR = '#F4F4F5';
-const BRD = '#E4E4E7';
-const MTD = '#71717A';
+import { PRP, BLK, LGR, BRD, MTD } from '../constants/colors';
 
 interface Props {
   tienda: Tienda;

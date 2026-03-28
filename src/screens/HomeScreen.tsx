@@ -3,13 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { Usuario, Registro, Tienda, TIENDAS } from '../constants/data';
 import { Avatar, SecHeader, RolBadge } from '../components/common';
-
-const PRP  = '#7C3AED';
-const BLK  = '#09090B';
-const DRK  = '#18181B';
-const LGR  = '#F4F4F5';
-const BRD  = '#E4E4E7';
-const MTD  = '#71717A';
+import { PRP, BLK, DRK, LGR, BRD, MTD } from '../constants/colors';
 
 // ─── HOME SUPERADMIN ──────────────────────────────────────────────────────────
 interface SuperAdminProps {

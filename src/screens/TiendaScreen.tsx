@@ -3,11 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { Tienda, Usuario, Registro, Articulo, CLSF, IoniconName } from '../constants/data';
 import { Avatar, SecHeader } from '../components/common';
-
-const LGR = '#F4F4F5';
-const BRD = '#E4E4E7';
-const MTD = '#71717A';
-const BLK = '#09090B';
+import { LGR, BRD, MTD, BLK } from '../constants/colors';
 
 interface Props {
   tienda: Tienda;

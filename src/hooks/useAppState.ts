@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { USUARIOS_INICIALES, CATALOGO_BASE, Usuario, Articulo, Registro, Tienda } from '../constants/data';
 import { genId } from '../utils/helpers';
 import { SUPABASE_LISTO } from '../lib/supabase';
@@ -11,10 +12,27 @@ import {
 
 // ─── CLAVES DE ALMACENAMIENTO ─────────────────────────────────────────────────
 const KEYS = {
-  USUARIOS:  '@stockiq:usuarios',
+  USUARIOS:  '@stockiq:usuarios_v2',  // v2 = sin campo pass (movido a SecureStore)
   REGISTROS: '@stockiq:registros',
   CATALOGOS: '@stockiq:catalogos',
+  PASSWORDS: 'stockiq_pass_v1',       // clave de SecureStore (cifrado del SO)
 } as const;
+
+// ─── HELPERS SECURE STORE ─────────────────────────────────────────────────────
+type PassMap = Record<string, string>;
+
+async function loadPasswords(): Promise<PassMap> {
+  try {
+    const raw = await SecureStore.getItemAsync(KEYS.PASSWORDS);
+    return raw ? (JSON.parse(raw) as PassMap) : {};
+  } catch { return {}; }
+}
+
+async function savePasswords(map: PassMap): Promise<void> {
+  try {
+    await SecureStore.setItemAsync(KEYS.PASSWORDS, JSON.stringify(map));
+  } catch {}
+}
 
 export type Pantalla =
   | 'home'
@@ -35,20 +53,33 @@ export function useAppState() {
   const [registros, setRegistros]         = useState<Registro[]>([]);
   const [catalogos, setCatalogos]         = useState<Record<string, Articulo[]>>({});
 
-  // ── FASE 1: AsyncStorage (inmediato, funciona offline) ────────────────────
+  // ── FASE 1: AsyncStorage + SecureStore (inmediato, funciona offline) ────────
   useEffect(() => {
     const cargar = async () => {
       try {
-        const [rawUsuarios, rawRegistros, rawCatalogos] = await Promise.all([
+        const [rawUsuarios, rawRegistros, rawCatalogos, passwords] = await Promise.all([
           AsyncStorage.getItem(KEYS.USUARIOS),
           AsyncStorage.getItem(KEYS.REGISTROS),
           AsyncStorage.getItem(KEYS.CATALOGOS),
+          loadPasswords(),
         ]);
+
+        // Sembrar SecureStore con las contraseñas de USUARIOS_INICIALES si faltan
+        let passNeedsSave = false;
+        for (const u of USUARIOS_INICIALES) {
+          if (!passwords[u.id]) { passwords[u.id] = u.pass; passNeedsSave = true; }
+        }
+        if (passNeedsSave) savePasswords(passwords);
+
         if (rawUsuarios) {
-          const guardados: Usuario[] = JSON.parse(rawUsuarios);
+          // v2: los usuarios en AsyncStorage ya no tienen campo pass
+          const guardados = JSON.parse(rawUsuarios) as Omit<Usuario, 'pass'>[];
           const ids = guardados.map(u => u.id);
           const nuevos = USUARIOS_INICIALES.filter(u => !ids.includes(u.id));
-          setUsuarios([...guardados, ...nuevos]);
+          setUsuarios([
+            ...guardados.map(u => ({ ...u, pass: passwords[u.id] ?? '' })),
+            ...nuevos,
+          ]);
         }
         if (rawRegistros) setRegistros(JSON.parse(rawRegistros));
         if (rawCatalogos) setCatalogos(JSON.parse(rawCatalogos));
@@ -113,7 +144,10 @@ export function useAppState() {
   // ── Persistir en AsyncStorage cuando el estado cambia ────────────────────
   useEffect(() => {
     if (cargando) return;
-    AsyncStorage.setItem(KEYS.USUARIOS, JSON.stringify(usuarios)).catch(() => {});
+    // Nunca almacenar contraseñas en AsyncStorage (no cifrado)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const sinPass = usuarios.map(({ pass: _pass, ...u }) => u);
+    AsyncStorage.setItem(KEYS.USUARIOS, JSON.stringify(sinPass)).catch(() => {});
   }, [usuarios, cargando]);
 
   useEffect(() => {
@@ -147,10 +181,12 @@ export function useAppState() {
   const volverATienda = useCallback(() => setPantalla('tienda'), []);
   const volverAHome   = useCallback(() => { setPantalla('home'); setTiendaActiva(null); }, []);
 
-  // ── Usuarios — optimistic update + Supabase fire-and-forget ──────────────
+  // ── Usuarios — optimistic update + SecureStore + Supabase fire-and-forget ──
   const agregarUsuario = useCallback((u: Omit<Usuario, 'id'>) => {
     const nuevo: Usuario = { ...u, id: genId() };
     setUsuarios(prev => [...prev, nuevo]);
+    // Guardar contraseña en SecureStore (cifrado)
+    loadPasswords().then(map => { map[nuevo.id] = nuevo.pass; savePasswords(map); });
     dbInsertUsuario(nuevo).catch(() => {});
   }, []);
 
@@ -158,13 +194,21 @@ export function useAppState() {
     setUsuarios(prev => {
       const siguiente = prev.map(u => u.id === id ? { ...u, ...cambios } : u);
       const actualizado = siguiente.find(u => u.id === id);
-      if (actualizado) dbInsertUsuario(actualizado).catch(() => {});
+      if (actualizado) {
+        dbInsertUsuario(actualizado).catch(() => {});
+        // Si cambió la contraseña, actualizar SecureStore
+        if (cambios.pass) {
+          loadPasswords().then(map => { map[id] = cambios.pass!; savePasswords(map); });
+        }
+      }
       return siguiente;
     });
   }, []);
 
   const eliminarUsuario = useCallback((id: string) => {
     setUsuarios(prev => prev.filter(u => u.id !== id));
+    // Remover contraseña de SecureStore
+    loadPasswords().then(map => { delete map[id]; savePasswords(map); });
     dbDeleteUsuario(id).catch(() => {});
   }, []);
 

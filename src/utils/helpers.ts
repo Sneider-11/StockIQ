@@ -10,8 +10,22 @@ export const clasificar = (stock: number, cant: number): Clasificacion => {
 export const fCOP = (v: number): string =>
   '$' + v.toLocaleString('es-CO');
 
-export const genId = (): string =>
-  Math.random().toString(36).slice(2, 10);
+export const genId = (): string => {
+  // UUID v4 con crypto.getRandomValues (disponible en Hermes / React Native).
+  // Fallback si el entorno no lo soporta.
+  try {
+    const b = new Uint8Array(16);
+    crypto.getRandomValues(b);
+    b[6] = (b[6] & 0x0f) | 0x40; // version 4
+    b[8] = (b[8] & 0x3f) | 0x80; // variant RFC 4122
+    const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+    return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+  } catch {
+    const ts  = Date.now().toString(36);
+    const rnd = Math.random().toString(36).slice(2, 10);
+    return `${ts}-${rnd}`;
+  }
+};
 
 export const initials = (nombre: string): string =>
   nombre.split(' ').map(x => x[0]).join('').slice(0, 2);

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Animated, KeyboardAvoidingView, Platform,
@@ -6,13 +6,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Usuario } from '../constants/data';
 import { Avatar } from '../components/common';
+import { PRP, BLK, DRK, MTD, LGR, BRD } from '../constants/colors';
 
-const PRP  = '#7C3AED';
-const BLK  = '#09090B';
-const DRK  = '#18181B';
-const MTD  = '#71717A';
-const LGR  = '#F4F4F5';
-const BRD  = '#E4E4E7';
+const MAX_INTENTOS    = 5;
+const BLOQUEO_SEG     = 30;
 
 interface Props {
   usuarios: Usuario[];
@@ -20,12 +17,32 @@ interface Props {
 }
 
 export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin }) => {
-  const [cedula, setCedula]   = useState('');
-  const [pass, setPass]       = useState('');
-  const [show, setShow]       = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [cedula, setCedula]             = useState('');
+  const [pass, setPass]                 = useState('');
+  const [show, setShow]                 = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState('');
+  const [intentos, setIntentos]         = useState(0);
+  const [bloqueadoHasta, setBloqueado]  = useState<number | null>(null);
+  const [segsRestantes, setSegsRest]    = useState(0);
   const shake = useRef(new Animated.Value(0)).current;
+
+  // Contador regresivo del bloqueo
+  useEffect(() => {
+    if (!bloqueadoHasta) return;
+    const tick = setInterval(() => {
+      const restantes = Math.ceil((bloqueadoHasta - Date.now()) / 1000);
+      if (restantes <= 0) {
+        setBloqueado(null);
+        setSegsRest(0);
+        setError('');
+        clearInterval(tick);
+      } else {
+        setSegsRest(restantes);
+      }
+    }, 500);
+    return () => clearInterval(tick);
+  }, [bloqueadoHasta]);
 
   const doShake = () => Animated.sequence([
     Animated.timing(shake, { toValue: 10, duration: 55, useNativeDriver: true }),
@@ -36,11 +53,42 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin }) => {
 
   const login = () => {
     setError('');
+
+    // Verificar bloqueo activo
+    if (bloqueadoHasta && Date.now() < bloqueadoHasta) {
+      setError(`Demasiados intentos. Espera ${segsRestantes}s para volver a intentarlo.`);
+      doShake();
+      return;
+    }
+
     if (!cedula.trim()) { setError('Ingresa tu número de cédula.'); doShake(); return; }
     if (!pass)          { setError('Ingresa tu contraseña.');        doShake(); return; }
+
     const u = usuarios.find(u => u.cedula === cedula.trim());
-    if (!u)          { setError('Cédula no registrada. Contacta al administrador.'); doShake(); return; }
-    if (u.pass !== pass) { setError('Contraseña incorrecta.'); doShake(); return; }
+    if (!u) {
+      setError('Cédula no registrada. Contacta al administrador.');
+      doShake();
+      return;
+    }
+
+    if (u.pass !== pass) {
+      const nuevo = intentos + 1;
+      setIntentos(nuevo);
+      if (nuevo >= MAX_INTENTOS) {
+        const hasta = Date.now() + BLOQUEO_SEG * 1000;
+        setBloqueado(hasta);
+        setSegsRest(BLOQUEO_SEG);
+        setIntentos(0);
+        setError(`Demasiados intentos fallidos. Bloqueado por ${BLOQUEO_SEG} segundos.`);
+      } else {
+        setError(`Contraseña incorrecta. ${MAX_INTENTOS - nuevo} intento${MAX_INTENTOS - nuevo !== 1 ? 's' : ''} restante${MAX_INTENTOS - nuevo !== 1 ? 's' : ''}.`);
+      }
+      doShake();
+      return;
+    }
+
+    setIntentos(0);
+    setBloqueado(null);
     setLoading(true);
     setTimeout(() => { setLoading(false); onLogin(u); }, 800);
   };
@@ -137,28 +185,30 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin }) => {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Acceso rápido */}
-        <View style={s.demo}>
-          <View style={s.demoHeader}>
-            <View style={s.demoLine} />
-            <Text style={s.demoLbl}>Acceso rápido · Demo</Text>
-            <View style={s.demoLine} />
+        {/* Acceso rápido — solo visible en desarrollo (__DEV__) */}
+        {__DEV__ && (
+          <View style={s.demo}>
+            <View style={s.demoHeader}>
+              <View style={s.demoLine} />
+              <Text style={s.demoLbl}>Acceso rápido · Solo Dev</Text>
+              <View style={s.demoLine} />
+            </View>
+            {usuarios.map(u => (
+              <TouchableOpacity key={u.id} style={s.demoItem} onPress={() => loginRapido(u)} activeOpacity={0.7}>
+                <Avatar nombre={u.nombre} size={40} bg={u.rol === 'SUPERADMIN' ? PRP : DRK} />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={s.demoName}>{u.nombre}</Text>
+                  <Text style={s.demoCed}>CC {u.cedula}</Text>
+                </View>
+                <View style={[s.rolPill, { backgroundColor: u.rol === 'SUPERADMIN' ? 'rgba(124,58,237,0.22)' : 'rgba(255,255,255,0.08)' }]}>
+                  <Text style={[s.rolTxt, { color: u.rol === 'SUPERADMIN' ? '#A78BFA' : '#A1A1AA' }]}>
+                    {u.rol === 'SUPERADMIN' ? 'Super Admin' : 'Auditor'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
-          {usuarios.map(u => (
-            <TouchableOpacity key={u.id} style={s.demoItem} onPress={() => loginRapido(u)} activeOpacity={0.7}>
-              <Avatar nombre={u.nombre} size={40} bg={u.rol === 'SUPERADMIN' ? PRP : DRK} />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={s.demoName}>{u.nombre}</Text>
-                <Text style={s.demoCed}>CC {u.cedula}</Text>
-              </View>
-              <View style={[s.rolPill, { backgroundColor: u.rol === 'SUPERADMIN' ? 'rgba(124,58,237,0.22)' : 'rgba(255,255,255,0.08)' }]}>
-                <Text style={[s.rolTxt, { color: u.rol === 'SUPERADMIN' ? '#A78BFA' : '#A1A1AA' }]}>
-                  {u.rol === 'SUPERADMIN' ? 'Super Admin' : 'Auditor'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+        )}
 
         <Text style={s.ver}>v2.1.0 · StockIQ · Grupo Comercial</Text>
       </ScrollView>

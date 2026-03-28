@@ -1,17 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
 // ─── CREDENCIALES ─────────────────────────────────────────────────────────────
-// Reemplaza estos valores con los de tu proyecto Supabase:
-//   Dashboard → Settings → API → Project URL  y  anon public key
-const SUPABASE_URL  = 'https://fuupwozvoefwksyeqhgx.supabase.co';
-const SUPABASE_ANON = 'sb_publishable_ylFwB02a8U4KvTQG33mg5w_BV9raFQ8';
+// Las variables EXPO_PUBLIC_* se leen del archivo .env en raíz del proyecto.
+// Nunca escribas las credenciales directamente en este archivo.
+// Copia .env.example → .env y rellena tus valores reales.
+const SUPABASE_URL  = process.env.EXPO_PUBLIC_SUPABASE_URL  ?? '';
+const SUPABASE_ANON = process.env.EXPO_PUBLIC_SUPABASE_ANON ?? '';
 
 // ─── CLIENTE ──────────────────────────────────────────────────────────────────
 // Sin auth ni sesión — la app usa su propio sistema de login local.
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
   auth: {
-    autoRefreshToken:  false,
-    persistSession:    false,
+    autoRefreshToken:   false,
+    persistSession:     false,
     detectSessionInUrl: false,
   },
 });
@@ -19,5 +20,5 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
 // ─── FLAG DE CONFIGURACIÓN ────────────────────────────────────────────────────
 // false → app funciona solo con AsyncStorage (modo offline)
 // true  → datos se sincronizan con Supabase en segundo plano
-// true cuando las credenciales son reales (no los valores de ejemplo)
-export const SUPABASE_LISTO = !SUPABASE_URL.includes('TU_PROYECTO');
+export const SUPABASE_LISTO =
+  SUPABASE_URL.length > 0 && !SUPABASE_URL.includes('TU_PROYECTO');

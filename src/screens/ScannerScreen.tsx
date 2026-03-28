@@ -9,12 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Tienda, Usuario, Registro, Articulo, CLSF, CATALOGO_BASE } from '../constants/data';
 import { clasificar, fCOP, genId, ahora } from '../utils/helpers';
 import { Badge } from '../components/common';
-
-const PRP = '#7C3AED';
-const BLK = '#09090B';
-const LGR = '#F4F4F5';
-const BRD = '#E4E4E7';
-const MTD = '#71717A';
+import { PRP, BLK, LGR, BRD, MTD } from '../constants/colors';
 
 interface Props {
   usuario: Usuario;
@@ -240,13 +235,19 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
                   </TouchableOpacity>
 
                   {/* Nota */}
-                  <Text style={[m.fieldLbl, { marginTop: 14 }]}>Nota (opcional)</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 14, marginBottom: 10 }}>
+                    <Text style={m.fieldLbl}>Nota (opcional)</Text>
+                    <Text style={{ fontSize: 10, color: nota.length > 180 ? '#F97316' : '#A1A1AA', marginLeft: 'auto' }}>
+                      {nota.length}/200
+                    </Text>
+                  </View>
                   <TextInput
                     style={m.notaInput}
                     placeholder="Ej: Encontradas en bodega secundaria..."
                     placeholderTextColor="#A1A1AA"
                     value={nota}
-                    onChangeText={setNota}
+                    onChangeText={t => setNota(t.slice(0, 200))}
+                    maxLength={200}
                     multiline
                   />
 

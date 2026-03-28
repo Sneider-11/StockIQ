@@ -4,12 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tienda, Registro, Articulo, CATALOGO_BASE } from '../constants/data';
 import { fCOP } from '../utils/helpers';
 import { Avatar } from '../components/common';
-
-const PRP = '#7C3AED';
-const BLK = '#09090B';
-const LGR = '#F4F4F5';
-const BRD = '#E4E4E7';
-const MTD = '#71717A';
+import { PRP, BLK, LGR, BRD, MTD } from '../constants/colors';
 
 interface Props {
   registros: Registro[];
