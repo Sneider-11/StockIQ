@@ -301,9 +301,9 @@ const s = StyleSheet.create({
   inputIconWrap: { width: 44, alignItems: 'center', justifyContent: 'center', height: 50, borderRightWidth: 1, borderRightColor: BRD },
   input:         { flex: 1, height: 50, paddingHorizontal: 14, fontSize: 15, color: BLK },
 
-  paleta:            { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20, marginTop: 4 },
-  colorCircle:       { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' },
-  colorCircleSelected: { borderColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 4, transform: [{ scale: 1.15 }] },
+  paleta:            { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginBottom: 20, marginTop: 4 },
+  colorCircle:         { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, borderColor: 'transparent' },
+  colorCircleSelected: { borderColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.35, shadowRadius: 8, elevation: 6, transform: [{ scale: 1.18 }] },
 
   errorBox:  { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF2F2', borderRadius: 10, padding: 11, marginVertical: 8, borderLeftWidth: 3, borderLeftColor: '#DC2626' },
   errorTxt:  { fontSize: 12, color: '#DC2626', fontWeight: '600', flex: 1 },

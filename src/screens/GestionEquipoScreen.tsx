@@ -9,17 +9,18 @@ import { Avatar, RolBadge } from '../components/common';
 import { PRP, BLK, DRK, LGR, BRD, MTD, GRN } from '../constants/colors';
 
 interface Props {
-  usuarioActual: Usuario;
-  usuarios:      Usuario[];
-  tiendas:       Tienda[];
-  onAgregar:     (u: Omit<Usuario, 'id'>) => void;
-  onEditar:      (id: string, cambios: Partial<Omit<Usuario, 'id'>>) => void;
-  onEliminar:    (id: string) => void;
-  onVolver:      () => void;
+  usuarioActual:  Usuario;
+  usuarios:       Usuario[];
+  tiendas:        Tienda[];
+  tiendaFiltro?:  Tienda;   // Si se pasa, muestra solo el equipo de esa tienda
+  onAgregar:      (u: Omit<Usuario, 'id'>) => void;
+  onEditar:       (id: string, cambios: Partial<Omit<Usuario, 'id'>>) => void;
+  onEliminar:     (id: string) => void;
+  onVolver:       () => void;
 }
 
 export const GestionEquipoScreen: React.FC<Props> = ({
-  usuarioActual, usuarios, tiendas, onAgregar, onEditar, onEliminar, onVolver,
+  usuarioActual, usuarios, tiendas, tiendaFiltro, onAgregar, onEditar, onEliminar, onVolver,
 }) => {
   const esSuperAdmin = usuarioActual.rol === 'SUPERADMIN';
 
@@ -55,17 +56,20 @@ export const GestionEquipoScreen: React.FC<Props> = ({
   const tiendasSel = Object.keys(tiendasRolesSel);
 
   // SUPERADMIN ve a todos (excepto él mismo), ADMIN ve solo los CONTADOR de sus tiendas
-  const listaVisible = esSuperAdmin
+  // Si hay tiendaFiltro, muestra solo el equipo de esa tienda
+  const listaVisible = (esSuperAdmin
     ? usuarios.filter(u => u.rol !== 'SUPERADMIN')
     : usuarios.filter(u =>
         u.rol === 'CONTADOR' &&
         u.tiendas.some(tid => usuarioActual.tiendas.includes(tid))
-      );
+      )
+  ).filter(u => tiendaFiltro ? u.tiendas.includes(tiendaFiltro.id) : true);
 
   // Tiendas que puede asignar el usuario actual
-  const tiendasDisponibles = esSuperAdmin
+  const tiendasDisponibles = (esSuperAdmin
     ? tiendas
-    : tiendas.filter(t => usuarioActual.tiendas.includes(t.id));
+    : tiendas.filter(t => usuarioActual.tiendas.includes(t.id))
+  ).filter(t => tiendaFiltro ? t.id === tiendaFiltro.id : true);
 
   /* ── WhatsApp ── */
   const enviarWhatsApp = (u: Usuario) => {
@@ -202,8 +206,10 @@ export const GestionEquipoScreen: React.FC<Props> = ({
           <Ionicons name="arrow-back" size={20} color={BLK} />
         </TouchableOpacity>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.title}>{esSuperAdmin ? 'Gestión de equipo' : 'Mi equipo'}</Text>
-          <Text style={s.sub} numberOfLines={1}>{listaVisible.length} usuarios en tu equipo</Text>
+          <Text style={s.title} numberOfLines={1}>
+            {tiendaFiltro ? `Equipo — ${tiendaFiltro.nombre}` : esSuperAdmin ? 'Gestión de equipo' : 'Mi equipo'}
+          </Text>
+          <Text style={s.sub} numberOfLines={1}>{listaVisible.length} personas asignadas</Text>
         </View>
         <TouchableOpacity style={s.addBtn} onPress={() => setModalVisible(true)} accessibilityLabel="Agregar usuario" accessibilityRole="button">
           <Ionicons name="person-add" size={18} color="#fff" />

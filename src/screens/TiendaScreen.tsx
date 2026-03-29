@@ -12,19 +12,21 @@ interface Props {
   registros: Registro[];
   catalogos: Record<string, Articulo[]>;
   sobrantesTienda: number;
+  confirmadosCero: string[];
   onBack: () => void;
   onNavScanner: (t: Tienda) => void;
   onNavRegistros: (t: Tienda) => void;
   onNavImportar: (t: Tienda) => void;
   onNavResultados: (t: Tienda) => void;
   onNavSobrantes: (t: Tienda) => void;
+  onNavEquipo?: () => void;
   onLimpiar?: () => void;
 }
 
 export const TiendaScreen: React.FC<Props> = ({
-  tienda, usuario, usuarios, registros, catalogos, sobrantesTienda,
+  tienda, usuario, usuarios, registros, catalogos, sobrantesTienda, confirmadosCero,
   onBack, onNavScanner, onNavRegistros, onNavImportar, onNavResultados, onNavSobrantes,
-  onLimpiar,
+  onNavEquipo, onLimpiar,
 }) => {
   const CAT            = catalogos[tienda.id] || [];
   const regTienda      = registros.filter(r => r.tiendaId === tienda.id);
@@ -32,8 +34,14 @@ export const TiendaScreen: React.FC<Props> = ({
   const esAdmin        = usuario.rol === 'ADMIN' || esSuperAdmin;
   const esContador     = usuario.rol === 'CONTADOR';
   const total          = CAT.length || 18;
-  const contados       = new Set(regTienda.map(r => r.itemId)).size;
-  const pct            = Math.round(contados / total * 100);
+
+  // Porcentaje considera escaneados + confirmados cero (sin doble contar)
+  const escaneadosSet   = new Set(regTienda.map(r => r.itemId));
+  const confirmadosSet  = new Set(confirmadosCero);
+  const contadosTotal   = new Set([...escaneadosSet, ...confirmadosSet]).size;
+  const contados        = contadosTotal;
+  const pct             = Math.min(100, Math.round(contados / total * 100));
+
   const equipoTienda   = usuarios.filter(u => u.tiendas.includes(tienda.id) && u.rol !== 'SUPERADMIN' && u.activo !== false);
 
   // Acciones visibles según rol
@@ -41,11 +49,12 @@ export const TiendaScreen: React.FC<Props> = ({
   // ADMIN: + resultados + sobrantes
   // SUPERADMIN: + importar + limpiar
   const acciones: { icon: IoniconName; bg: string; title: string; sub: string; fn: () => void; badge?: string }[] = [
-    { icon: 'scan',       bg: tienda.color, title: 'Escanear artículo',  sub: 'Abrir cámara para contar',                   fn: () => onNavScanner(tienda) },
-    { icon: 'list',       bg: '#27272A',    title: 'Registros de conteo', sub: `${regTienda.length} escaneos totales`,       fn: () => onNavRegistros(tienda) },
+    { icon: 'scan',        bg: tienda.color, title: 'Escanear artículo',    sub: 'Abrir cámara para contar',                                   fn: () => onNavScanner(tienda) },
+    { icon: 'list',        bg: '#27272A',    title: 'Registros de conteo',  sub: `${regTienda.length} escaneos totales`,                       fn: () => onNavRegistros(tienda) },
+    { icon: 'add-circle' as IoniconName, bg: '#92400E', title: 'Sobrantes sin Stock', sub: sobrantesTienda > 0 ? `${sobrantesTienda} registrados` : 'Artículos sin existencia en sistema', fn: () => onNavSobrantes(tienda), badge: sobrantesTienda > 0 ? String(sobrantesTienda) : undefined },
     ...(esAdmin ? [
-      { icon: 'pie-chart'  as IoniconName, bg: '#4C1D95', title: 'Resultados',        sub: 'Análisis y resumen económico',   fn: () => onNavResultados(tienda) },
-      { icon: 'add-circle' as IoniconName, bg: '#92400E', title: 'Sobrantes sin Stock', sub: sobrantesTienda > 0 ? `${sobrantesTienda} registrados` : 'Artículos sin existencia en sistema', fn: () => onNavSobrantes(tienda), badge: sobrantesTienda > 0 ? String(sobrantesTienda) : undefined },
+      { icon: 'pie-chart'    as IoniconName, bg: '#4C1D95', title: 'Resultados',             sub: 'Análisis, artículos y resumen económico',   fn: () => onNavResultados(tienda) },
+      { icon: 'people'       as IoniconName, bg: '#0369A1', title: 'Gestionar equipo',        sub: `${equipoTienda.length} persona${equipoTienda.length !== 1 ? 's' : ''} asignada${equipoTienda.length !== 1 ? 's' : ''}`, fn: () => onNavEquipo?.() },
     ] : []),
     ...(esSuperAdmin
       ? [{ icon: 'cloud-upload' as IoniconName, bg: '#09090B', title: 'Cargar catálogo Excel', sub: CAT.length > 0 ? `${CAT.length} artículos cargados` : 'Sin catálogo cargado', fn: () => onNavImportar(tienda) }]
@@ -86,18 +95,37 @@ export const TiendaScreen: React.FC<Props> = ({
         </View>
       </View>
 
-      {/* Estadísticas de clasificación */}
+      {/* Estadísticas de clasificación — interactivas para Admin */}
       <View style={s.statsGrid}>
         {(['SIN_DIF', 'FALTANTE', 'SOBRANTE', 'CERO'] as const).map(k => {
           const cfg = CLSF[k];
           const n   = regTienda.filter(r => r.clasificacion === k).length;
           return (
-            <View key={k} style={[s.statCard, { borderTopColor: cfg.dot }]}>
-              <Text style={[s.statN, { color: cfg.color }]}>{n}</Text>
-              <Text style={s.statLbl}>{cfg.label}</Text>
-            </View>
+            <TouchableOpacity
+              key={k}
+              style={[s.statCard, { borderTopColor: cfg.dot }]}
+              onPress={esAdmin ? () => onNavResultados(tienda) : undefined}
+              activeOpacity={esAdmin ? 0.8 : 1}
+            >
+              <Text style={[s.statN, { color: cfg.color }]} numberOfLines={1} adjustsFontSizeToFit>{n}</Text>
+              <Text style={s.statLbl} numberOfLines={1}>{cfg.label}</Text>
+            </TouchableOpacity>
           );
         })}
+        {/* Tarjeta sobrantes sin stock */}
+        <TouchableOpacity
+          style={[s.statCard, { borderTopColor: '#F59E0B', width: '100%' }]}
+          onPress={() => onNavSobrantes(tienda)}
+          activeOpacity={0.8}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <Text style={[s.statN, { color: '#92400E' }]} numberOfLines={1} adjustsFontSizeToFit>{sobrantesTienda}</Text>
+            <View style={{ alignItems: 'flex-start' }}>
+              <Text style={[s.statLbl, { color: '#92400E' }]}>Sobrantes sin stock</Text>
+              <Text style={{ fontSize: 9, color: '#A1A1AA', fontWeight: '600' }}>Toca para gestionar →</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
       </View>
 
       <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
@@ -190,14 +218,14 @@ const s = StyleSheet.create({
   progSub:     { fontSize: 12, color: 'rgba(255,255,255,0.6)' },
 
   statsGrid:   { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, paddingTop: 18, gap: 10 },
-  statCard:    { width: '47%', backgroundColor: '#fff', borderRadius: 16, padding: 14, alignItems: 'center', borderTopWidth: 4, borderWidth: 1, borderColor: BRD, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
-  statN:       { fontSize: 28, fontWeight: '900', marginBottom: 4 },
-  statLbl:     { fontSize: 10, fontWeight: '700', color: MTD, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' },
+  statCard:    { width: '47%', backgroundColor: '#fff', borderRadius: 16, padding: 14, alignItems: 'center', borderTopWidth: 4, borderWidth: 1, borderColor: BRD, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1, overflow: 'hidden' },
+  statN:       { fontSize: 26, fontWeight: '900', marginBottom: 4 },
+  statLbl:     { fontSize: 10, fontWeight: '700', color: MTD, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', flexShrink: 1 },
 
   actionCard:  { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: BRD, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
   actionIcon:  { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
-  actionTitle: { fontSize: 15, fontWeight: '800', color: BLK, marginBottom: 3 },
-  actionSub:   { fontSize: 12, color: MTD },
+  actionTitle: { fontSize: 15, fontWeight: '800', color: BLK, marginBottom: 3, flexShrink: 1 },
+  actionSub:   { fontSize: 12, color: MTD, flexShrink: 1 },
   actionArrow: { width: 32, height: 32, borderRadius: 16, backgroundColor: LGR, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
   badgeChip:   { borderRadius: 12, paddingHorizontal: 9, paddingVertical: 4, marginRight: 8 },
   badgeTxt:    { color: '#fff', fontSize: 12, fontWeight: '800' },

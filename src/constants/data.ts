@@ -19,6 +19,7 @@ export interface Usuario {
   telefono?: string;
   activo?: boolean;      // false = desactivado por un ADMIN
   creadoPor?: string;    // id del ADMIN que creó este CONTADOR
+  fotoUri?: string;      // URI de la foto de perfil (almacenado localmente)
 }
 
 export interface Tienda {
@@ -150,10 +151,30 @@ export const CLSF: Record<Clasificacion, ClasificacionConfig> = {
 
 // ─── PALETA DE COLORES PARA TIENDAS ──────────────────────────────────────────
 export const PALETA_COLORES: string[] = [
-  '#09090B', '#1E1B4B', '#4C1D95', '#7C3AED',
-  '#1D4ED8', '#0369A1', '#0E7490', '#047857',
-  '#15803D', '#92400E', '#B45309', '#C2410C',
-  '#DC2626', '#9F1239', '#DB2777', '#374151',
+  // Negros y grises oscuros
+  '#09090B', '#1F2937', '#374151', '#4B5563',
+  // Azules oscuros y navy
+  '#1E1B4B', '#1E3A5F', '#1D4ED8', '#1E40AF',
+  // Morados
+  '#4C1D95', '#5B21B6', '#6D28D9', '#7C3AED',
+  // Azules y cielos
+  '#0369A1', '#0284C7', '#0EA5E9', '#0E7490',
+  // Verdes
+  '#065F46', '#047857', '#15803D', '#166534',
+  // Verdes claros
+  '#0F766E', '#0D9488', '#14B8A6', '#059669',
+  // Rojos y carmesíes
+  '#9F1239', '#BE123C', '#C8372A', '#DC2626',
+  // Naranjas y ambar
+  '#92400E', '#B45309', '#C2410C', '#D97706',
+  // Rosas y fucsias
+  '#9D174D', '#DB2777', '#EC4899', '#BE185D',
+  // Índigo
+  '#312E81', '#3730A3', '#4338CA', '#4F46E5',
+  // Cafés y tierra
+  '#78350F', '#92400E', '#713F12', '#451A03',
+  // Verdes lima y esmeralda
+  '#3F6212', '#4D7C0F', '#365314', '#14532D',
 ];
 
 // ─── COLORES DE LA APP ────────────────────────────────────────────────────────

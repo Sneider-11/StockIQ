@@ -19,12 +19,11 @@ interface SuperAdminProps {
 }
 
 export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
-  usuario, usuarios, tiendas, registros, onLogout, onNavTienda, onNavEquipo, onNavTiendas, onNavPerfil,
+  usuario, usuarios, tiendas, onLogout, onNavTienda, onNavEquipo, onNavTiendas, onNavPerfil,
 }) => {
-  const equipo        = usuarios.filter(u => u.rol !== 'SUPERADMIN');
-  const admins        = equipo.filter(u => u.rol === 'ADMIN');
-  const contadores    = equipo.filter(u => u.rol === 'CONTADOR');
-  const totalEscaneos = registros.length;
+  const equipo     = usuarios.filter(u => u.rol !== 'SUPERADMIN');
+  const admins     = equipo.filter(u => u.rol === 'ADMIN');
+  const contadores = equipo.filter(u => u.rol === 'CONTADOR');
 
   return (
     <ScrollView
@@ -51,28 +50,6 @@ export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
           </View>
         </View>
 
-        {/* Stats */}
-        <View style={s.statsRow}>
-          <View style={s.statBox}>
-            <Text style={s.statN}>{admins.length}</Text>
-            <Text style={s.statL}>Admins</Text>
-          </View>
-          <View style={s.statDiv} />
-          <View style={s.statBox}>
-            <Text style={s.statN}>{contadores.length}</Text>
-            <Text style={s.statL}>Contadores</Text>
-          </View>
-          <View style={s.statDiv} />
-          <View style={s.statBox}>
-            <Text style={s.statN}>{tiendas.length}</Text>
-            <Text style={s.statL}>Tiendas</Text>
-          </View>
-          <View style={s.statDiv} />
-          <View style={s.statBox}>
-            <Text style={s.statN}>{totalEscaneos}</Text>
-            <Text style={s.statL}>Escaneos</Text>
-          </View>
-        </View>
       </View>
 
       {/* Cuerpo */}
@@ -81,7 +58,6 @@ export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
 
         {tiendas.map(t => {
           const asignados = equipo.filter(u => u.tiendas.includes(t.id));
-          const escTienda = registros.filter(r => r.tiendaId === t.id).length;
           return (
             <TouchableOpacity key={t.id} style={s.tiendaCard} onPress={() => onNavTienda(t)} activeOpacity={0.88}>
               <View style={[s.tiendaIcon, { backgroundColor: t.color }]}>
@@ -93,7 +69,6 @@ export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
                   {asignados.length === 0
                     ? 'Sin personal asignado'
                     : asignados.map(u => u.nombre.split(' ')[0]).join(', ')}
-                  {escTienda > 0 ? ` · ${escTienda} escaneos` : ''}
                 </Text>
               </View>
               <View style={s.chevronWrap}>
@@ -167,19 +142,17 @@ interface AdminProps {
   registros:   Registro[];
   onLogout:    () => void;
   onNavTienda: (t: Tienda) => void;
-  onNavEquipo: () => void;
   onNavPerfil: () => void;
 }
 
 export const HomeAdminScreen: React.FC<AdminProps> = ({
-  usuario, usuarios, tiendas, registros, onLogout, onNavTienda, onNavEquipo, onNavPerfil,
+  usuario, usuarios, tiendas, onLogout, onNavTienda, onNavPerfil,
 }) => {
-  const misTiendas   = tiendas.filter(t => usuario.tiendas.includes(t.id));
+  const misTiendas    = tiendas.filter(t => usuario.tiendas.includes(t.id));
   const misContadores = usuarios.filter(u =>
     u.rol === 'CONTADOR' &&
     u.tiendas.some(tid => usuario.tiendas.includes(tid))
   );
-  const misEscaneos  = registros.filter(r => usuario.tiendas.includes(r.tiendaId)).length;
 
   return (
     <ScrollView
@@ -206,22 +179,6 @@ export const HomeAdminScreen: React.FC<AdminProps> = ({
           </View>
         </View>
 
-        <View style={s.statsRow}>
-          <View style={s.statBox}>
-            <Text style={s.statN}>{misTiendas.length}</Text>
-            <Text style={s.statL}>Tiendas</Text>
-          </View>
-          <View style={s.statDiv} />
-          <View style={s.statBox}>
-            <Text style={s.statN}>{misContadores.length}</Text>
-            <Text style={s.statL}>Contadores</Text>
-          </View>
-          <View style={s.statDiv} />
-          <View style={s.statBox}>
-            <Text style={s.statN}>{misEscaneos}</Text>
-            <Text style={s.statL}>Escaneos</Text>
-          </View>
-        </View>
       </View>
 
       <View style={s.body}>
@@ -234,7 +191,7 @@ export const HomeAdminScreen: React.FC<AdminProps> = ({
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={s.tiendaNombre} numberOfLines={1}>{t.nombre}</Text>
               <Text style={s.tiendaSub} numberOfLines={1}>
-                {registros.filter(r => r.tiendaId === t.id).length} escaneos totales
+                Toca para gestionar y escanear
               </Text>
             </View>
             <View style={s.chevronWrap}>
@@ -242,22 +199,6 @@ export const HomeAdminScreen: React.FC<AdminProps> = ({
             </View>
           </TouchableOpacity>
         ))}
-
-        <SecHeader title="Mi equipo" />
-        <TouchableOpacity style={s.tiendaCard} onPress={onNavEquipo} activeOpacity={0.88}>
-          <View style={[s.tiendaIcon, { backgroundColor: '#047857' }]}>
-            <Ionicons name="people" size={20} color="#fff" />
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={s.tiendaNombre}>Gestionar contadores</Text>
-            <Text style={s.tiendaSub} numberOfLines={1}>
-              {misContadores.length} contador{misContadores.length !== 1 ? 'es' : ''} en mis tiendas
-            </Text>
-          </View>
-          <View style={s.chevronWrap}>
-            <Ionicons name="chevron-forward" size={16} color="#A1A1AA" />
-          </View>
-        </TouchableOpacity>
 
         {misContadores.length > 0 && (
           <>
@@ -294,10 +235,9 @@ interface ContadorProps {
 }
 
 export const HomeContadorScreen: React.FC<ContadorProps> = ({
-  usuario, tiendas, registros, onLogout, onNavTienda, onNavPerfil,
+  usuario, tiendas, onLogout, onNavTienda, onNavPerfil,
 }) => {
-  const misTiendas  = tiendas.filter(t => usuario.tiendas.includes(t.id));
-  const misEscaneos = registros.filter(r => r.usuarioNombre === usuario.nombre).length;
+  const misTiendas = tiendas.filter(t => usuario.tiendas.includes(t.id));
 
   return (
     <ScrollView
@@ -324,17 +264,6 @@ export const HomeContadorScreen: React.FC<ContadorProps> = ({
           </View>
         </View>
 
-        <View style={s.statsRow}>
-          <View style={s.statBox}>
-            <Text style={s.statN}>{misTiendas.length}</Text>
-            <Text style={s.statL}>Tiendas</Text>
-          </View>
-          <View style={s.statDiv} />
-          <View style={s.statBox}>
-            <Text style={s.statN}>{misEscaneos}</Text>
-            <Text style={s.statL}>Mis escaneos</Text>
-          </View>
-        </View>
       </View>
 
       <View style={s.body}>
@@ -355,7 +284,7 @@ export const HomeContadorScreen: React.FC<ContadorProps> = ({
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={s.tiendaNombre} numberOfLines={1}>{t.nombre}</Text>
               <Text style={s.tiendaSub} numberOfLines={1}>
-                {registros.filter(r => r.tiendaId === t.id && r.usuarioNombre === usuario.nombre).length} escaneos míos
+                Toca para escanear artículos
               </Text>
             </View>
             <View style={s.chevronWrap}>
@@ -370,10 +299,10 @@ export const HomeContadorScreen: React.FC<ContadorProps> = ({
 
 // ─── ESTILOS COMPARTIDOS ──────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  header:      { backgroundColor: BLK, padding: 20, paddingTop: 54, paddingBottom: 24 },
-  headerTop:   { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 },
+  header:      { backgroundColor: BLK, padding: 20, paddingTop: 54, paddingBottom: 20 },
+  headerTop:   { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 0 },
   adminTag:    { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.45)', letterSpacing: 1.5, marginBottom: 4 },
-  nombre:      { fontSize: 22, fontWeight: '900', color: '#fff' },
+  nombre:      { fontSize: 22, fontWeight: '900', color: '#fff', flexShrink: 1 },
   logoutBtn:   { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
 
   statsRow:    { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },

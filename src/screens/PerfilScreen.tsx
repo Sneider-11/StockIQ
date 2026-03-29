@@ -1,24 +1,26 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, KeyboardAvoidingView, Platform,
+  ScrollView, Alert, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { Usuario, Registro, Tienda } from '../constants/data';
 import { Avatar, RolBadge, SecHeader } from '../components/common';
 import { PRP, BLK, LGR, BRD, MTD, GRN } from '../constants/colors';
 
 interface Props {
-  usuario:       Usuario;
-  registros:     Registro[];
-  tiendas:       Tienda[];
-  onCambiarPass: (nueva: string) => void;
-  onLogout:      () => void;
-  onBack:        () => void;
+  usuario:           Usuario;
+  registros:         Registro[];
+  tiendas:           Tienda[];
+  onCambiarPass:     (nueva: string) => void;
+  onActualizarFoto?: (uri: string) => void;
+  onLogout:          () => void;
+  onBack:            () => void;
 }
 
 export const PerfilScreen: React.FC<Props> = ({
-  usuario, registros, tiendas, onCambiarPass, onLogout, onBack,
+  usuario, registros, tiendas, onCambiarPass, onActualizarFoto, onLogout, onBack,
 }) => {
   const [passActual,    setPassActual]    = useState('');
   const [passNueva,     setPassNueva]     = useState('');
@@ -27,8 +29,23 @@ export const PerfilScreen: React.FC<Props> = ({
   const [error,         setError]         = useState('');
   const [exito,         setExito]         = useState(false);
 
-  const misEscaneos  = registros.filter(r => r.usuarioNombre === usuario.nombre).length;
-  const misTiendas   = tiendas.filter(t => usuario.tiendas.includes(t.id));
+  const misTiendas = tiendas.filter(t => usuario.tiendas.includes(t.id));
+
+  const elegirFoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para cambiar la foto.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      onActualizarFoto?.(result.assets[0].uri);
+    }
+  };
   const headerColor  =
     usuario.rol === 'SUPERADMIN' ? BLK :
     usuario.rol === 'ADMIN'      ? '#0369A1' :
@@ -39,7 +56,7 @@ export const PerfilScreen: React.FC<Props> = ({
     if (!passActual)                { setError('Ingresa tu contraseña actual.'); return; }
     if (passActual !== usuario.pass){ setError('La contraseña actual es incorrecta.'); return; }
     if (!passNueva)                 { setError('Ingresa la nueva contraseña.'); return; }
-    if (passNueva.length < 6)       { setError('Mínimo 6 caracteres para la nueva contraseña.'); return; }
+    if (passNueva.length < 8)       { setError('Mínimo 8 caracteres para la nueva contraseña.'); return; }
     if (passNueva !== passConfirmar) { setError('Las contraseñas nuevas no coinciden.'); return; }
     if (passNueva === passActual)    { setError('La nueva contraseña debe ser diferente a la actual.'); return; }
 
@@ -65,7 +82,16 @@ export const PerfilScreen: React.FC<Props> = ({
         </TouchableOpacity>
 
         <View style={s.heroWrap}>
-          <Avatar nombre={usuario.nombre} size={72} bg="rgba(255,255,255,0.18)" />
+          <TouchableOpacity onPress={elegirFoto} style={s.avatarWrap} activeOpacity={0.85}>
+            {usuario.fotoUri ? (
+              <Image source={{ uri: usuario.fotoUri }} style={s.avatarImg} />
+            ) : (
+              <Avatar nombre={usuario.nombre} size={72} bg="rgba(255,255,255,0.18)" />
+            )}
+            <View style={s.cameraOverlay}>
+              <Ionicons name="camera" size={14} color="#fff" />
+            </View>
+          </TouchableOpacity>
           <Text style={s.heroNombre}>{usuario.nombre}</Text>
           <View style={{ marginTop: 6, alignItems: 'center' }}>
             <RolBadge rol={usuario.rol} />
@@ -97,16 +123,6 @@ export const PerfilScreen: React.FC<Props> = ({
               </View>
             </View>
 
-            <View style={s.infoRow}>
-              <View style={[s.infoIconWrap, { backgroundColor: '#F0FDF4' }]}>
-                <Ionicons name="scan-circle-outline" size={16} color="#15803D" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.infoLbl}>Escaneos realizados</Text>
-                <Text style={s.infoVal}>{misEscaneos} artículos escaneados</Text>
-              </View>
-            </View>
-
             <View style={[s.infoRow, { borderBottomWidth: 0 }]}>
               <View style={[s.infoIconWrap, { backgroundColor: '#FEF3C7' }]}>
                 <Ionicons name="storefront-outline" size={16} color="#92400E" />
@@ -114,14 +130,22 @@ export const PerfilScreen: React.FC<Props> = ({
               <View style={{ flex: 1 }}>
                 <Text style={s.infoLbl}>Tiendas asignadas</Text>
                 <View style={s.tiendasWrap}>
-                  {misTiendas.map(t => (
-                    <View key={t.id} style={[s.tiendaChip, { backgroundColor: t.color + '14', borderColor: t.color + '45' }]}>
-                      <View style={[s.tiendaDot, { backgroundColor: t.color }]} />
-                      <Text style={[s.tiendaChipTxt, { color: t.color }]}>
-                        {t.nombre.replace('Tienda ', '').replace('Inventario ', '')}
-                      </Text>
-                    </View>
-                  ))}
+                  {misTiendas.map(t => {
+                    const rolEnT = usuario.tiendasRoles?.[t.id];
+                    return (
+                      <View key={t.id} style={[s.tiendaChip, { backgroundColor: t.color + '14', borderColor: t.color + '45' }]}>
+                        <View style={[s.tiendaDot, { backgroundColor: t.color }]} />
+                        <Text style={[s.tiendaChipTxt, { color: t.color }]}>
+                          {t.nombre.replace('Tienda ', '').replace('Inventario ', '')}
+                        </Text>
+                        {rolEnT && (
+                          <Text style={[s.tiendaChipRol, { color: t.color }]}>
+                            · {rolEnT === 'ADMIN' ? 'Admin' : 'Cont.'}
+                          </Text>
+                        )}
+                      </View>
+                    );
+                  })}
                 </View>
               </View>
             </View>
@@ -217,6 +241,9 @@ const s = StyleSheet.create({
   logoutIconBtn:  { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', position: 'absolute', top: 54, right: 20 },
   heroWrap:       { alignItems: 'center', marginTop: -4, marginBottom: 4 },
   heroNombre:     { fontSize: 20, fontWeight: '900', color: '#fff', marginTop: 12, textAlign: 'center' },
+  avatarWrap:     { width: 72, height: 72, borderRadius: 36, position: 'relative' },
+  avatarImg:      { width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)' },
+  cameraOverlay:  { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
 
   card:           { backgroundColor: '#fff', borderRadius: 18, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: BRD, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
 
@@ -229,6 +256,7 @@ const s = StyleSheet.create({
   tiendaChip:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, gap: 5 },
   tiendaDot:      { width: 6, height: 6, borderRadius: 3 },
   tiendaChipTxt:  { fontSize: 11, fontWeight: '700' },
+  tiendaChipRol:  { fontSize: 10, fontWeight: '600', flexShrink: 0 },
 
   exitoBanner:    { flexDirection: 'row', alignItems: 'center', backgroundColor: '#15803D', borderRadius: 10, padding: 12, marginBottom: 14 },
   exitoTxt:       { color: '#fff', fontWeight: '700', fontSize: 13 },

@@ -31,9 +31,10 @@ export default function App() {
     setPantalla,
     agregarTienda, editarTienda, eliminarTienda,
     agregarUsuario, editarUsuario, eliminarUsuario,
-    agregarRegistro, eliminarRegistro, cargarCatalogo, getCatalogo, getRegistrosTienda,
+    agregarRegistro, eliminarRegistro, editarRegistro, cargarCatalogo, getCatalogo, getRegistrosTienda,
     limpiarRegistrosTienda,
     agregarSobrante, eliminarSobrante, editarSobrante, getSobrantesTienda,
+    confirmarCero, desconfirmarCero, getConfirmadosCero,
   } = state;
 
   // ── Pantalla de carga ────────────────────────────────────────────────────────
@@ -70,11 +71,9 @@ export default function App() {
     );
   }
 
-  const esSuperAdmin = usuario.rol === 'SUPERADMIN';
-  const esAdmin      = usuario.rol === 'ADMIN' || esSuperAdmin;
-
-  // Rol efectivo dentro de la tienda activa (puede diferir del rol global)
-  const rolEnTienda    = tiendaActiva ? getRolEnTienda(usuario, tiendaActiva.id) : usuario.rol;
+  const esSuperAdmin    = usuario.rol === 'SUPERADMIN';
+  const esAdmin         = usuario.rol === 'ADMIN' || esSuperAdmin;
+  const rolEnTienda     = tiendaActiva ? getRolEnTienda(usuario, tiendaActiva.id) : usuario.rol;
   const esAdminEnTienda = rolEnTienda === 'ADMIN' || rolEnTienda === 'SUPERADMIN';
 
   // ── Perfil ─────────────────────────────────────────────────────────────────
@@ -87,15 +86,16 @@ export default function App() {
           registros={registros}
           tiendas={tiendas}
           onCambiarPass={nueva => editarUsuario(usuario.id, { pass: nueva })}
+          onActualizarFoto={uri => editarUsuario(usuario.id, { fotoUri: uri })}
           onLogout={logout}
-          onBack={() => setPantalla('home')}
+          onBack={() => setPantalla(tiendaActiva ? 'tienda' : 'home')}
         />
       </>
     );
   }
 
-  // ── Gestión de equipo ───────────────────────────────────────────────────────
-  if (pantalla === 'equipo' && esAdmin) {
+  // ── Gestión de equipo — desde home (SuperAdmin) o desde tienda (Admin/SuperAdmin) ──
+  if (pantalla === 'equipo' && esAdminEnTienda) {
     return (
       <>
         <StatusBar style="dark" />
@@ -103,10 +103,12 @@ export default function App() {
           usuarioActual={usuario}
           usuarios={usuarios}
           tiendas={tiendas}
+          // Si viene desde una tienda, filtramos el equipo a esa tienda
+          tiendaFiltro={tiendaActiva ?? undefined}
           onAgregar={agregarUsuario}
           onEditar={editarUsuario}
           onEliminar={eliminarUsuario}
-          onVolver={() => setPantalla('home')}
+          onVolver={() => setPantalla(tiendaActiva ? 'tienda' : 'home')}
         />
       </>
     );
@@ -140,12 +142,14 @@ export default function App() {
           registros={registros}
           catalogos={catalogos}
           sobrantesTienda={getSobrantesTienda(tiendaActiva.id).length}
+          confirmadosCero={getConfirmadosCero(tiendaActiva.id)}
           onBack={volverAHome}
           onNavScanner={navScanner}
           onNavRegistros={navRegistros}
           onNavImportar={navImportar}
           onNavResultados={navResultados}
           onNavSobrantes={navSobrantes}
+          onNavEquipo={esAdminEnTienda ? () => setPantalla('equipo') : undefined}
           onLimpiar={esSuperAdmin ? () => limpiarRegistrosTienda(tiendaActiva.id) : undefined}
         />
       </>
@@ -188,7 +192,7 @@ export default function App() {
     );
   }
 
-  // ── Resultados (solo ADMIN y SUPERADMIN en esa tienda) ──────────────────────
+  // ── Resultados (Admin/SuperAdmin en esa tienda) ─────────────────────────────
   if (pantalla === 'resultados' && tiendaActiva && esAdminEnTienda) {
     return (
       <>
@@ -198,14 +202,22 @@ export default function App() {
           tienda={tiendaActiva}
           catalogo={getCatalogo(tiendaActiva.id)}
           sobrantes={getSobrantesTienda(tiendaActiva.id)}
+          usuarios={usuarios}
+          esAdmin={esAdminEnTienda}
+          confirmadosCero={getConfirmadosCero(tiendaActiva.id)}
           onBack={volverATienda}
+          onEliminarRegistro={esAdminEnTienda ? eliminarRegistro : undefined}
+          onEditarRegistro={esAdminEnTienda ? editarRegistro : undefined}
+          onConfirmarCero={esAdminEnTienda ? (itemId) => confirmarCero(tiendaActiva.id, itemId) : undefined}
+          onDesconfirmarCero={esAdminEnTienda ? (itemId) => desconfirmarCero(tiendaActiva.id, itemId) : undefined}
         />
       </>
     );
   }
 
-  // ── Sobrantes sin stock (solo ADMIN y SUPERADMIN en esa tienda) ─────────────
-  if (pantalla === 'sobrantes' && tiendaActiva && esAdminEnTienda) {
+  // ── Sobrantes sin stock ─────────────────────────────────────────────────────
+  // Visible para TODOS (contador también puede registrar sobrantes)
+  if (pantalla === 'sobrantes' && tiendaActiva) {
     return (
       <>
         <StatusBar style="light" />
@@ -216,7 +228,7 @@ export default function App() {
           sobrantes={getSobrantesTienda(tiendaActiva.id)}
           onGuardar={agregarSobrante}
           onEliminar={esSuperAdmin ? eliminarSobrante : undefined}
-          onEditarEstado={(id, estado) => editarSobrante(id, { estado })}
+          onEditarEstado={esAdminEnTienda ? (id, estado) => editarSobrante(id, { estado }) : undefined}
           onBack={volverATienda}
         />
       </>
@@ -272,7 +284,6 @@ export default function App() {
           registros={registros}
           onLogout={logout}
           onNavTienda={navTienda}
-          onNavEquipo={() => setPantalla('equipo')}
           onNavPerfil={navPerfil}
         />
       </>

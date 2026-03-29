@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { USUARIOS_INICIALES, TIENDAS, CATALOGO_BASE, Usuario, Articulo, Registro, Tienda, SobranteSinStock, Rol } from '../constants/data';
-import { genId } from '../utils/helpers';
+import { genId, clasificar } from '../utils/helpers';
 import { SUPABASE_LISTO } from '../lib/supabase';
 import {
   dbGetTiendas, dbUpsertTienda, dbDeleteTienda,
@@ -14,12 +14,13 @@ import {
 
 // ─── CLAVES DE ALMACENAMIENTO ─────────────────────────────────────────────────
 const KEYS = {
-  USUARIOS:   '@stockiq:usuarios_v4',  // v4 = tiendasRoles por tienda
-  TIENDAS:    '@stockiq:tiendas_v1',
-  REGISTROS:  '@stockiq:registros',
-  CATALOGOS:  '@stockiq:catalogos',
-  SOBRANTES:  '@stockiq:sobrantes',
-  PASSWORDS:  'stockiq_pass_v1',       // clave de SecureStore (cifrado del SO)
+  USUARIOS:          '@stockiq:usuarios_v4',
+  TIENDAS:           '@stockiq:tiendas_v1',
+  REGISTROS:         '@stockiq:registros',
+  CATALOGOS:         '@stockiq:catalogos',
+  SOBRANTES:         '@stockiq:sobrantes',
+  CONFIRMADOS_CERO:  '@stockiq:confirmados_cero',
+  PASSWORDS:         'stockiq_pass_v1',
 } as const;
 
 // ─── HELPERS SECURE STORE ─────────────────────────────────────────────────────
@@ -88,17 +89,20 @@ export function useAppState() {
   const [registros, setRegistros]         = useState<Registro[]>([]);
   const [catalogos, setCatalogos]         = useState<Record<string, Articulo[]>>({});
   const [sobrantes, setSobrantes]         = useState<SobranteSinStock[]>([]);
+  // confirmadosCero: tiendaId → [itemId, ...] artículos con conteo cero confirmados por Admin/SuperAdmin
+  const [confirmadosCero, setConfirmadosCero] = useState<Record<string, string[]>>({});
 
   // ── FASE 1: AsyncStorage + SecureStore (inmediato, funciona offline) ────────
   useEffect(() => {
     const cargar = async () => {
       try {
-        const [rawTiendas, rawUsuarios, rawRegistros, rawCatalogos, rawSobrantes, passwords] = await Promise.all([
+        const [rawTiendas, rawUsuarios, rawRegistros, rawCatalogos, rawSobrantes, rawConfirmados, passwords] = await Promise.all([
           AsyncStorage.getItem(KEYS.TIENDAS),
           AsyncStorage.getItem(KEYS.USUARIOS),
           AsyncStorage.getItem(KEYS.REGISTROS),
           AsyncStorage.getItem(KEYS.CATALOGOS),
           AsyncStorage.getItem(KEYS.SOBRANTES),
+          AsyncStorage.getItem(KEYS.CONFIRMADOS_CERO),
           loadPasswords(),
         ]);
 
@@ -133,9 +137,10 @@ export function useAppState() {
             ...nuevos,
           ]);
         }
-        if (rawRegistros)  setRegistros(JSON.parse(rawRegistros));
-        if (rawCatalogos)  setCatalogos(JSON.parse(rawCatalogos));
-        if (rawSobrantes)  setSobrantes(JSON.parse(rawSobrantes));
+        if (rawRegistros)   setRegistros(JSON.parse(rawRegistros));
+        if (rawCatalogos)   setCatalogos(JSON.parse(rawCatalogos));
+        if (rawSobrantes)   setSobrantes(JSON.parse(rawSobrantes));
+        if (rawConfirmados) setConfirmadosCero(JSON.parse(rawConfirmados));
       } catch {
         // Si algo falla, la app sigue con los datos iniciales
       } finally {
@@ -241,6 +246,11 @@ export function useAppState() {
     AsyncStorage.setItem(KEYS.SOBRANTES, JSON.stringify(sobrantes)).catch(() => {});
   }, [sobrantes, cargando]);
 
+  useEffect(() => {
+    if (cargando) return;
+    AsyncStorage.setItem(KEYS.CONFIRMADOS_CERO, JSON.stringify(confirmadosCero)).catch(() => {});
+  }, [confirmadosCero, cargando]);
+
   // ── Auth ──────────────────────────────────────────────────────────────────
   const login = useCallback((u: Usuario) => {
     setUsuario(u);
@@ -335,6 +345,18 @@ export function useAppState() {
     dbDeleteRegistro(id).catch(() => {});
   }, []);
 
+  const editarRegistro = useCallback((id: string, cambios: Partial<Pick<Registro, 'cantidad' | 'nota' | 'fotoUri'>>) => {
+    setRegistros(prev => prev.map(r => {
+      if (r.id !== id) return r;
+      const actualizado = { ...r, ...cambios };
+      if (cambios.cantidad !== undefined) {
+        actualizado.clasificacion = clasificar(actualizado.stockSistema, actualizado.cantidad);
+      }
+      dbInsertRegistro(actualizado).catch(() => {});
+      return actualizado;
+    }));
+  }, []);
+
   const cargarCatalogo = useCallback((tiendaId: string, data: Articulo[]) => {
     setCatalogos(prev => ({ ...prev, [tiendaId]: data }));
     dbUpsertCatalogo(tiendaId, data).catch(() => {});
@@ -374,6 +396,25 @@ export function useAppState() {
     dbLimpiarRegistrosTienda(tiendaId).catch(() => {});
   }, []);
 
+  const confirmarCero = useCallback((tiendaId: string, itemId: string) => {
+    setConfirmadosCero(prev => {
+      const lista = prev[tiendaId] ?? [];
+      if (lista.includes(itemId)) return prev;
+      return { ...prev, [tiendaId]: [...lista, itemId] };
+    });
+  }, []);
+
+  const desconfirmarCero = useCallback((tiendaId: string, itemId: string) => {
+    setConfirmadosCero(prev => {
+      const lista = (prev[tiendaId] ?? []).filter(id => id !== itemId);
+      return { ...prev, [tiendaId]: lista };
+    });
+  }, []);
+
+  const getConfirmadosCero = useCallback((tiendaId: string): string[] =>
+    confirmadosCero[tiendaId] ?? [],
+  [confirmadosCero]);
+
   return {
     // Estado de carga
     cargando,
@@ -391,9 +432,11 @@ export function useAppState() {
     // Usuarios
     agregarUsuario, editarUsuario, eliminarUsuario,
     // Inventario
-    agregarRegistro, eliminarRegistro, cargarCatalogo, getCatalogo, getRegistrosTienda,
+    agregarRegistro, eliminarRegistro, editarRegistro, cargarCatalogo, getCatalogo, getRegistrosTienda,
     limpiarRegistrosTienda,
     // Sobrantes sin stock
     agregarSobrante, eliminarSobrante, editarSobrante, getSobrantesTienda,
+    // Confirmados cero
+    confirmadosCero, confirmarCero, desconfirmarCero, getConfirmadosCero,
   };
 }

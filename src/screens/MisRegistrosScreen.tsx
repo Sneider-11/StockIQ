@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, FlatList, Image, Modal, Alert, SectionList,
+  ScrollView, FlatList, Image, Modal, Alert, SectionList, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Tienda, Usuario, Registro, SobranteSinStock, CLSF } from '../constants/data';
@@ -24,12 +24,15 @@ export const MisRegistrosScreen: React.FC<Props> = ({
   usuario, tienda, registros, sobrantes, esAdmin, onVolver, onEliminar, onEliminarSobrante,
 }) => {
   const [filtro,    setFiltro]    = useState('TODOS');
+  const [busqueda,  setBusqueda]  = useState('');
   const [fotoModal, setFotoModal] = useState<string | null>(null);
   const [tabActiva, setTabActiva] = useState<'escaneos' | 'sobrantes'>('escaneos');
 
   const base       = registros.filter(r => r.tiendaId === tienda.id);
   const mis        = esAdmin ? base : base.filter(r => r.usuarioNombre === usuario.nombre);
-  const filtrados  = filtro === 'TODOS' ? mis : mis.filter(r => r.clasificacion === filtro);
+  const bq         = busqueda.toLowerCase();
+  const filtrados  = (filtro === 'TODOS' ? mis : mis.filter(r => r.clasificacion === filtro))
+    .filter(r => bq === '' || r.itemId.toLowerCase().includes(bq) || r.descripcion.toLowerCase().includes(bq) || r.ubicacion.toLowerCase().includes(bq) || r.usuarioNombre.toLowerCase().includes(bq));
   const totalCosto = mis.reduce((a, r) => a + r.costoUnitario * r.cantidad, 0);
 
   // Sobrantes de esta tienda (ADMIN ve todos, CONTADOR solo los suyos)
@@ -77,6 +80,24 @@ export const MisRegistrosScreen: React.FC<Props> = ({
             {tienda.nombre} · {mis.length} escaneos · {misSobrantes.length} sobrantes
           </Text>
         </View>
+      </View>
+
+      {/* Búsqueda */}
+      <View style={s.searchBar}>
+        <Ionicons name="search-outline" size={16} color={MTD} style={{ marginLeft: 12 }} />
+        <TextInput
+          style={s.searchInput}
+          placeholder="Buscar por código, descripción o usuario..."
+          placeholderTextColor="#A1A1AA"
+          value={busqueda}
+          onChangeText={setBusqueda}
+          returnKeyType="search"
+        />
+        {busqueda !== '' && (
+          <TouchableOpacity onPress={() => setBusqueda('')} style={{ paddingHorizontal: 12 }}>
+            <Ionicons name="close-circle" size={16} color={MTD} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Tabs: Escaneos / Sobrantes */}
@@ -372,6 +393,10 @@ const s = StyleSheet.create({
   backBtn:   { width: 40, height: 40, borderRadius: 20, backgroundColor: LGR, alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0 },
   title:     { fontSize: 18, fontWeight: '800', color: BLK },
   sub:       { fontSize: 12, color: MTD, marginTop: 2 },
+
+  // Búsqueda
+  searchBar:   { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: BRD, height: 48 },
+  searchInput: { flex: 1, height: 48, paddingHorizontal: 10, fontSize: 14, color: BLK },
 
   // Tabs
   tabs:         { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: BRD },
