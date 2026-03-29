@@ -7,7 +7,7 @@
  */
 
 import { supabase, SUPABASE_LISTO } from './supabase';
-import { Usuario, Articulo, Registro } from '../constants/data';
+import { Usuario, Articulo, Registro, SobranteSinStock } from '../constants/data';
 
 // ─── USUARIOS ─────────────────────────────────────────────────────────────────
 
@@ -92,6 +92,11 @@ export async function dbInsertRegistro(r: Registro): Promise<void> {
   });
 }
 
+export async function dbDeleteRegistro(id: string): Promise<void> {
+  if (!SUPABASE_LISTO) return;
+  await supabase.from('registros').delete().eq('id', id);
+}
+
 export async function dbLimpiarRegistrosTienda(tiendaId: string): Promise<void> {
   if (!SUPABASE_LISTO) return;
   await supabase.from('registros').delete().eq('tienda_id', tiendaId);
@@ -116,6 +121,77 @@ export async function dbGetAllCatalogos(): Promise<Record<string, Articulo[]>> {
   }
   return result;
 }
+
+// ─── SOBRANTES SIN STOCK ──────────────────────────────────────────────────────
+
+/**
+ * Tabla requerida en Supabase:
+ * CREATE TABLE sobrantes (
+ *   id TEXT PRIMARY KEY,
+ *   tienda_id TEXT NOT NULL,
+ *   codigo TEXT NOT NULL,
+ *   descripcion TEXT NOT NULL,
+ *   ubicacion TEXT NOT NULL,
+ *   foto_uri TEXT,
+ *   estado TEXT NOT NULL,
+ *   precio NUMERIC NOT NULL,
+ *   cantidad INTEGER NOT NULL,
+ *   usuario_nombre TEXT NOT NULL,
+ *   registrado_en TEXT NOT NULL,
+ *   creado_en TIMESTAMPTZ DEFAULT NOW()
+ * );
+ */
+
+export async function dbGetSobrantes(): Promise<SobranteSinStock[]> {
+  if (!SUPABASE_LISTO) return [];
+  const { data, error } = await supabase
+    .from('sobrantes')
+    .select('*')
+    .order('creado_en', { ascending: false });
+  if (error || !data) return [];
+  return data.map(r => ({
+    id:            r.id,
+    tiendaId:      r.tienda_id,
+    codigo:        r.codigo,
+    descripcion:   r.descripcion,
+    ubicacion:     r.ubicacion,
+    fotoUri:       r.foto_uri ?? '',
+    estado:        r.estado,
+    precio:        r.precio,
+    cantidad:      r.cantidad,
+    usuarioNombre: r.usuario_nombre,
+    registradoEn:  r.registrado_en,
+  }));
+}
+
+export async function dbInsertSobrante(s: SobranteSinStock): Promise<void> {
+  if (!SUPABASE_LISTO) return;
+  await supabase.from('sobrantes').upsert({
+    id:             s.id,
+    tienda_id:      s.tiendaId,
+    codigo:         s.codigo,
+    descripcion:    s.descripcion,
+    ubicacion:      s.ubicacion,
+    foto_uri:       s.fotoUri || null,
+    estado:         s.estado,
+    precio:         s.precio,
+    cantidad:       s.cantidad,
+    usuario_nombre: s.usuarioNombre,
+    registrado_en:  s.registradoEn,
+  }, { onConflict: 'id' });
+}
+
+export async function dbDeleteSobrante(id: string): Promise<void> {
+  if (!SUPABASE_LISTO) return;
+  await supabase.from('sobrantes').delete().eq('id', id);
+}
+
+export async function dbUpdateSobranteEstado(id: string, estado: string): Promise<void> {
+  if (!SUPABASE_LISTO) return;
+  await supabase.from('sobrantes').update({ estado }).eq('id', id);
+}
+
+// ─── CATÁLOGOS ────────────────────────────────────────────────────────────────
 
 export async function dbUpsertCatalogo(tiendaId: string, articulos: Articulo[]): Promise<void> {
   if (!SUPABASE_LISTO) return;

@@ -12,6 +12,8 @@ import {
   MisRegistrosScreen,
   ResultadosScreen,
   ImportarScreen,
+  SobrantesSinStockScreen,
+  PerfilScreen,
 } from './src/screens';
 
 export default function App() {
@@ -20,14 +22,16 @@ export default function App() {
     cargando,
     usuario, usuarios, pantalla, tiendaActiva, registros, catalogos,
     login, logout,
-    navTienda, navScanner, navRegistros, navResultados, navImportar,
+    navTienda, navScanner, navRegistros, navResultados, navImportar, navSobrantes, navPerfil,
     volverATienda, volverAHome,
     setPantalla,
     agregarUsuario, editarUsuario, eliminarUsuario,
-    agregarRegistro, cargarCatalogo, getCatalogo, getRegistrosTienda,
+    agregarRegistro, eliminarRegistro, cargarCatalogo, getCatalogo, getRegistrosTienda,
+    limpiarRegistrosTienda,
+    agregarSobrante, eliminarSobrante, editarSobrante, getSobrantesTienda,
   } = state;
 
-  // ── Pantalla de carga mientras se leen datos locales ────────────────────────
+  // ── Pantalla de carga ────────────────────────────────────────────────────────
   if (cargando) {
     return (
       <View style={{ flex: 1, backgroundColor: '#09090B', alignItems: 'center', justifyContent: 'center' }}>
@@ -43,6 +47,22 @@ export default function App() {
       <>
         <StatusBar style="light" />
         <LoginScreen usuarios={usuarios} onLogin={login} />
+      </>
+    );
+  }
+
+  // ── Perfil / Cambiar contraseña ─────────────────────────────────────────────
+  if (pantalla === 'perfil') {
+    return (
+      <>
+        <StatusBar style="light" />
+        <PerfilScreen
+          usuario={usuario}
+          registros={registros}
+          onCambiarPass={nueva => editarUsuario(usuario.id, { pass: nueva })}
+          onLogout={logout}
+          onBack={() => setPantalla('home')}
+        />
       </>
     );
   }
@@ -74,11 +94,14 @@ export default function App() {
           usuarios={usuarios}
           registros={registros}
           catalogos={catalogos}
+          sobrantesTienda={getSobrantesTienda(tiendaActiva.id).length}
           onBack={volverAHome}
           onNavScanner={navScanner}
           onNavRegistros={navRegistros}
           onNavImportar={navImportar}
           onNavResultados={navResultados}
+          onNavSobrantes={navSobrantes}
+          onLimpiar={() => limpiarRegistrosTienda(tiendaActiva.id)}
         />
       </>
     );
@@ -112,6 +135,7 @@ export default function App() {
           registros={registros}
           esAdmin={usuario.rol === 'SUPERADMIN'}
           onVolver={volverATienda}
+          onEliminar={usuario.rol === 'SUPERADMIN' ? eliminarRegistro : undefined}
         />
       </>
     );
@@ -126,6 +150,26 @@ export default function App() {
           registros={registros}
           tienda={tiendaActiva}
           catalogo={getCatalogo(tiendaActiva.id)}
+          sobrantes={getSobrantesTienda(tiendaActiva.id)}
+          onBack={volverATienda}
+        />
+      </>
+    );
+  }
+
+  // ── Sobrantes sin stock ──────────────────────────────────────────────────────
+  if (pantalla === 'sobrantes' && tiendaActiva) {
+    return (
+      <>
+        <StatusBar style="light" />
+        <SobrantesSinStockScreen
+          tienda={tiendaActiva}
+          usuario={usuario}
+          catalogo={getCatalogo(tiendaActiva.id)}
+          sobrantes={getSobrantesTienda(tiendaActiva.id)}
+          onGuardar={agregarSobrante}
+          onEliminar={usuario.rol === 'SUPERADMIN' ? eliminarSobrante : undefined}
+          onEditarEstado={(id, estado) => editarSobrante(id, { estado })}
           onBack={volverATienda}
         />
       </>
@@ -139,6 +183,7 @@ export default function App() {
         <StatusBar style="dark" />
         <ImportarScreen
           tienda={tiendaActiva}
+          catalogoActual={catalogos[tiendaActiva.id] ?? []}
           onImportar={data => {
             cargarCatalogo(tiendaActiva.id, data);
             volverATienda();
@@ -161,6 +206,7 @@ export default function App() {
           onLogout={logout}
           onNavTienda={navTienda}
           onNavEquipo={() => setPantalla('equipo')}
+          onNavPerfil={navPerfil}
         />
       </>
     );
@@ -174,6 +220,7 @@ export default function App() {
         registros={registros}
         onLogout={logout}
         onNavTienda={navTienda}
+        onNavPerfil={navPerfil}
       />
     </>
   );

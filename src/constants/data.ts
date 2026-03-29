@@ -4,6 +4,7 @@ import type { Ionicons } from '@expo/vector-icons';
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
 export type Rol = 'SUPERADMIN' | 'AUDITOR';
 export type Clasificacion = 'SIN_DIF' | 'FALTANTE' | 'SOBRANTE' | 'CERO';
+export type EstadoSobrante = 'CONFIRMADO' | 'PENDIENTE';
 export type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
 export interface Usuario {
@@ -52,6 +53,20 @@ export interface ClasificacionConfig {
   color: string;
   bg: string;
   dot: string;
+}
+
+export interface SobranteSinStock {
+  id: string;
+  tiendaId: string;
+  codigo: string;
+  descripcion: string;
+  ubicacion: string;
+  fotoUri: string;
+  estado: EstadoSobrante;
+  precio: number;
+  cantidad: number;
+  usuarioNombre: string;
+  registradoEn: string;
 }
 
 // ─── TIENDAS ──────────────────────────────────────────────────────────────────

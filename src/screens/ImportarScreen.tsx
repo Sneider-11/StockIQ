@@ -10,12 +10,13 @@ import { Tienda, Articulo } from '../constants/data';
 import { PRP, BLK, LGR, BRD, MTD } from '../constants/colors';
 
 interface Props {
-  tienda: Tienda;
-  onImportar: (data: Articulo[]) => void;
-  onBack: () => void;
+  tienda:          Tienda;
+  catalogoActual?: Articulo[];
+  onImportar:      (data: Articulo[]) => void;
+  onBack:          () => void;
 }
 
-export const ImportarScreen: React.FC<Props> = ({ tienda, onImportar, onBack }) => {
+export const ImportarScreen: React.FC<Props> = ({ tienda, catalogoActual = [], onImportar, onBack }) => {
   const [loading,  setLoading]  = useState(false);
   const [preview,  setPreview]  = useState<Articulo[]>([]);
   const [fileName, setFileName] = useState('');
@@ -74,6 +75,18 @@ export const ImportarScreen: React.FC<Props> = ({ tienda, onImportar, onBack }) 
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+        {/* Advertencia catálogo existente */}
+        {catalogoActual.length > 0 && (
+          <View style={s.warnBox}>
+            <Ionicons name="warning" size={16} color="#92400E" style={{ marginRight: 10, marginTop: 1 }} />
+            <Text style={s.warnTxt}>
+              Esta tienda ya tiene{' '}
+              <Text style={{ fontWeight: '800' }}>{catalogoActual.length} artículos</Text>{' '}
+              cargados. Al confirmar, el catálogo será reemplazado completamente.
+            </Text>
+          </View>
+        )}
+
         {/* Info */}
         <View style={s.infoBox}>
           <View style={[s.infoIcon, { backgroundColor: tienda.color }]}>
@@ -176,6 +189,9 @@ const s = StyleSheet.create({
   uploadIconWrap: { width: 60, height: 60, borderRadius: 16, backgroundColor: LGR, borderWidth: 1, borderColor: BRD, alignItems: 'center', justifyContent: 'center' },
   uploadTxt:    { fontSize: 15, fontWeight: '600', color: MTD, textAlign: 'center' },
   uploadSub:    { fontSize: 12, color: '#A1A1AA' },
+
+  warnBox:      { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#FEF3C7', borderRadius: 13, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: '#FDE68A' },
+  warnTxt:      { flex: 1, fontSize: 13, color: '#92400E', lineHeight: 19 },
 
   errBox:       { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF2F2', borderRadius: 12, padding: 12, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: '#DC2626' },
   errTxt:       { fontSize: 13, color: '#DC2626', fontWeight: '500', flex: 1 },

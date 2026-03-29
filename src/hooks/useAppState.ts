@@ -1,21 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import { USUARIOS_INICIALES, CATALOGO_BASE, Usuario, Articulo, Registro, Tienda } from '../constants/data';
+import { USUARIOS_INICIALES, CATALOGO_BASE, Usuario, Articulo, Registro, Tienda, SobranteSinStock } from '../constants/data';
 import { genId } from '../utils/helpers';
 import { SUPABASE_LISTO } from '../lib/supabase';
 import {
   dbGetUsuarios, dbInsertUsuario, dbDeleteUsuario,
-  dbGetRegistros, dbInsertRegistro, dbLimpiarRegistrosTienda,
+  dbGetRegistros, dbInsertRegistro, dbDeleteRegistro, dbLimpiarRegistrosTienda,
   dbGetAllCatalogos, dbUpsertCatalogo,
+  dbGetSobrantes, dbInsertSobrante, dbDeleteSobrante, dbUpdateSobranteEstado,
 } from '../lib/db';
 
 // ─── CLAVES DE ALMACENAMIENTO ─────────────────────────────────────────────────
 const KEYS = {
-  USUARIOS:  '@stockiq:usuarios_v2',  // v2 = sin campo pass (movido a SecureStore)
-  REGISTROS: '@stockiq:registros',
-  CATALOGOS: '@stockiq:catalogos',
-  PASSWORDS: 'stockiq_pass_v1',       // clave de SecureStore (cifrado del SO)
+  USUARIOS:   '@stockiq:usuarios_v2',  // v2 = sin campo pass (movido a SecureStore)
+  REGISTROS:  '@stockiq:registros',
+  CATALOGOS:  '@stockiq:catalogos',
+  SOBRANTES:  '@stockiq:sobrantes',
+  PASSWORDS:  'stockiq_pass_v1',       // clave de SecureStore (cifrado del SO)
 } as const;
 
 // ─── HELPERS SECURE STORE ─────────────────────────────────────────────────────
@@ -41,7 +43,9 @@ export type Pantalla =
   | 'scanner'
   | 'registros'
   | 'resultados'
-  | 'importar';
+  | 'importar'
+  | 'sobrantes'
+  | 'perfil';
 
 export function useAppState() {
   const [cargando, setCargando]           = useState(true);
@@ -52,15 +56,17 @@ export function useAppState() {
   const [tiendaActiva, setTiendaActiva]   = useState<Tienda | null>(null);
   const [registros, setRegistros]         = useState<Registro[]>([]);
   const [catalogos, setCatalogos]         = useState<Record<string, Articulo[]>>({});
+  const [sobrantes, setSobrantes]         = useState<SobranteSinStock[]>([]);
 
   // ── FASE 1: AsyncStorage + SecureStore (inmediato, funciona offline) ────────
   useEffect(() => {
     const cargar = async () => {
       try {
-        const [rawUsuarios, rawRegistros, rawCatalogos, passwords] = await Promise.all([
+        const [rawUsuarios, rawRegistros, rawCatalogos, rawSobrantes, passwords] = await Promise.all([
           AsyncStorage.getItem(KEYS.USUARIOS),
           AsyncStorage.getItem(KEYS.REGISTROS),
           AsyncStorage.getItem(KEYS.CATALOGOS),
+          AsyncStorage.getItem(KEYS.SOBRANTES),
           loadPasswords(),
         ]);
 
@@ -81,8 +87,9 @@ export function useAppState() {
             ...nuevos,
           ]);
         }
-        if (rawRegistros) setRegistros(JSON.parse(rawRegistros));
-        if (rawCatalogos) setCatalogos(JSON.parse(rawCatalogos));
+        if (rawRegistros)  setRegistros(JSON.parse(rawRegistros));
+        if (rawCatalogos)  setCatalogos(JSON.parse(rawCatalogos));
+        if (rawSobrantes)  setSobrantes(JSON.parse(rawSobrantes));
       } catch {
         // Si algo falla, la app sigue con los datos iniciales
       } finally {
@@ -97,10 +104,11 @@ export function useAppState() {
     if (cargando || !SUPABASE_LISTO || sincronizado) return;
     const sincronizar = async () => {
       try {
-        const [sbUsuarios, sbRegistros, sbCatalogos] = await Promise.all([
+        const [sbUsuarios, sbRegistros, sbCatalogos, sbSobrantes] = await Promise.all([
           dbGetUsuarios(),
           dbGetRegistros(),
           dbGetAllCatalogos(),
+          dbGetSobrantes(),
         ]);
 
         // Merge usuarios: preservar contraseñas locales, actualizar el resto
@@ -133,6 +141,15 @@ export function useAppState() {
           setCatalogos(prev => ({ ...sbCatalogos, ...prev }));
         }
 
+        // Merge sobrantes: agregar los de Supabase que no estén en local
+        if (sbSobrantes.length > 0) {
+          setSobrantes(prev => {
+            const localIds = new Set(prev.map(s => s.id));
+            const extras = sbSobrantes.filter(s => !localIds.has(s.id));
+            return extras.length > 0 ? [...extras, ...prev] : prev;
+          });
+        }
+
         setSincronizado(true);
       } catch {
         // Sin conexión — seguimos con datos locales, sin error para el usuario
@@ -160,6 +177,11 @@ export function useAppState() {
     AsyncStorage.setItem(KEYS.CATALOGOS, JSON.stringify(catalogos)).catch(() => {});
   }, [catalogos, cargando]);
 
+  useEffect(() => {
+    if (cargando) return;
+    AsyncStorage.setItem(KEYS.SOBRANTES, JSON.stringify(sobrantes)).catch(() => {});
+  }, [sobrantes, cargando]);
+
   // ── Auth ──────────────────────────────────────────────────────────────────
   const login = useCallback((u: Usuario) => {
     setUsuario(u);
@@ -178,6 +200,8 @@ export function useAppState() {
   const navRegistros  = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('registros');  }, []);
   const navResultados = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('resultados'); }, []);
   const navImportar   = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('importar');   }, []);
+  const navSobrantes  = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('sobrantes');  }, []);
+  const navPerfil     = useCallback(() => setPantalla('perfil'), []);
   const volverATienda = useCallback(() => setPantalla('tienda'), []);
   const volverAHome   = useCallback(() => { setPantalla('home'); setTiendaActiva(null); }, []);
 
@@ -218,6 +242,11 @@ export function useAppState() {
     dbInsertRegistro(r).catch(() => {});
   }, []);
 
+  const eliminarRegistro = useCallback((id: string) => {
+    setRegistros(prev => prev.filter(r => r.id !== id));
+    dbDeleteRegistro(id).catch(() => {});
+  }, []);
+
   const cargarCatalogo = useCallback((tiendaId: string, data: Articulo[]) => {
     setCatalogos(prev => ({ ...prev, [tiendaId]: data }));
     dbUpsertCatalogo(tiendaId, data).catch(() => {});
@@ -227,9 +256,30 @@ export function useAppState() {
     catalogos[tiendaId] ?? CATALOGO_BASE,
   [catalogos]);
 
-  const getRegistrosTienda = useCallback((tiendaId: string): Registro[] =>
+  const getRegistrosTienda  = useCallback((tiendaId: string): Registro[] =>
     registros.filter(r => r.tiendaId === tiendaId),
   [registros]);
+
+  const agregarSobrante = useCallback((s: SobranteSinStock) => {
+    setSobrantes(prev => [s, ...prev]);
+    dbInsertSobrante(s).catch(() => {});
+  }, []);
+
+  const eliminarSobrante = useCallback((id: string) => {
+    setSobrantes(prev => prev.filter(s => s.id !== id));
+    dbDeleteSobrante(id).catch(() => {});
+  }, []);
+
+  const editarSobrante = useCallback((id: string, cambios: Partial<Omit<SobranteSinStock, 'id'>>) => {
+    setSobrantes(prev => prev.map(s => s.id === id ? { ...s, ...cambios } : s));
+    if (cambios.estado) {
+      dbUpdateSobranteEstado(id, cambios.estado).catch(() => {});
+    }
+  }, []);
+
+  const getSobrantesTienda = useCallback((tiendaId: string): SobranteSinStock[] =>
+    sobrantes.filter(s => s.tiendaId === tiendaId),
+  [sobrantes]);
 
   const limpiarRegistrosTienda = useCallback((tiendaId: string) => {
     setRegistros(prev => prev.filter(r => r.tiendaId !== tiendaId));
@@ -239,19 +289,21 @@ export function useAppState() {
   return {
     // Estado de carga
     cargando,
-    sincronizado,   // true cuando Supabase ya respondió (útil para indicadores)
+    sincronizado,
     // State
-    usuarios, usuario, pantalla, tiendaActiva, registros, catalogos,
+    usuarios, usuario, pantalla, tiendaActiva, registros, catalogos, sobrantes,
     // Auth
     login, logout,
     // Navegación
-    navTienda, navScanner, navRegistros, navResultados, navImportar,
+    navTienda, navScanner, navRegistros, navResultados, navImportar, navSobrantes, navPerfil,
     volverATienda, volverAHome,
     setPantalla,
     // Usuarios
     agregarUsuario, editarUsuario, eliminarUsuario,
     // Inventario
-    agregarRegistro, cargarCatalogo, getCatalogo, getRegistrosTienda,
+    agregarRegistro, eliminarRegistro, cargarCatalogo, getCatalogo, getRegistrosTienda,
     limpiarRegistrosTienda,
+    // Sobrantes sin stock
+    agregarSobrante, eliminarSobrante, editarSobrante, getSobrantesTienda,
   };
 }

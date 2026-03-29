@@ -6,3 +6,5 @@ export { ScannerScreen }                        from './ScannerScreen';
 export { MisRegistrosScreen }                   from './MisRegistrosScreen';
 export { ResultadosScreen }                     from './ResultadosScreen';
 export { ImportarScreen }                       from './ImportarScreen';
+export { SobrantesSinStockScreen }              from './SobrantesSinStockScreen';
+export { PerfilScreen }                         from './PerfilScreen';

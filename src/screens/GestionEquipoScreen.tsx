@@ -23,6 +23,7 @@ export const GestionEquipoScreen: React.FC<Props> = ({ usuarios, onAgregar, onEd
   const [cedula,    setCedula]    = useState('');
   const [telefono,  setTelefono]  = useState('');
   const [pass,      setPass]      = useState('');
+  const [showPass,  setShowPass]  = useState(false);
   const [tiendasSel, setTiendasSel] = useState<string[]>([]);
   const [error, setError] = useState('');
 
@@ -116,7 +117,7 @@ export const GestionEquipoScreen: React.FC<Props> = ({ usuarios, onAgregar, onEd
   const limpiarYCerrar = () => {
     setModalVisible(false);
     setEditandoId(null);
-    setNombre(''); setCedula(''); setTelefono(''); setPass(''); setTiendasSel([]); setError('');
+    setNombre(''); setCedula(''); setTelefono(''); setPass(''); setShowPass(false); setTiendasSel([]); setError('');
   };
 
   const confirmarEliminar = (u: Usuario) =>
@@ -268,9 +269,14 @@ export const GestionEquipoScreen: React.FC<Props> = ({ usuarios, onAgregar, onEd
                         onChangeText={f.onChange}
                         autoCapitalize={f.capitalize}
                         keyboardType={f.keyboard}
-                        secureTextEntry={f.secure}
+                        secureTextEntry={f.secure && !showPass}
                         editable={!bloqueado}
                       />
+                      {f.secure && (
+                        <TouchableOpacity onPress={() => setShowPass(!showPass)} style={{ paddingHorizontal: 14, height: 50, alignItems: 'center', justifyContent: 'center' }}>
+                          <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={18} color={MTD} />
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
                 );

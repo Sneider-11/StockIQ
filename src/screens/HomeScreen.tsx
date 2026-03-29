@@ -13,12 +13,14 @@ interface SuperAdminProps {
   onLogout: () => void;
   onNavTienda: (t: Tienda) => void;
   onNavEquipo: () => void;
+  onNavPerfil: () => void;
 }
 
 export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
-  usuario, usuarios, onLogout, onNavTienda, onNavEquipo,
+  usuario, usuarios, registros, onLogout, onNavTienda, onNavEquipo, onNavPerfil,
 }) => {
-  const auditores = usuarios.filter(u => u.rol !== 'SUPERADMIN');
+  const auditores     = usuarios.filter(u => u.rol !== 'SUPERADMIN');
+  const totalEscaneos = registros.length;
 
   return (
     <ScrollView
@@ -33,9 +35,14 @@ export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
             <Text style={s.adminTag}>SUPER ADMINISTRADOR</Text>
             <Text style={s.nombre}>{usuario.nombre.split(' ')[0]} {usuario.nombre.split(' ')[1] ?? ''}</Text>
           </View>
-          <TouchableOpacity onPress={onLogout} style={s.logoutBtn}>
-            <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.5)" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={onNavPerfil} style={s.logoutBtn}>
+              <Ionicons name="person-circle-outline" size={20} color="rgba(255,255,255,0.7)" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onLogout} style={s.logoutBtn}>
+              <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.5)" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Stats */}
@@ -51,8 +58,8 @@ export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
           </View>
           <View style={s.statDiv} />
           <View style={s.statBox}>
-            <Text style={s.statN}>∞</Text>
-            <Text style={s.statL}>Acceso</Text>
+            <Text style={s.statN}>{totalEscaneos}</Text>
+            <Text style={s.statL}>Escaneos</Text>
           </View>
         </View>
       </View>
@@ -76,6 +83,8 @@ export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
                     : asignados.length === 0
                       ? 'Sin auditores asignados'
                       : asignados.map(u => u.nombre.split(' ')[0]).join(', ')}
+                  {registros.filter(r => r.tiendaId === t.id).length > 0 &&
+                    ` · ${registros.filter(r => r.tiendaId === t.id).length} escaneos`}
                 </Text>
               </View>
               <View style={s.chevronWrap}>
@@ -128,9 +137,10 @@ interface AuditorProps {
   registros: Registro[];
   onLogout: () => void;
   onNavTienda: (t: Tienda) => void;
+  onNavPerfil: () => void;
 }
 
-export const HomeAuditorScreen: React.FC<AuditorProps> = ({ usuario, registros, onLogout, onNavTienda }) => {
+export const HomeAuditorScreen: React.FC<AuditorProps> = ({ usuario, registros, onLogout, onNavTienda, onNavPerfil }) => {
   const mistiendas = TIENDAS.filter(t => usuario.tiendas.includes(t.id));
   const misEscaneos = registros.filter(r => r.usuarioNombre === usuario.nombre).length;
 
@@ -147,9 +157,14 @@ export const HomeAuditorScreen: React.FC<AuditorProps> = ({ usuario, registros, 
             <Text style={[s.adminTag, { color: 'rgba(255,255,255,0.65)' }]}>AUDITOR</Text>
             <Text style={s.nombre}>Hola, {usuario.nombre.split(' ')[0]} 👋</Text>
           </View>
-          <TouchableOpacity onPress={onLogout} style={s.logoutBtn}>
-            <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.6)" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={onNavPerfil} style={s.logoutBtn}>
+              <Ionicons name="person-circle-outline" size={20} color="rgba(255,255,255,0.7)" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onLogout} style={s.logoutBtn}>
+              <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.6)" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={s.statsRow}>

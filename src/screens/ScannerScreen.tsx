@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Modal, Alert, FlatList, ScrollView, Vibration, KeyboardAvoidingView, Platform,
+  Modal, Alert, FlatList, ScrollView, Vibration, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -227,12 +227,20 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
 
                   {/* Foto */}
                   <Text style={[m.fieldLbl, { marginTop: 14 }]}>Foto (opcional)</Text>
-                  <TouchableOpacity style={m.fotoBtn} onPress={tomarFoto} activeOpacity={0.85}>
-                    {foto
-                      ? <><Ionicons name="checkmark-circle" size={18} color="#15803D" style={{ marginRight: 8 }} /><Text style={[m.fotoBtnTxt, { color: '#15803D' }]}>Foto tomada · Toca para cambiar</Text></>
-                      : <><Ionicons name="camera-outline" size={18} color={MTD} style={{ marginRight: 8 }} /><Text style={m.fotoBtnTxt}>Tomar fotografía del artículo</Text></>
-                    }
-                  </TouchableOpacity>
+                  {foto ? (
+                    <TouchableOpacity style={m.fotoPreviewWrap} onPress={tomarFoto} activeOpacity={0.88}>
+                      <Image source={{ uri: foto }} style={m.fotoPreview} resizeMode="cover" />
+                      <View style={m.fotoPreviewOverlay}>
+                        <Ionicons name="camera" size={16} color="#fff" />
+                        <Text style={m.fotoPreviewTxt}>Cambiar foto</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity style={m.fotoBtn} onPress={tomarFoto} activeOpacity={0.85}>
+                      <Ionicons name="camera-outline" size={18} color={MTD} style={{ marginRight: 8 }} />
+                      <Text style={m.fotoBtnTxt}>Tomar fotografía del artículo</Text>
+                    </TouchableOpacity>
+                  )}
 
                   {/* Nota */}
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 14, marginBottom: 10 }}>
@@ -381,8 +389,12 @@ const m = StyleSheet.create({
   deltaBox:    { flexDirection: 'row', alignItems: 'center', borderRadius: 10, padding: 11, marginBottom: 6, borderWidth: 1 },
   deltaTxt:    { fontSize: 13, fontWeight: '600' },
 
-  fotoBtn:     { flexDirection: 'row', alignItems: 'center', backgroundColor: LGR, borderWidth: 1.5, borderColor: BRD, borderRadius: 13, padding: 14, marginBottom: 4 },
-  fotoBtnTxt:  { fontSize: 13, color: MTD, fontWeight: '500' },
+  fotoBtn:          { flexDirection: 'row', alignItems: 'center', backgroundColor: LGR, borderWidth: 1.5, borderColor: BRD, borderRadius: 13, padding: 14, marginBottom: 4 },
+  fotoBtnTxt:       { fontSize: 13, color: MTD, fontWeight: '500' },
+  fotoPreviewWrap:  { borderRadius: 14, overflow: 'hidden', marginBottom: 4, position: 'relative' },
+  fotoPreview:      { width: '100%', height: 140, borderRadius: 14 },
+  fotoPreviewOverlay: { position: 'absolute', bottom: 10, right: 10, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, gap: 6 },
+  fotoPreviewTxt:   { color: '#fff', fontSize: 12, fontWeight: '700' },
   notaInput:   { borderWidth: 1.5, borderColor: BRD, borderRadius: 13, padding: 13, fontSize: 13, color: BLK, backgroundColor: LGR, minHeight: 60, marginBottom: 18 },
   guardarBtn:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 15, height: 56 },
   guardarTxt:  { color: '#fff', fontWeight: '800', fontSize: 16 },
