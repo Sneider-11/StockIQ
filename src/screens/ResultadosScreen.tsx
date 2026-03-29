@@ -376,16 +376,22 @@ export const ResultadosScreen: React.FC<Props> = ({
                   <View style={s.artCard}>
                     <View style={{ flexDirection: 'row', gap: 12, marginBottom: 10 }}>
                       {/* Foto tappable */}
-                      <TouchableOpacity
-                        onPress={() => setFotoModal(ss.fotoUri)}
-                        activeOpacity={0.85}
-                        style={s.thumbWrap}
-                      >
-                        <Image source={{ uri: ss.fotoUri }} style={s.thumb} resizeMode="cover" />
-                        <View style={s.thumbOverlay}>
-                          <Ionicons name="expand-outline" size={14} color="#fff" />
+                      {ss.fotoUri ? (
+                        <TouchableOpacity
+                          onPress={() => setFotoModal(ss.fotoUri)}
+                          activeOpacity={0.85}
+                          style={s.thumbWrap}
+                        >
+                          <Image source={{ uri: ss.fotoUri }} style={s.thumb} resizeMode="cover" />
+                          <View style={s.thumbOverlay}>
+                            <Ionicons name="expand-outline" size={14} color="#fff" />
+                          </View>
+                        </TouchableOpacity>
+                      ) : (
+                        <View style={[s.thumbWrap, s.thumbEmpty]}>
+                          <Ionicons name="image-outline" size={22} color="#A1A1AA" />
                         </View>
-                      </TouchableOpacity>
+                      )}
 
                       <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
@@ -704,6 +710,7 @@ const s = StyleSheet.create({
   // Fotos de sobrantes (thumbnail tappable)
   thumbWrap:   { position: 'relative', borderRadius: 12, overflow: 'hidden' },
   thumb:       { width: 84, height: 84, borderRadius: 12 },
+  thumbEmpty:  { width: 84, height: 84, backgroundColor: '#F4F4F5', alignItems: 'center', justifyContent: 'center' },
   thumbOverlay:{ position: 'absolute', bottom: 6, right: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
 
   // Equipo
