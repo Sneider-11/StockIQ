@@ -60,15 +60,16 @@ export async function dbGetUsuarios(): Promise<Usuario[]> {
   const { data, error } = await supabase.from('usuarios').select('*');
   if (error || !data) return [];
   return data.map(r => ({
-    id:        r.id,
-    cedula:    r.cedula,
-    nombre:    r.nombre,
-    rol:       migrateRol(r.rol),
-    tiendas:   r.tiendas,
-    pass:      r.pass,
-    telefono:  r.telefono ?? undefined,
-    activo:    r.activo ?? true,
-    creadoPor: r.creado_por ?? undefined,
+    id:           r.id,
+    cedula:       r.cedula,
+    nombre:       r.nombre,
+    rol:          migrateRol(r.rol),
+    tiendas:      r.tiendas ?? [],
+    tiendasRoles: r.tiendas_roles ?? {},
+    pass:         r.pass,
+    telefono:     r.telefono ?? undefined,
+    activo:       r.activo ?? true,
+    creadoPor:    r.creado_por ?? undefined,
   }));
 }
 
@@ -76,15 +77,16 @@ export async function dbInsertUsuario(u: Usuario): Promise<void> {
   if (!SUPABASE_LISTO) return;
   await supabase.from('usuarios').upsert(
     {
-      id:         u.id,
-      cedula:     u.cedula,
-      nombre:     u.nombre,
-      rol:        u.rol,
-      tiendas:    u.tiendas,
-      pass:       u.pass,
-      telefono:   u.telefono ?? null,
-      activo:     u.activo ?? true,
-      creado_por: u.creadoPor ?? null,
+      id:            u.id,
+      cedula:        u.cedula,
+      nombre:        u.nombre,
+      rol:           u.rol,
+      tiendas:       u.tiendas,
+      tiendas_roles: u.tiendasRoles ?? {},
+      pass:          u.pass,
+      telefono:      u.telefono ?? null,
+      activo:        u.activo ?? true,
+      creado_por:    u.creadoPor ?? null,
     },
     { onConflict: 'id' },
   );

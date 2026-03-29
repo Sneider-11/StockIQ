@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import { USUARIOS_INICIALES, TIENDAS, CATALOGO_BASE, Usuario, Articulo, Registro, Tienda, SobranteSinStock } from '../constants/data';
+import { USUARIOS_INICIALES, TIENDAS, CATALOGO_BASE, Usuario, Articulo, Registro, Tienda, SobranteSinStock, Rol } from '../constants/data';
 import { genId } from '../utils/helpers';
 import { SUPABASE_LISTO } from '../lib/supabase';
 import {
@@ -14,7 +14,7 @@ import {
 
 // ─── CLAVES DE ALMACENAMIENTO ─────────────────────────────────────────────────
 const KEYS = {
-  USUARIOS:   '@stockiq:usuarios_v3',  // v3 = roles ADMIN/CONTADOR + activo + creadoPor
+  USUARIOS:   '@stockiq:usuarios_v4',  // v4 = tiendasRoles por tienda
   TIENDAS:    '@stockiq:tiendas_v1',
   REGISTROS:  '@stockiq:registros',
   CATALOGOS:  '@stockiq:catalogos',
@@ -42,6 +42,27 @@ async function savePasswords(map: PassMap): Promise<void> {
 function migrateRol(rol: string): Usuario['rol'] {
   if (rol === 'AUDITOR') return 'ADMIN';
   return rol as Usuario['rol'];
+}
+
+/**
+ * Deriva el rol global a partir de tiendasRoles.
+ * Si alguna tienda tiene 'ADMIN' → global es 'ADMIN', si todas son 'CONTADOR' → 'CONTADOR'.
+ */
+function deriveRolGlobal(tiendasRoles: Record<string, 'ADMIN' | 'CONTADOR'>): 'ADMIN' | 'CONTADOR' {
+  const roles = Object.values(tiendasRoles);
+  if (roles.length === 0) return 'CONTADOR';
+  return roles.includes('ADMIN') ? 'ADMIN' : 'CONTADOR';
+}
+
+/** Asegura que tiendasRoles exista y sea coherente con tiendas[]. */
+function normalizarTiendasRoles(u: any): Record<string, 'ADMIN' | 'CONTADOR'> {
+  if (u.rol === 'SUPERADMIN') return {};
+  if (u.tiendasRoles && typeof u.tiendasRoles === 'object') return u.tiendasRoles;
+  // Migración: construir tiendasRoles a partir del rol global y tiendas[]
+  const rolLegacy: 'ADMIN' | 'CONTADOR' = migrateRol(u.rol) === 'ADMIN' ? 'ADMIN' : 'CONTADOR';
+  const resultado: Record<string, 'ADMIN' | 'CONTADOR'> = {};
+  for (const tid of (u.tiendas ?? [])) resultado[tid] = rolLegacy;
+  return resultado;
 }
 
 export type Pantalla =
@@ -94,16 +115,21 @@ export function useAppState() {
         if (passNeedsSave) savePasswords(passwords);
 
         if (rawUsuarios) {
-          const guardados = JSON.parse(rawUsuarios) as Omit<Usuario, 'pass'>[];
+          const guardados = JSON.parse(rawUsuarios) as any[];
           const ids = guardados.map(u => u.id);
           const nuevos = USUARIOS_INICIALES.filter(u => !ids.includes(u.id));
           setUsuarios([
-            ...guardados.map(u => ({
-              ...u,
-              rol: migrateRol(u.rol as string),
-              activo: (u as any).activo ?? true,
-              pass: passwords[u.id] ?? '',
-            })),
+            ...guardados.map(u => {
+              const tiendasRoles = normalizarTiendasRoles(u);
+              const rolGlobal    = u.rol === 'SUPERADMIN' ? 'SUPERADMIN' : deriveRolGlobal(tiendasRoles);
+              return {
+                ...u,
+                rol:          rolGlobal,
+                tiendasRoles,
+                activo:       u.activo ?? true,
+                pass:         passwords[u.id] ?? '',
+              } as Usuario;
+            }),
             ...nuevos,
           ]);
         }
@@ -141,16 +167,19 @@ export function useAppState() {
           });
         }
 
-        // Merge usuarios: preservar contraseñas locales, migrar roles legacy
+        // Merge usuarios: preservar contraseñas locales, normalizar tiendasRoles
         if (sbUsuarios.length > 0) {
           setUsuarios(prev => {
             const merged = [...prev];
             for (const su of sbUsuarios) {
+              const tiendasRoles = normalizarTiendasRoles(su);
+              const rolGlobal: Rol = su.rol === 'SUPERADMIN' ? 'SUPERADMIN' : deriveRolGlobal(tiendasRoles);
+              const normalizado  = { ...su, tiendasRoles, rol: rolGlobal };
               const idx = merged.findIndex(u => u.id === su.id);
               if (idx >= 0) {
-                merged[idx] = { ...su, pass: merged[idx].pass };
+                merged[idx] = { ...normalizado, pass: merged[idx].pass };
               } else {
-                merged.push(su);
+                merged.push(normalizado);
               }
             }
             return merged;
@@ -258,7 +287,9 @@ export function useAppState() {
 
   // ── Usuarios — optimistic update + SecureStore + Supabase fire-and-forget ──
   const agregarUsuario = useCallback((u: Omit<Usuario, 'id'>) => {
-    const nuevo: Usuario = { ...u, id: genId(), activo: true };
+    const tiendasRoles = u.rol === 'SUPERADMIN' ? {} : (u.tiendasRoles ?? {});
+    const rolGlobal    = u.rol === 'SUPERADMIN' ? 'SUPERADMIN' : deriveRolGlobal(tiendasRoles);
+    const nuevo: Usuario = { ...u, id: genId(), activo: true, tiendasRoles, rol: rolGlobal };
     setUsuarios(prev => [...prev, nuevo]);
     loadPasswords().then(map => { map[nuevo.id] = nuevo.pass; savePasswords(map); });
     dbInsertUsuario(nuevo).catch(() => {});
@@ -266,7 +297,16 @@ export function useAppState() {
 
   const editarUsuario = useCallback((id: string, cambios: Partial<Omit<Usuario, 'id'>>) => {
     setUsuarios(prev => {
-      const siguiente = prev.map(u => u.id === id ? { ...u, ...cambios } : u);
+      const siguiente = prev.map(u => {
+        if (u.id !== id) return u;
+        const merged       = { ...u, ...cambios };
+        // Si cambió tiendasRoles, recalcular rol global
+        if (cambios.tiendasRoles !== undefined && merged.rol !== 'SUPERADMIN') {
+          merged.rol    = deriveRolGlobal(merged.tiendasRoles);
+          merged.tiendas = Object.keys(merged.tiendasRoles);
+        }
+        return merged;
+      });
       const actualizado = siguiente.find(u => u.id === id);
       if (actualizado) {
         dbInsertUsuario(actualizado).catch(() => {});

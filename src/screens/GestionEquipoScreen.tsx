@@ -4,7 +4,7 @@ import {
   FlatList, Modal, Alert, ScrollView, Linking, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Usuario, Tienda, IoniconName, Rol } from '../constants/data';
+import { Usuario, Tienda, IoniconName } from '../constants/data';
 import { Avatar, RolBadge } from '../components/common';
 import { PRP, BLK, DRK, LGR, BRD, MTD, GRN } from '../constants/colors';
 
@@ -23,17 +23,36 @@ export const GestionEquipoScreen: React.FC<Props> = ({
 }) => {
   const esSuperAdmin = usuarioActual.rol === 'SUPERADMIN';
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editandoId,   setEditandoId]   = useState<string | null>(null);
-  const [nombre,     setNombre]     = useState('');
-  const [cedula,     setCedula]     = useState('');
-  const [telefono,   setTelefono]   = useState('');
-  const [pass,       setPass]       = useState('');
-  const [showPass,   setShowPass]   = useState(false);
-  const [rolSel,     setRolSel]     = useState<'ADMIN' | 'CONTADOR'>('CONTADOR');
-  const [tiendasSel, setTiendasSel] = useState<string[]>([]);
-  const [activoSel,  setActivoSel]  = useState(true);
-  const [error,      setError]      = useState('');
+  const [modalVisible,     setModalVisible]     = useState(false);
+  const [editandoId,       setEditandoId]       = useState<string | null>(null);
+  const [nombre,           setNombre]           = useState('');
+  const [cedula,           setCedula]           = useState('');
+  const [telefono,         setTelefono]         = useState('');
+  const [pass,             setPass]             = useState('');
+  const [showPass,         setShowPass]         = useState(false);
+  // tiendasRolesSel: mapa tiendaId → rol para este usuario
+  const [tiendasRolesSel,  setTiendasRolesSel]  = useState<Record<string, 'ADMIN' | 'CONTADOR'>>({});
+  const [activoSel,        setActivoSel]        = useState(true);
+  const [error,            setError]            = useState('');
+
+  // Helpers para el mapa de roles por tienda
+  const toggleTienda = (id: string) => {
+    setTiendasRolesSel(prev => {
+      if (id in prev) {
+        const copia = { ...prev };
+        delete copia[id];
+        return copia;
+      }
+      // Por defecto CONTADOR al agregar; ADMIN puede seleccionar solo CONTADOR
+      return { ...prev, [id]: 'CONTADOR' };
+    });
+  };
+
+  const setRolTienda = (id: string, rol: 'ADMIN' | 'CONTADOR') => {
+    setTiendasRolesSel(prev => ({ ...prev, [id]: rol }));
+  };
+
+  const tiendasSel = Object.keys(tiendasRolesSel);
 
   // SUPERADMIN ve a todos (excepto él mismo), ADMIN ve solo los CONTADOR de sus tiendas
   const listaVisible = esSuperAdmin
@@ -43,13 +62,10 @@ export const GestionEquipoScreen: React.FC<Props> = ({
         u.tiendas.some(tid => usuarioActual.tiendas.includes(tid))
       );
 
-  // Tiendas que puede asignar el ADMIN actual
+  // Tiendas que puede asignar el usuario actual
   const tiendasDisponibles = esSuperAdmin
     ? tiendas
     : tiendas.filter(t => usuarioActual.tiendas.includes(t.id));
-
-  const toggleTienda = (id: string) =>
-    setTiendasSel(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
 
   /* ── WhatsApp ── */
   const enviarWhatsApp = (u: Usuario) => {
@@ -80,8 +96,8 @@ export const GestionEquipoScreen: React.FC<Props> = ({
     setCedula(u.cedula);
     setTelefono(u.telefono ?? '');
     setPass(u.pass);
-    setRolSel(u.rol === 'ADMIN' ? 'ADMIN' : 'CONTADOR');
-    setTiendasSel([...u.tiendas]);
+    // Cargar el mapa de roles por tienda existente
+    setTiendasRolesSel(u.tiendasRoles ? { ...u.tiendasRoles } : {});
     setActivoSel(u.activo !== false);
     setError('');
     setModalVisible(true);
@@ -107,14 +123,15 @@ export const GestionEquipoScreen: React.FC<Props> = ({
     if (usuarios.find(u => u.cedula === cedula.trim())) { setError('Ya existe un usuario con esa cédula.'); return; }
 
     onAgregar({
-      cedula:    cedula.trim(),
-      nombre:    nombre.trim().toUpperCase(),
-      rol:       esSuperAdmin ? rolSel : 'CONTADOR',
-      tiendas:   tiendasSel,
-      pass:      pass.trim(),
-      telefono:  telefono.trim() || undefined,
-      activo:    true,
-      creadoPor: esSuperAdmin ? undefined : usuarioActual.id,
+      cedula:       cedula.trim(),
+      nombre:       nombre.trim().toUpperCase(),
+      rol:          'CONTADOR',           // useAppState derivará el rol global desde tiendasRoles
+      tiendas:      tiendasSel,
+      tiendasRoles: tiendasRolesSel,
+      pass:         pass.trim(),
+      telefono:     telefono.trim() || undefined,
+      activo:       true,
+      creadoPor:    esSuperAdmin ? undefined : usuarioActual.id,
     });
     limpiarYCerrar();
   };
@@ -129,12 +146,12 @@ export const GestionEquipoScreen: React.FC<Props> = ({
     if (!telefonoValido(telefono)) { setError('Celular inválido. Debe tener 10 dígitos y empezar en 3.'); return; }
 
     onEditar(editandoId!, {
-      nombre:   nombre.trim().toUpperCase(),
-      rol:      esSuperAdmin ? rolSel : undefined,
-      tiendas:  tiendasSel,
-      pass:     pass.trim(),
-      telefono: telefono.trim() || undefined,
-      activo:   activoSel,
+      nombre:       nombre.trim().toUpperCase(),
+      tiendas:      tiendasSel,
+      tiendasRoles: tiendasRolesSel,
+      pass:         pass.trim(),
+      telefono:     telefono.trim() || undefined,
+      activo:       activoSel,
     });
     limpiarYCerrar();
   };
@@ -143,8 +160,8 @@ export const GestionEquipoScreen: React.FC<Props> = ({
     setModalVisible(false);
     setEditandoId(null);
     setNombre(''); setCedula(''); setTelefono(''); setPass('');
-    setShowPass(false); setTiendasSel([]); setActivoSel(true);
-    setRolSel('CONTADOR'); setError('');
+    setShowPass(false); setTiendasRolesSel({}); setActivoSel(true);
+    setError('');
   };
 
   const confirmarEliminar = (u: Usuario) =>
@@ -211,8 +228,8 @@ export const GestionEquipoScreen: React.FC<Props> = ({
           </View>
         }
         renderItem={({ item: u }) => {
-          const tiendasU    = tiendas.filter(t => u.tiendas.includes(t.id));
-          const inactivo    = u.activo === false;
+          const tiendasU = tiendas.filter(t => u.tiendas.includes(t.id));
+          const inactivo = u.activo === false;
           return (
             <View style={[s.card, inactivo && { opacity: 0.6 }]}>
               <View style={s.cardTop}>
@@ -243,14 +260,22 @@ export const GestionEquipoScreen: React.FC<Props> = ({
               <View style={s.tiendasRow}>
                 {tiendasU.length === 0
                   ? <Text style={s.sinTiendas}>Sin tiendas asignadas</Text>
-                  : tiendasU.map(t => (
-                    <View key={t.id} style={[s.tiendaChip, { borderColor: t.color + '50', backgroundColor: t.color + '12' }]}>
-                      <View style={[s.tiendaDot, { backgroundColor: t.color }]} />
-                      <Text style={[s.tiendaChipTxt, { color: t.color }]} numberOfLines={1}>
-                        {t.nombre.replace('Tienda ', '').replace('Inventario ', '')}
-                      </Text>
-                    </View>
-                  ))
+                  : tiendasU.map(t => {
+                      const rolEnT = u.tiendasRoles?.[t.id];
+                      return (
+                        <View key={t.id} style={[s.tiendaChip, { borderColor: t.color + '50', backgroundColor: t.color + '12' }]}>
+                          <View style={[s.tiendaDot, { backgroundColor: t.color }]} />
+                          <Text style={[s.tiendaChipTxt, { color: t.color }]} numberOfLines={1}>
+                            {t.nombre.replace('Tienda ', '').replace('Inventario ', '')}
+                          </Text>
+                          {rolEnT && (
+                            <Text style={[s.tiendaChipRol, { color: t.color }]}>
+                              · {rolEnT === 'ADMIN' ? 'Admin' : 'Cont.'}
+                            </Text>
+                          )}
+                        </View>
+                      );
+                    })
                 }
               </View>
 
@@ -310,34 +335,6 @@ export const GestionEquipoScreen: React.FC<Props> = ({
 
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-              {/* Selector de rol (solo SUPERADMIN y solo al crear) */}
-              {esSuperAdmin && !editandoId && (
-                <>
-                  <Text style={s.fieldLabel}>Cargo / Rol</Text>
-                  <View style={s.rolRow}>
-                    {(['ADMIN', 'CONTADOR'] as const).map(r => {
-                      const cfg = r === 'ADMIN'
-                        ? { label: 'Admin de Tienda', desc: 'Gestiona equipo, ve resultados', icon: 'shield-checkmark-outline' as IoniconName, color: '#0369A1', bg: '#E0F2FE' }
-                        : { label: 'Contador',         desc: 'Solo escanea y ve sus registros',  icon: 'scan-outline' as IoniconName,            color: '#374151', bg: '#F3F4F6' };
-                      const sel = rolSel === r;
-                      return (
-                        <TouchableOpacity
-                          key={r}
-                          style={[s.rolCard, sel && { borderColor: cfg.color, backgroundColor: cfg.bg }]}
-                          onPress={() => setRolSel(r)}
-                          activeOpacity={0.8}
-                        >
-                          <Ionicons name={cfg.icon} size={20} color={sel ? cfg.color : MTD} style={{ marginBottom: 6 }} />
-                          <Text style={[s.rolCardLabel, sel && { color: cfg.color, fontWeight: '800' }]}>{cfg.label}</Text>
-                          <Text style={s.rolCardDesc} numberOfLines={2}>{cfg.desc}</Text>
-                          {sel && <Ionicons name="checkmark-circle" size={18} color={cfg.color} style={{ marginTop: 6 }} />}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </>
-              )}
-
               {/* Campos del formulario */}
               {campos.map(f => {
                 const bloqueado = editandoId !== null && f.label === 'Número de cédula';
@@ -392,23 +389,60 @@ export const GestionEquipoScreen: React.FC<Props> = ({
                 </TouchableOpacity>
               )}
 
-              {/* Asignar tiendas */}
+              {/* Asignar tiendas con rol por tienda */}
               <Text style={s.fieldLabel}>Asignar tiendas</Text>
-              <Text style={s.fieldSub}>Selecciona una o más tiendas donde trabajará</Text>
+              <Text style={s.fieldSub}>
+                {esSuperAdmin
+                  ? 'Selecciona tiendas y elige el cargo en cada una'
+                  : 'Selecciona las tiendas donde trabajará como Contador'}
+              </Text>
 
               {tiendasDisponibles.map(t => {
-                const sel = tiendasSel.includes(t.id);
+                const seleccionada = t.id in tiendasRolesSel;
+                const rolActual    = tiendasRolesSel[t.id];
                 return (
-                  <TouchableOpacity
-                    key={t.id}
-                    style={[s.tiendaRow, sel && { borderColor: t.color, backgroundColor: t.color + '0D' }]}
-                    onPress={() => toggleTienda(t.id)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={[s.tiendaRowDot, { backgroundColor: t.color }]} />
-                    <Text style={[s.tiendaRowTxt, sel && { color: t.color, fontWeight: '700' }]} numberOfLines={1}>{t.nombre}</Text>
-                    {sel && <Ionicons name="checkmark-circle" size={20} color={t.color} style={{ marginLeft: 'auto' }} />}
-                  </TouchableOpacity>
+                  <View key={t.id}>
+                    <TouchableOpacity
+                      style={[s.tiendaRow, seleccionada && { borderColor: t.color, backgroundColor: t.color + '0D' }]}
+                      onPress={() => toggleTienda(t.id)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={[s.tiendaRowDot, { backgroundColor: t.color }]} />
+                      <Text style={[s.tiendaRowTxt, seleccionada && { color: t.color, fontWeight: '700' }]} numberOfLines={1}>
+                        {t.nombre}
+                      </Text>
+                      {seleccionada
+                        ? <Ionicons name="checkmark-circle" size={20} color={t.color} style={{ marginLeft: 'auto' }} />
+                        : <Ionicons name="add-circle-outline" size={20} color="#A1A1AA" style={{ marginLeft: 'auto' }} />
+                      }
+                    </TouchableOpacity>
+
+                    {/* Selector de rol inline (solo si está seleccionada y es SUPERADMIN) */}
+                    {seleccionada && esSuperAdmin && (
+                      <View style={s.rolInlineRow}>
+                        <Ionicons name="shield-outline" size={13} color="#A1A1AA" style={{ marginRight: 6 }} />
+                        <Text style={s.rolInlineLbl}>Cargo en {t.nombre.replace('Inventario ', '')}:</Text>
+                        <View style={s.rolInlineBtns}>
+                          <TouchableOpacity
+                            style={[s.rolPill, rolActual === 'ADMIN' && s.rolPillAdminSel]}
+                            onPress={() => setRolTienda(t.id, 'ADMIN')}
+                          >
+                            <Text style={[s.rolPillTxt, rolActual === 'ADMIN' && { color: '#0369A1', fontWeight: '800' }]}>
+                              Admin
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[s.rolPill, rolActual === 'CONTADOR' && s.rolPillContSel]}
+                            onPress={() => setRolTienda(t.id, 'CONTADOR')}
+                          >
+                            <Text style={[s.rolPillTxt, rolActual === 'CONTADOR' && { color: '#374151', fontWeight: '800' }]}>
+                              Contador
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+                  </View>
                 );
               })}
 
@@ -461,9 +495,10 @@ const s = StyleSheet.create({
 
   sectionLbl:    { fontSize: 10, fontWeight: '700', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
   tiendasRow:    { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
-  tiendaChip:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, gap: 5, maxWidth: '48%' },
+  tiendaChip:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, gap: 4, maxWidth: '60%' },
   tiendaDot:     { width: 6, height: 6, borderRadius: 3, flexShrink: 0 },
   tiendaChipTxt: { fontSize: 11, fontWeight: '600', flexShrink: 1 },
+  tiendaChipRol: { fontSize: 10, fontWeight: '600', flexShrink: 0 },
   sinTiendas:    { fontSize: 11, color: MTD, fontStyle: 'italic' },
 
   credRow:       { flexDirection: 'row', alignItems: 'center', backgroundColor: LGR, borderRadius: 8, padding: 9, marginBottom: 2 },
@@ -483,11 +518,6 @@ const s = StyleSheet.create({
   modalTitle:    { fontSize: 19, fontWeight: '800', color: BLK },
   modalClose:    { width: 32, height: 32, borderRadius: 16, backgroundColor: LGR, alignItems: 'center', justifyContent: 'center' },
 
-  rolRow:        { flexDirection: 'row', gap: 10, marginBottom: 18 },
-  rolCard:       { flex: 1, borderWidth: 1.5, borderColor: BRD, borderRadius: 16, padding: 14, alignItems: 'center' },
-  rolCardLabel:  { fontSize: 13, fontWeight: '700', color: BLK, marginBottom: 4, textAlign: 'center' },
-  rolCardDesc:   { fontSize: 11, color: MTD, textAlign: 'center', lineHeight: 15 },
-
   fieldLabelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 },
   fieldLabel:    { fontSize: 11, fontWeight: '700', color: '#52525B', textTransform: 'uppercase', letterSpacing: 0.6 },
   optionalTag:   { fontSize: 10, fontWeight: '600', color: '#A1A1AA', backgroundColor: LGR, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 },
@@ -501,9 +531,17 @@ const s = StyleSheet.create({
   activoRowOff:  { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
   activoTxt:     { fontSize: 13, fontWeight: '600', flex: 1 },
 
-  tiendaRow:     { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: BRD, borderRadius: 13, padding: 14, marginBottom: 8, gap: 10 },
-  tiendaRowDot:  { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
-  tiendaRowTxt:  { fontSize: 14, color: '#52525B', flex: 1 },
+  tiendaRow:        { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: BRD, borderRadius: 13, padding: 14, marginBottom: 4, gap: 10 },
+  tiendaRowDot:     { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
+  tiendaRowTxt:     { fontSize: 14, color: '#52525B', flex: 1 },
+
+  rolInlineRow:     { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: BRD, borderTopWidth: 0, borderBottomLeftRadius: 12, borderBottomRightRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 8, gap: 4 },
+  rolInlineLbl:     { fontSize: 11, color: MTD, flexShrink: 1 },
+  rolInlineBtns:    { flexDirection: 'row', gap: 6, marginLeft: 'auto' },
+  rolPill:          { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1.5, borderColor: BRD, backgroundColor: '#fff' },
+  rolPillAdminSel:  { borderColor: '#0369A1', backgroundColor: '#E0F2FE' },
+  rolPillContSel:   { borderColor: '#6B7280', backgroundColor: '#F3F4F6' },
+  rolPillTxt:       { fontSize: 12, color: MTD },
 
   errorBox:      { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF2F2', borderRadius: 10, padding: 11, marginVertical: 8, borderLeftWidth: 3, borderLeftColor: '#DC2626' },
   errorTxt:      { fontSize: 12, color: '#DC2626', fontWeight: '600', flex: 1 },

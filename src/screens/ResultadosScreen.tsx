@@ -227,7 +227,7 @@ export const ResultadosScreen: React.FC<Props> = ({
           TAB: RESUMEN
       ══════════════════════════════════════════════════════════════════ */}
       {tab === 'resumen' && (
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
 
           {/* Donut + leyenda */}
           <View style={s.card}>
@@ -449,7 +449,7 @@ export const ResultadosScreen: React.FC<Props> = ({
           TAB: EQUIPO
       ══════════════════════════════════════════════════════════════════ */}
       {tab === 'equipo' && (
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
           <View style={s.card}>
             <Text style={s.cardTitle}>Rendimiento por auditor</Text>
             {auditores.length === 0 ? (
@@ -504,7 +504,7 @@ export const ResultadosScreen: React.FC<Props> = ({
           TAB: ECONÓMICO
       ══════════════════════════════════════════════════════════════════ */}
       {tab === 'economico' && (
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
 
           {/* Resumen compacto */}
           <View style={s.card}>

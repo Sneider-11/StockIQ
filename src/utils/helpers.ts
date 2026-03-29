@@ -1,4 +1,14 @@
-import { Clasificacion } from '../constants/data';
+import { Clasificacion, Rol, Usuario } from '../constants/data';
+
+/**
+ * Devuelve el rol efectivo de un usuario en una tienda concreta.
+ * SUPERADMIN siempre es SUPERADMIN.
+ * Para los demás: lee tiendasRoles[tiendaId]; si no existe, usa el rol global como fallback.
+ */
+export const getRolEnTienda = (usuario: Usuario, tiendaId: string): Rol => {
+  if (usuario.rol === 'SUPERADMIN') return 'SUPERADMIN';
+  return (usuario.tiendasRoles?.[tiendaId] as Rol) ?? usuario.rol;
+};
 
 export const clasificar = (stock: number, cant: number): Clasificacion => {
   if (cant === 0 && stock > 0)  return 'CERO';

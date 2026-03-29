@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAppState } from './src/hooks/useAppState';
+import { getRolEnTienda } from './src/utils/helpers';
 import {
   LoginScreen,
   HomeSuperAdminScreen,
@@ -72,6 +73,10 @@ export default function App() {
   const esSuperAdmin = usuario.rol === 'SUPERADMIN';
   const esAdmin      = usuario.rol === 'ADMIN' || esSuperAdmin;
 
+  // Rol efectivo dentro de la tienda activa (puede diferir del rol global)
+  const rolEnTienda    = tiendaActiva ? getRolEnTienda(usuario, tiendaActiva.id) : usuario.rol;
+  const esAdminEnTienda = rolEnTienda === 'ADMIN' || rolEnTienda === 'SUPERADMIN';
+
   // ── Perfil ─────────────────────────────────────────────────────────────────
   if (pantalla === 'perfil') {
     return (
@@ -130,7 +135,7 @@ export default function App() {
         <StatusBar style="light" />
         <TiendaScreen
           tienda={tiendaActiva}
-          usuario={usuario}
+          usuario={{ ...usuario, rol: rolEnTienda }}
           usuarios={usuarios}
           registros={registros}
           catalogos={catalogos}
@@ -174,17 +179,17 @@ export default function App() {
           tienda={tiendaActiva}
           registros={registros}
           sobrantes={getSobrantesTienda(tiendaActiva.id)}
-          esAdmin={esAdmin}
+          esAdmin={esAdminEnTienda}
           onVolver={volverATienda}
-          onEliminar={esAdmin ? eliminarRegistro : undefined}
-          onEliminarSobrante={esAdmin ? eliminarSobrante : undefined}
+          onEliminar={esAdminEnTienda ? eliminarRegistro : undefined}
+          onEliminarSobrante={esAdminEnTienda ? eliminarSobrante : undefined}
         />
       </>
     );
   }
 
-  // ── Resultados (solo ADMIN y SUPERADMIN) ────────────────────────────────────
-  if (pantalla === 'resultados' && tiendaActiva && esAdmin) {
+  // ── Resultados (solo ADMIN y SUPERADMIN en esa tienda) ──────────────────────
+  if (pantalla === 'resultados' && tiendaActiva && esAdminEnTienda) {
     return (
       <>
         <StatusBar style="dark" />
@@ -199,8 +204,8 @@ export default function App() {
     );
   }
 
-  // ── Sobrantes sin stock (solo ADMIN y SUPERADMIN) ───────────────────────────
-  if (pantalla === 'sobrantes' && tiendaActiva && esAdmin) {
+  // ── Sobrantes sin stock (solo ADMIN y SUPERADMIN en esa tienda) ─────────────
+  if (pantalla === 'sobrantes' && tiendaActiva && esAdminEnTienda) {
     return (
       <>
         <StatusBar style="light" />

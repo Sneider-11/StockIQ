@@ -11,8 +11,10 @@ export interface Usuario {
   id: string;
   cedula: string;
   nombre: string;
+  /** Rol global — 'ADMIN' si tiene al menos una tienda como admin, 'CONTADOR' si todas son contador */
   rol: Rol;
-  tiendas: string[];
+  tiendas: string[];                              // IDs de tiendas asignadas
+  tiendasRoles: Record<string, 'ADMIN' | 'CONTADOR'>;  // rol por tienda (para no-SUPERADMIN)
   pass: string;
   telefono?: string;
   activo?: boolean;      // false = desactivado por un ADMIN
@@ -89,6 +91,7 @@ export const USUARIOS_INICIALES: Usuario[] = [
     nombre: 'CARLOS PEÑALOZA',
     rol: 'SUPERADMIN',
     tiendas: ['general', 'yamaha', 'bajaj', 'akt', 'honda'],
+    tiendasRoles: {},   // SUPERADMIN no usa tiendasRoles
     pass: 'admin123',
     activo: true,
   },
@@ -98,6 +101,7 @@ export const USUARIOS_INICIALES: Usuario[] = [
     nombre: 'EDWIN PUERTO',
     rol: 'ADMIN',
     tiendas: ['yamaha'],
+    tiendasRoles: { yamaha: 'ADMIN' },
     pass: 'edwin123',
     activo: true,
   },
@@ -107,6 +111,7 @@ export const USUARIOS_INICIALES: Usuario[] = [
     nombre: 'GERMAN TORRES',
     rol: 'CONTADOR',
     tiendas: ['honda'],
+    tiendasRoles: { honda: 'CONTADOR' },
     pass: 'german123',
     activo: true,
     creadoPor: 'u1',
