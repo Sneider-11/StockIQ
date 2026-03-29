@@ -66,7 +66,7 @@ export const MisRegistrosScreen: React.FC<Props> = ({
 
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={onVolver} style={s.backBtn}>
+        <TouchableOpacity onPress={onVolver} style={s.backBtn} accessibilityLabel="Volver" accessibilityRole="button">
           <Ionicons name="arrow-back" size={20} color={BLK} />
         </TouchableOpacity>
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -84,12 +84,16 @@ export const MisRegistrosScreen: React.FC<Props> = ({
         <TouchableOpacity
           style={[s.tab, tabActiva === 'escaneos' && s.tabActiva]}
           onPress={() => setTabActiva('escaneos')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: tabActiva === 'escaneos' }}
+          accessibilityLabel={`Escaneos, ${mis.length} registros`}
         >
           <Ionicons
             name="scan-outline"
             size={14}
             color={tabActiva === 'escaneos' ? PRP : MTD}
             style={{ marginRight: 5 }}
+            accessibilityElementsHidden={true}
           />
           <Text style={[s.tabTxt, tabActiva === 'escaneos' && s.tabTxtActiva]}>
             Escaneos · {mis.length}
@@ -98,12 +102,16 @@ export const MisRegistrosScreen: React.FC<Props> = ({
         <TouchableOpacity
           style={[s.tab, tabActiva === 'sobrantes' && s.tabActiva]}
           onPress={() => setTabActiva('sobrantes')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: tabActiva === 'sobrantes' }}
+          accessibilityLabel={`Sobrantes sin stock, ${misSobrantes.length} registros`}
         >
           <Ionicons
             name="add-circle-outline"
             size={14}
             color={tabActiva === 'sobrantes' ? '#92400E' : MTD}
             style={{ marginRight: 5 }}
+            accessibilityElementsHidden={true}
           />
           <Text style={[s.tabTxt, tabActiva === 'sobrantes' && { color: '#92400E', fontWeight: '700' }]}>
             Sobrantes sin Stock · {misSobrantes.length}
@@ -131,6 +139,9 @@ export const MisRegistrosScreen: React.FC<Props> = ({
                   key={f}
                   style={[s.chip, act && { backgroundColor: PRP, borderColor: PRP }]}
                   onPress={() => setFiltro(f)}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: act }}
+                  accessibilityLabel={`${cfg.label}, ${cnt} artículos`}
                 >
                   {!isAll && <View style={[s.chipDot, { backgroundColor: act ? 'rgba(255,255,255,0.7)' : cfg.dot }]} />}
                   <Text style={[s.chipTxt, act && { color: '#fff', fontWeight: '700' }]}>

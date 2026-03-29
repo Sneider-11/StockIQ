@@ -120,14 +120,20 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
 
       {/* Barra superior */}
       <View style={s.top}>
-        <TouchableOpacity style={s.iconBtn} onPress={onBack}>
+        <TouchableOpacity style={s.iconBtn} onPress={onBack} accessibilityLabel="Volver" accessibilityRole="button">
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1, alignItems: 'center' }}>
           <Text style={s.topTitle}>{tienda.nombre}</Text>
           <Text style={s.topSub}>{registros.filter(r => r.usuarioNombre === usuario.nombre).length} escaneados</Text>
         </View>
-        <TouchableOpacity style={[s.iconBtn, flash && { backgroundColor: '#F59E0B' }]} onPress={() => setFlash(!flash)}>
+        <TouchableOpacity
+          style={[s.iconBtn, flash && { backgroundColor: '#F59E0B' }]}
+          onPress={() => setFlash(!flash)}
+          accessibilityLabel={flash ? 'Apagar flash' : 'Encender flash'}
+          accessibilityRole="button"
+          accessibilityState={{ selected: flash }}
+        >
           <Ionicons name={flash ? 'flash' : 'flash-outline'} size={20} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -157,10 +163,10 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
       </View>
 
       {/* ── Modal: artículo detectado ── */}
-      <Modal visible={modal} animationType="slide" transparent>
+      <Modal visible={modal} animationType="slide" transparent accessibilityViewIsModal={true}>
         <View style={m.bg}>
           <View style={m.sheet}>
-            <View style={m.handle} />
+            <View style={m.handle} accessibilityElementsHidden={true} />
             <View style={m.header}>
               <View>
                 <Text style={m.headerLbl}>Artículo detectado</Text>

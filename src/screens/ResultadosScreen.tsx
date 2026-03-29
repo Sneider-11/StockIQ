@@ -40,8 +40,17 @@ const DonutChart: React.FC<{
   const total         = segments.reduce((a, s) => a + s.value, 0);
   let   cumLen        = 0;
 
+  const accessLabel = total > 0
+    ? `Gráfico de distribución. ${segments.map((seg, i) => `${Math.round(seg.value / total * 100)}%`).join(', ')}. ${centerLabel} ${centerSub}`
+    : 'Gráfico de distribución sin datos';
+
   return (
-    <View style={{ width: DSIZE, height: DSIZE, alignSelf: 'center' }}>
+    <View
+      style={{ width: DSIZE, height: DSIZE, alignSelf: 'center' }}
+      accessible={true}
+      accessibilityRole="image"
+      accessibilityLabel={accessLabel}
+    >
       <Svg width={DSIZE} height={DSIZE}>
         <Circle cx={cx} cy={cy} r={r} stroke="#E4E4E7" strokeWidth={STROKE} fill="none" />
         {total > 0 && segments.map((seg, i) => {
@@ -192,14 +201,14 @@ export const ResultadosScreen: React.FC<Props> = ({
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <View style={s.header}>
-        <TouchableOpacity style={s.headerBtn} onPress={onBack}>
+        <TouchableOpacity style={s.headerBtn} onPress={onBack} accessibilityLabel="Volver" accessibilityRole="button">
           <Ionicons name="arrow-back" size={20} color={BLK} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={s.headerTitle}>Resultados</Text>
           <Text style={s.headerSub}>{tienda.nombre} · {contados}/{total} artículos · {pct}%</Text>
         </View>
-        <TouchableOpacity style={s.headerBtn} onPress={compartir}>
+        <TouchableOpacity style={s.headerBtn} onPress={compartir} accessibilityLabel="Compartir reporte" accessibilityRole="button">
           <Ionicons name="share-outline" size={20} color={BLK} />
         </TouchableOpacity>
       </View>
@@ -215,6 +224,9 @@ export const ResultadosScreen: React.FC<Props> = ({
             key={t.k}
             style={[s.tab, tab === t.k && { borderBottomColor: tienda.color }]}
             onPress={() => setTab(t.k)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === t.k }}
+            accessibilityLabel={t.label}
           >
             <Text style={[s.tabTxt, tab === t.k && { color: tienda.color, fontWeight: '700' }]}>
               {t.label}

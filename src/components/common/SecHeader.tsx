@@ -7,13 +7,13 @@ interface Props {
 
 export const SecHeader: React.FC<Props> = ({ title }) => (
   <View style={s.wrap}>
-    <Text style={s.title}>{title}</Text>
-    <View style={s.line} />
+    <Text style={s.title} accessibilityRole="header">{title}</Text>
+    <View style={s.line} accessibilityElementsHidden={true} />
   </View>
 );
 
 const s = StyleSheet.create({
   wrap:  { flexDirection: 'row', alignItems: 'center', marginTop: 20, marginBottom: 12 },
-  title: { fontSize: 11, fontWeight: '800', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: 1.2, marginRight: 10 },
+  title: { fontSize: 11, fontWeight: '800', color: '#767676', textTransform: 'uppercase', letterSpacing: 1.2, marginRight: 10 },
   line:  { flex: 1, height: 1, backgroundColor: '#E4E4E7' },
 });

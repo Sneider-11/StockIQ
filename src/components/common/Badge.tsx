@@ -6,10 +6,16 @@ interface BadgeProps {
   label: string;
   color: string;
   bg: string;
+  accessibilityLabel?: string;
 }
 
-export const Badge: React.FC<BadgeProps> = ({ label, color, bg }) => (
-  <View style={[s.badge, { backgroundColor: bg }]}>
+export const Badge: React.FC<BadgeProps> = ({ label, color, bg, accessibilityLabel }) => (
+  <View
+    style={[s.badge, { backgroundColor: bg }]}
+    accessible={true}
+    accessibilityRole="text"
+    accessibilityLabel={accessibilityLabel ?? label}
+  >
     <Text style={[s.txt, { color }]}>{label}</Text>
   </View>
 );
@@ -33,7 +39,14 @@ interface ClasifBadgeProps {
 
 export const ClasifBadge: React.FC<ClasifBadgeProps> = ({ clasificacion }) => {
   const cfg = CLSF[clasificacion];
-  return <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} />;
+  return (
+    <Badge
+      label={cfg.label}
+      color={cfg.color}
+      bg={cfg.bg}
+      accessibilityLabel={`Clasificación: ${cfg.label}`}
+    />
+  );
 };
 
 const s = StyleSheet.create({

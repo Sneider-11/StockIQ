@@ -80,7 +80,7 @@ export const GestionEquipoScreen: React.FC<Props> = ({
     const msg =
       `Hola ${u.nombre.split(' ')[0]} 👋\n\n` +
       `Te registré en *StockIQ*, el sistema de auditoría de inventarios del Grupo Comercial.\n\n` +
-      `📱 *Tus datos de acceso:*\n• Usuario: ${u.cedula}\n• Contraseña: ${u.pass}\n• Cargo: ${rolLabel}\n\n` +
+      `📱 *Tus datos de acceso:*\n• Usuario: ${u.cedula}\n• Contraseña: la que te compartí por separado\n• Cargo: ${rolLabel}\n\n` +
       `🏪 *Tiendas asignadas:*\n${tiendasNombres}\n\n` +
       `Ingresa con tu cédula y contraseña. ¡Cualquier duda me avisas!`;
     const url = `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
@@ -95,7 +95,7 @@ export const GestionEquipoScreen: React.FC<Props> = ({
     setNombre(u.nombre);
     setCedula(u.cedula);
     setTelefono(u.telefono ?? '');
-    setPass(u.pass);
+    setPass('');  // no precargar la contraseña actual por seguridad
     // Cargar el mapa de roles por tienda existente
     setTiendasRolesSel(u.tiendasRoles ? { ...u.tiendasRoles } : {});
     setActivoSel(u.activo !== false);
@@ -117,7 +117,7 @@ export const GestionEquipoScreen: React.FC<Props> = ({
     if (!cedula.trim())            { setError('Ingresa el número de cédula.'); return; }
     if (cedula.trim().length < 7)  { setError('La cédula debe tener al menos 7 dígitos.'); return; }
     if (!pass.trim())              { setError('Ingresa una contraseña inicial.'); return; }
-    if (pass.trim().length < 6)    { setError('La contraseña debe tener mínimo 6 caracteres.'); return; }
+    if (pass.trim().length < 8)    { setError('La contraseña debe tener mínimo 8 caracteres.'); return; }
     if (tiendasSel.length === 0)   { setError('Asigna al menos una tienda.'); return; }
     if (!telefonoValido(telefono)) { setError('Celular inválido. Debe tener 10 dígitos y empezar en 3.'); return; }
     if (usuarios.find(u => u.cedula === cedula.trim())) { setError('Ya existe un usuario con esa cédula.'); return; }
@@ -139,20 +139,21 @@ export const GestionEquipoScreen: React.FC<Props> = ({
   /* ── Guardar edición ── */
   const handleEditar = () => {
     setError('');
-    if (!nombre.trim())            { setError('Ingresa el nombre completo.'); return; }
-    if (!pass.trim())              { setError('Ingresa la contraseña.'); return; }
-    if (pass.trim().length < 6)    { setError('La contraseña debe tener mínimo 6 caracteres.'); return; }
-    if (tiendasSel.length === 0)   { setError('Asigna al menos una tienda.'); return; }
-    if (!telefonoValido(telefono)) { setError('Celular inválido. Debe tener 10 dígitos y empezar en 3.'); return; }
+    if (!nombre.trim())                            { setError('Ingresa el nombre completo.'); return; }
+    if (pass.trim() && pass.trim().length < 8)     { setError('La contraseña debe tener mínimo 8 caracteres.'); return; }
+    if (tiendasSel.length === 0)                   { setError('Asigna al menos una tienda.'); return; }
+    if (!telefonoValido(telefono))                 { setError('Celular inválido. Debe tener 10 dígitos y empezar en 3.'); return; }
 
-    onEditar(editandoId!, {
+    const cambios: Partial<Omit<Usuario, 'id'>> = {
       nombre:       nombre.trim().toUpperCase(),
       tiendas:      tiendasSel,
       tiendasRoles: tiendasRolesSel,
-      pass:         pass.trim(),
       telefono:     telefono.trim() || undefined,
       activo:       activoSel,
-    });
+    };
+    if (pass.trim()) cambios.pass = pass.trim();  // solo actualizar si se ingresó nueva
+
+    onEditar(editandoId!, cambios);
     limpiarYCerrar();
   };
 
@@ -190,21 +191,21 @@ export const GestionEquipoScreen: React.FC<Props> = ({
     { label: 'Nombre completo',    icon: 'person-outline',         value: nombre,   onChange: t => { setNombre(t);   setError(''); }, placeholder: 'Ej: PEDRO TARAZONA', capitalize: 'characters', keyboard: 'default',   secure: false },
     { label: 'Número de cédula',   icon: 'card-outline',           value: cedula,   onChange: t => { setCedula(t);   setError(''); }, placeholder: 'Será el usuario de inicio sesión', capitalize: 'none', keyboard: 'numeric', secure: false },
     { label: 'WhatsApp (celular)', icon: 'phone-portrait-outline', value: telefono, onChange: t => { setTelefono(t); setError(''); }, placeholder: 'Ej: 3001234567  (opcional)', capitalize: 'none', keyboard: 'phone-pad', secure: false, optional: true },
-    { label: 'Contraseña inicial', icon: 'lock-closed-outline',    value: pass,     onChange: t => { setPass(t);     setError(''); }, placeholder: 'Mínimo 6 caracteres', capitalize: 'none', keyboard: 'default', secure: true  },
+    { label: editandoId ? 'Nueva contraseña' : 'Contraseña inicial', icon: 'lock-closed-outline', value: pass, onChange: t => { setPass(t); setError(''); }, placeholder: editandoId ? 'Dejar vacío para no cambiar' : 'Mínimo 8 caracteres', capitalize: 'none', keyboard: 'default', secure: true },
   ];
 
   return (
     <View style={{ flex: 1, backgroundColor: LGR }}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={onVolver} style={s.backBtn}>
+        <TouchableOpacity onPress={onVolver} style={s.backBtn} accessibilityLabel="Volver" accessibilityRole="button">
           <Ionicons name="arrow-back" size={20} color={BLK} />
         </TouchableOpacity>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={s.title}>{esSuperAdmin ? 'Gestión de equipo' : 'Mi equipo'}</Text>
           <Text style={s.sub} numberOfLines={1}>{listaVisible.length} usuarios en tu equipo</Text>
         </View>
-        <TouchableOpacity style={s.addBtn} onPress={() => setModalVisible(true)}>
+        <TouchableOpacity style={s.addBtn} onPress={() => setModalVisible(true)} accessibilityLabel="Agregar usuario" accessibilityRole="button">
           <Ionicons name="person-add" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -247,10 +248,10 @@ export const GestionEquipoScreen: React.FC<Props> = ({
                   </View>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 8, flexShrink: 0 }}>
-                  <TouchableOpacity onPress={() => abrirEdicion(u)} style={s.editBtn}>
+                  <TouchableOpacity onPress={() => abrirEdicion(u)} style={s.editBtn} accessibilityLabel={`Editar ${u.nombre}`} accessibilityRole="button">
                     <Ionicons name="pencil-outline" size={17} color={PRP} />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => confirmarEliminar(u)} style={s.deleteBtn}>
+                  <TouchableOpacity onPress={() => confirmarEliminar(u)} style={s.deleteBtn} accessibilityLabel={`Eliminar ${u.nombre}`} accessibilityRole="button">
                     <Ionicons name="trash-outline" size={17} color="#EF4444" />
                   </TouchableOpacity>
                 </View>
@@ -322,10 +323,10 @@ export const GestionEquipoScreen: React.FC<Props> = ({
       />
 
       {/* Modal agregar/editar */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
+      <Modal visible={modalVisible} animationType="slide" transparent accessibilityViewIsModal={true}>
         <KeyboardAvoidingView style={s.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={s.modalSheet}>
-            <View style={s.modalHandle} />
+            <View style={s.modalHandle} accessibilityElementsHidden={true} />
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>{editandoId ? 'Editar usuario' : `Nuevo ${esSuperAdmin ? 'usuario' : 'contador'}`}</Text>
               <TouchableOpacity onPress={limpiarYCerrar} style={s.modalClose}>

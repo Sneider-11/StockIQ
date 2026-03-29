@@ -106,7 +106,7 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* Fondo oscuro con destellos de color */}
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: BLK }]} />
       <View style={s.glow1} />
@@ -146,11 +146,13 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }
               <TextInput
                 style={s.input}
                 placeholder="Número de cédula"
-                placeholderTextColor="#A1A1AA"
+                placeholderTextColor="#767676"
                 value={cedula}
                 onChangeText={t => { setCedula(t); setError(''); }}
                 keyboardType="numeric"
                 returnKeyType="next"
+                accessibilityLabel="Número de cédula"
+                accessibilityHint="Ingresa tu cédula, será tu usuario de acceso"
               />
             </View>
           </View>
@@ -163,22 +165,29 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }
               <TextInput
                 style={[s.input, { flex: 1 }]}
                 placeholder="Contraseña"
-                placeholderTextColor="#A1A1AA"
+                placeholderTextColor="#767676"
                 secureTextEntry={!show}
                 value={pass}
                 onChangeText={t => { setPass(t); setError(''); }}
                 returnKeyType="done"
                 onSubmitEditing={login}
+                accessibilityLabel="Contraseña"
+                accessibilityHint="Ingresa tu contraseña de acceso"
               />
-              <TouchableOpacity onPress={() => setShow(!show)} style={s.eyeBtn}>
+              <TouchableOpacity
+                onPress={() => setShow(!show)}
+                style={s.eyeBtn}
+                accessibilityLabel={show ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                accessibilityRole="button"
+              >
                 <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={18} color={MTD} />
               </TouchableOpacity>
             </View>
           </View>
 
           {error ? (
-            <View style={s.errBox}>
-              <Ionicons name="alert-circle" size={15} color="#DC2626" />
+            <View style={s.errBox} accessibilityLiveRegion="assertive">
+              <Ionicons name="alert-circle" size={15} color="#DC2626" accessibilityElementsHidden={true} />
               <Text style={s.errTxt}>{error}</Text>
             </View>
           ) : null}
@@ -188,6 +197,9 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }
             onPress={login}
             disabled={loading}
             activeOpacity={0.88}
+            accessibilityLabel="Ingresar"
+            accessibilityRole="button"
+            accessibilityState={{ disabled: loading }}
           >
             {loading
               ? <ActivityIndicator color="#fff" size="small" />
@@ -224,7 +236,7 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }
           </View>
         )}
 
-        <Text style={s.ver}>v2.1.0 · StockIQ · Grupo Comercial</Text>
+        <Text style={s.ver} accessibilityElementsHidden={true}>v2.2.0 · StockIQ · Grupo Comercial</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );

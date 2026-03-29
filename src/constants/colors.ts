@@ -5,8 +5,8 @@
 export const PRP  = '#7C3AED';  // primary (violeta)
 export const BLK  = '#09090B';  // dark background
 export const DRK  = '#18181B';  // surface / card dark
-export const MTD  = '#71717A';  // muted text
-export const GRY  = '#A1A1AA';  // gray placeholder
+export const MTD  = '#6B6B6B';  // muted text (4.6:1 sobre blanco — WCAG AA)
+export const GRY  = '#767676';  // gray placeholder (4.54:1 sobre blanco — WCAG AA)
 export const LGR  = '#F4F4F5';  // light gray background
 export const BRD  = '#E4E4E7';  // border
 export const GRN  = '#25D366';  // green (WhatsApp)

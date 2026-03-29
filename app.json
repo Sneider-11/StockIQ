@@ -3,6 +3,8 @@
     "name": "StockIQ",
     "slug": "stockiq",
     "version": "2.2.0",
+    "scheme": "stockiq",
+    "description": "Sistema inteligente de auditoría de inventarios para equipos comerciales. Escanea, cuenta y detecta diferencias de stock en múltiples tiendas.",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -12,11 +14,17 @@
       "backgroundColor": "#09090B"
     },
     "assetBundlePatterns": [
-      "**/*"
+      "assets/**"
     ],
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#09090B",
+      "translucent": true
+    },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.stockiq.app",
+      "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "StockIQ necesita acceso a la cámara para escanear códigos de barras y tomar fotos de artículos.",
         "NSPhotoLibraryUsageDescription": "StockIQ accede a la galería para adjuntar fotos a los registros de inventario."
@@ -28,9 +36,9 @@
         "backgroundColor": "#09090B"
       },
       "package": "com.stockiq.app",
+      "versionCode": 1,
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.VIBRATE"
       ]
     },
@@ -42,6 +50,12 @@
         "expo-camera",
         {
           "cameraPermission": "StockIQ necesita la cámara para escanear artículos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "StockIQ accede a tus fotos para adjuntarlas a registros de inventario."
         }
       ],
       "expo-secure-store",
