@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react';
 import type { Ionicons } from '@expo/vector-icons';
 
 // ─── TIPOS ────────────────────────────────────────────────────────────────────
-export type Rol = 'SUPERADMIN' | 'AUDITOR';
+export type Rol = 'SUPERADMIN' | 'ADMIN' | 'CONTADOR';
 export type Clasificacion = 'SIN_DIF' | 'FALTANTE' | 'SOBRANTE' | 'CERO';
 export type EstadoSobrante = 'CONFIRMADO' | 'PENDIENTE';
 export type IoniconName = ComponentProps<typeof Ionicons>['name'];
@@ -15,6 +15,8 @@ export interface Usuario {
   tiendas: string[];
   pass: string;
   telefono?: string;
+  activo?: boolean;      // false = desactivado por un ADMIN
+  creadoPor?: string;    // id del ADMIN que creó este CONTADOR
 }
 
 export interface Tienda {
@@ -22,6 +24,7 @@ export interface Tienda {
   nombre: string;
   icono: IoniconName;
   color: string;
+  nit?: string;          // NIT opcional de la empresa/tienda
 }
 
 export interface Articulo {
@@ -87,22 +90,26 @@ export const USUARIOS_INICIALES: Usuario[] = [
     rol: 'SUPERADMIN',
     tiendas: ['general', 'yamaha', 'bajaj', 'akt', 'honda'],
     pass: 'admin123',
+    activo: true,
   },
   {
     id: 'u2',
     cedula: '1090491873',
     nombre: 'EDWIN PUERTO',
-    rol: 'AUDITOR',
+    rol: 'ADMIN',
     tiendas: ['yamaha'],
     pass: 'edwin123',
+    activo: true,
   },
   {
     id: 'u3',
     cedula: '1090414059',
     nombre: 'GERMAN TORRES',
-    rol: 'AUDITOR',
+    rol: 'CONTADOR',
     tiendas: ['honda'],
     pass: 'german123',
+    activo: true,
+    creadoPor: 'u1',
   },
 ];
 
@@ -135,6 +142,14 @@ export const CLSF: Record<Clasificacion, ClasificacionConfig> = {
   SOBRANTE: { label: 'Sobrante',       color: '#15803D', bg: '#F0FDF4', dot: '#22C55E' },
   CERO:     { label: 'Conteo cero',    color: '#991B1B', bg: '#FEF2F2', dot: '#EF4444' },
 };
+
+// ─── PALETA DE COLORES PARA TIENDAS ──────────────────────────────────────────
+export const PALETA_COLORES: string[] = [
+  '#09090B', '#1E1B4B', '#4C1D95', '#7C3AED',
+  '#1D4ED8', '#0369A1', '#0E7490', '#047857',
+  '#15803D', '#92400E', '#B45309', '#C2410C',
+  '#DC2626', '#9F1239', '#DB2777', '#374151',
+];
 
 // ─── COLORES DE LA APP ────────────────────────────────────────────────────────
 export const COLORS = {

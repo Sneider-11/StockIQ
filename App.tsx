@@ -5,8 +5,10 @@ import { useAppState } from './src/hooks/useAppState';
 import {
   LoginScreen,
   HomeSuperAdminScreen,
-  HomeAuditorScreen,
+  HomeAdminScreen,
+  HomeContadorScreen,
   GestionEquipoScreen,
+  GestionTiendasScreen,
   TiendaScreen,
   ScannerScreen,
   MisRegistrosScreen,
@@ -20,11 +22,13 @@ export default function App() {
   const state = useAppState();
   const {
     cargando,
+    tiendas,
     usuario, usuarios, pantalla, tiendaActiva, registros, catalogos,
     login, logout,
     navTienda, navScanner, navRegistros, navResultados, navImportar, navSobrantes, navPerfil,
     volverATienda, volverAHome,
     setPantalla,
+    agregarTienda, editarTienda, eliminarTienda,
     agregarUsuario, editarUsuario, eliminarUsuario,
     agregarRegistro, eliminarRegistro, cargarCatalogo, getCatalogo, getRegistrosTienda,
     limpiarRegistrosTienda,
@@ -51,7 +55,24 @@ export default function App() {
     );
   }
 
-  // ── Perfil / Cambiar contraseña ─────────────────────────────────────────────
+  // Bloquear usuarios inactivos
+  if (usuario.activo === false) {
+    return (
+      <>
+        <StatusBar style="light" />
+        <LoginScreen
+          usuarios={usuarios}
+          onLogin={login}
+          mensajeExtra="Tu cuenta está inactiva. Contacta al administrador."
+        />
+      </>
+    );
+  }
+
+  const esSuperAdmin = usuario.rol === 'SUPERADMIN';
+  const esAdmin      = usuario.rol === 'ADMIN' || esSuperAdmin;
+
+  // ── Perfil ─────────────────────────────────────────────────────────────────
   if (pantalla === 'perfil') {
     return (
       <>
@@ -59,6 +80,7 @@ export default function App() {
         <PerfilScreen
           usuario={usuario}
           registros={registros}
+          tiendas={tiendas}
           onCambiarPass={nueva => editarUsuario(usuario.id, { pass: nueva })}
           onLogout={logout}
           onBack={() => setPantalla('home')}
@@ -68,15 +90,33 @@ export default function App() {
   }
 
   // ── Gestión de equipo ───────────────────────────────────────────────────────
-  if (pantalla === 'equipo') {
+  if (pantalla === 'equipo' && esAdmin) {
     return (
       <>
         <StatusBar style="dark" />
         <GestionEquipoScreen
+          usuarioActual={usuario}
           usuarios={usuarios}
+          tiendas={tiendas}
           onAgregar={agregarUsuario}
           onEditar={editarUsuario}
           onEliminar={eliminarUsuario}
+          onVolver={() => setPantalla('home')}
+        />
+      </>
+    );
+  }
+
+  // ── Gestión de tiendas (solo SUPERADMIN) ────────────────────────────────────
+  if (pantalla === 'tiendas' && esSuperAdmin) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <GestionTiendasScreen
+          tiendas={tiendas}
+          onAgregar={agregarTienda}
+          onEditar={editarTienda}
+          onEliminar={eliminarTienda}
           onVolver={() => setPantalla('home')}
         />
       </>
@@ -101,7 +141,7 @@ export default function App() {
           onNavImportar={navImportar}
           onNavResultados={navResultados}
           onNavSobrantes={navSobrantes}
-          onLimpiar={() => limpiarRegistrosTienda(tiendaActiva.id)}
+          onLimpiar={esSuperAdmin ? () => limpiarRegistrosTienda(tiendaActiva.id) : undefined}
         />
       </>
     );
@@ -133,16 +173,18 @@ export default function App() {
           usuario={usuario}
           tienda={tiendaActiva}
           registros={registros}
-          esAdmin={usuario.rol === 'SUPERADMIN'}
+          sobrantes={getSobrantesTienda(tiendaActiva.id)}
+          esAdmin={esAdmin}
           onVolver={volverATienda}
-          onEliminar={usuario.rol === 'SUPERADMIN' ? eliminarRegistro : undefined}
+          onEliminar={esAdmin ? eliminarRegistro : undefined}
+          onEliminarSobrante={esAdmin ? eliminarSobrante : undefined}
         />
       </>
     );
   }
 
-  // ── Resultados ──────────────────────────────────────────────────────────────
-  if (pantalla === 'resultados' && tiendaActiva) {
+  // ── Resultados (solo ADMIN y SUPERADMIN) ────────────────────────────────────
+  if (pantalla === 'resultados' && tiendaActiva && esAdmin) {
     return (
       <>
         <StatusBar style="dark" />
@@ -157,8 +199,8 @@ export default function App() {
     );
   }
 
-  // ── Sobrantes sin stock ──────────────────────────────────────────────────────
-  if (pantalla === 'sobrantes' && tiendaActiva) {
+  // ── Sobrantes sin stock (solo ADMIN y SUPERADMIN) ───────────────────────────
+  if (pantalla === 'sobrantes' && tiendaActiva && esAdmin) {
     return (
       <>
         <StatusBar style="light" />
@@ -168,7 +210,7 @@ export default function App() {
           catalogo={getCatalogo(tiendaActiva.id)}
           sobrantes={getSobrantesTienda(tiendaActiva.id)}
           onGuardar={agregarSobrante}
-          onEliminar={usuario.rol === 'SUPERADMIN' ? eliminarSobrante : undefined}
+          onEliminar={esSuperAdmin ? eliminarSobrante : undefined}
           onEditarEstado={(id, estado) => editarSobrante(id, { estado })}
           onBack={volverATienda}
         />
@@ -176,8 +218,8 @@ export default function App() {
     );
   }
 
-  // ── Importar Excel ──────────────────────────────────────────────────────────
-  if (pantalla === 'importar' && tiendaActiva) {
+  // ── Importar Excel (solo SUPERADMIN) ────────────────────────────────────────
+  if (pantalla === 'importar' && tiendaActiva && esSuperAdmin) {
     return (
       <>
         <StatusBar style="dark" />
@@ -202,6 +244,26 @@ export default function App() {
         <HomeSuperAdminScreen
           usuario={usuario}
           usuarios={usuarios}
+          tiendas={tiendas}
+          registros={registros}
+          onLogout={logout}
+          onNavTienda={navTienda}
+          onNavEquipo={() => setPantalla('equipo')}
+          onNavTiendas={() => setPantalla('tiendas')}
+          onNavPerfil={navPerfil}
+        />
+      </>
+    );
+  }
+
+  if (usuario.rol === 'ADMIN') {
+    return (
+      <>
+        <StatusBar style="light" />
+        <HomeAdminScreen
+          usuario={usuario}
+          usuarios={usuarios}
+          tiendas={tiendas}
           registros={registros}
           onLogout={logout}
           onNavTienda={navTienda}
@@ -212,11 +274,13 @@ export default function App() {
     );
   }
 
+  // CONTADOR
   return (
     <>
       <StatusBar style="light" />
-      <HomeAuditorScreen
+      <HomeContadorScreen
         usuario={usuario}
+        tiendas={tiendas}
         registros={registros}
         onLogout={logout}
         onNavTienda={navTienda}

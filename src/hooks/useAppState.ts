@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import { USUARIOS_INICIALES, CATALOGO_BASE, Usuario, Articulo, Registro, Tienda, SobranteSinStock } from '../constants/data';
+import { USUARIOS_INICIALES, TIENDAS, CATALOGO_BASE, Usuario, Articulo, Registro, Tienda, SobranteSinStock } from '../constants/data';
 import { genId } from '../utils/helpers';
 import { SUPABASE_LISTO } from '../lib/supabase';
 import {
+  dbGetTiendas, dbUpsertTienda, dbDeleteTienda,
   dbGetUsuarios, dbInsertUsuario, dbDeleteUsuario,
   dbGetRegistros, dbInsertRegistro, dbDeleteRegistro, dbLimpiarRegistrosTienda,
   dbGetAllCatalogos, dbUpsertCatalogo,
@@ -13,7 +14,8 @@ import {
 
 // ─── CLAVES DE ALMACENAMIENTO ─────────────────────────────────────────────────
 const KEYS = {
-  USUARIOS:   '@stockiq:usuarios_v2',  // v2 = sin campo pass (movido a SecureStore)
+  USUARIOS:   '@stockiq:usuarios_v3',  // v3 = roles ADMIN/CONTADOR + activo + creadoPor
+  TIENDAS:    '@stockiq:tiendas_v1',
   REGISTROS:  '@stockiq:registros',
   CATALOGOS:  '@stockiq:catalogos',
   SOBRANTES:  '@stockiq:sobrantes',
@@ -36,9 +38,16 @@ async function savePasswords(map: PassMap): Promise<void> {
   } catch {}
 }
 
+// Migrar rol legacy 'AUDITOR' → 'ADMIN'
+function migrateRol(rol: string): Usuario['rol'] {
+  if (rol === 'AUDITOR') return 'ADMIN';
+  return rol as Usuario['rol'];
+}
+
 export type Pantalla =
   | 'home'
   | 'equipo'
+  | 'tiendas'    // gestión de tiendas (solo SUPERADMIN)
   | 'tienda'
   | 'scanner'
   | 'registros'
@@ -50,6 +59,7 @@ export type Pantalla =
 export function useAppState() {
   const [cargando, setCargando]           = useState(true);
   const [sincronizado, setSincronizado]   = useState(false);
+  const [tiendas, setTiendas]             = useState<Tienda[]>(TIENDAS);
   const [usuarios, setUsuarios]           = useState<Usuario[]>(USUARIOS_INICIALES);
   const [usuario, setUsuario]             = useState<Usuario | null>(null);
   const [pantalla, setPantalla]           = useState<Pantalla>('home');
@@ -62,13 +72,19 @@ export function useAppState() {
   useEffect(() => {
     const cargar = async () => {
       try {
-        const [rawUsuarios, rawRegistros, rawCatalogos, rawSobrantes, passwords] = await Promise.all([
+        const [rawTiendas, rawUsuarios, rawRegistros, rawCatalogos, rawSobrantes, passwords] = await Promise.all([
+          AsyncStorage.getItem(KEYS.TIENDAS),
           AsyncStorage.getItem(KEYS.USUARIOS),
           AsyncStorage.getItem(KEYS.REGISTROS),
           AsyncStorage.getItem(KEYS.CATALOGOS),
           AsyncStorage.getItem(KEYS.SOBRANTES),
           loadPasswords(),
         ]);
+
+        // Tiendas dinámicas
+        if (rawTiendas) {
+          setTiendas(JSON.parse(rawTiendas) as Tienda[]);
+        }
 
         // Sembrar SecureStore con las contraseñas de USUARIOS_INICIALES si faltan
         let passNeedsSave = false;
@@ -78,12 +94,16 @@ export function useAppState() {
         if (passNeedsSave) savePasswords(passwords);
 
         if (rawUsuarios) {
-          // v2: los usuarios en AsyncStorage ya no tienen campo pass
           const guardados = JSON.parse(rawUsuarios) as Omit<Usuario, 'pass'>[];
           const ids = guardados.map(u => u.id);
           const nuevos = USUARIOS_INICIALES.filter(u => !ids.includes(u.id));
           setUsuarios([
-            ...guardados.map(u => ({ ...u, pass: passwords[u.id] ?? '' })),
+            ...guardados.map(u => ({
+              ...u,
+              rol: migrateRol(u.rol as string),
+              activo: (u as any).activo ?? true,
+              pass: passwords[u.id] ?? '',
+            })),
             ...nuevos,
           ]);
         }
@@ -104,21 +124,31 @@ export function useAppState() {
     if (cargando || !SUPABASE_LISTO || sincronizado) return;
     const sincronizar = async () => {
       try {
-        const [sbUsuarios, sbRegistros, sbCatalogos, sbSobrantes] = await Promise.all([
+        const [sbTiendas, sbUsuarios, sbRegistros, sbCatalogos, sbSobrantes] = await Promise.all([
+          dbGetTiendas(),
           dbGetUsuarios(),
           dbGetRegistros(),
           dbGetAllCatalogos(),
           dbGetSobrantes(),
         ]);
 
-        // Merge usuarios: preservar contraseñas locales, actualizar el resto
+        // Tiendas: Supabase como base, locales tienen prioridad
+        if (sbTiendas.length > 0) {
+          setTiendas(prev => {
+            const localIds = new Set(prev.map(t => t.id));
+            const extras = sbTiendas.filter(t => !localIds.has(t.id));
+            return extras.length > 0 ? [...prev, ...extras] : prev;
+          });
+        }
+
+        // Merge usuarios: preservar contraseñas locales, migrar roles legacy
         if (sbUsuarios.length > 0) {
           setUsuarios(prev => {
             const merged = [...prev];
             for (const su of sbUsuarios) {
               const idx = merged.findIndex(u => u.id === su.id);
               if (idx >= 0) {
-                merged[idx] = { ...su, pass: merged[idx].pass }; // contraseña siempre local
+                merged[idx] = { ...su, pass: merged[idx].pass };
               } else {
                 merged.push(su);
               }
@@ -127,7 +157,6 @@ export function useAppState() {
           });
         }
 
-        // Merge registros: agregar los de Supabase que no estén en local
         if (sbRegistros.length > 0) {
           setRegistros(prev => {
             const localIds = new Set(prev.map(r => r.id));
@@ -136,12 +165,10 @@ export function useAppState() {
           });
         }
 
-        // Catálogos de Supabase como base, los locales tienen prioridad
         if (Object.keys(sbCatalogos).length > 0) {
           setCatalogos(prev => ({ ...sbCatalogos, ...prev }));
         }
 
-        // Merge sobrantes: agregar los de Supabase que no estén en local
         if (sbSobrantes.length > 0) {
           setSobrantes(prev => {
             const localIds = new Set(prev.map(s => s.id));
@@ -152,7 +179,7 @@ export function useAppState() {
 
         setSincronizado(true);
       } catch {
-        // Sin conexión — seguimos con datos locales, sin error para el usuario
+        // Sin conexión — seguimos con datos locales
       }
     };
     sincronizar();
@@ -161,8 +188,11 @@ export function useAppState() {
   // ── Persistir en AsyncStorage cuando el estado cambia ────────────────────
   useEffect(() => {
     if (cargando) return;
-    // Nunca almacenar contraseñas en AsyncStorage (no cifrado)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    AsyncStorage.setItem(KEYS.TIENDAS, JSON.stringify(tiendas)).catch(() => {});
+  }, [tiendas, cargando]);
+
+  useEffect(() => {
+    if (cargando) return;
     const sinPass = usuarios.map(({ pass: _pass, ...u }) => u);
     AsyncStorage.setItem(KEYS.USUARIOS, JSON.stringify(sinPass)).catch(() => {});
   }, [usuarios, cargando]);
@@ -205,11 +235,31 @@ export function useAppState() {
   const volverATienda = useCallback(() => setPantalla('tienda'), []);
   const volverAHome   = useCallback(() => { setPantalla('home'); setTiendaActiva(null); }, []);
 
+  // ── Tiendas — CRUD ────────────────────────────────────────────────────────
+  const agregarTienda = useCallback((t: Omit<Tienda, 'id'>) => {
+    const nueva: Tienda = { ...t, id: genId() };
+    setTiendas(prev => [...prev, nueva]);
+    dbUpsertTienda(nueva).catch(() => {});
+  }, []);
+
+  const editarTienda = useCallback((id: string, cambios: Partial<Omit<Tienda, 'id'>>) => {
+    setTiendas(prev => {
+      const siguiente = prev.map(t => t.id === id ? { ...t, ...cambios } : t);
+      const actualizada = siguiente.find(t => t.id === id);
+      if (actualizada) dbUpsertTienda(actualizada).catch(() => {});
+      return siguiente;
+    });
+  }, []);
+
+  const eliminarTienda = useCallback((id: string) => {
+    setTiendas(prev => prev.filter(t => t.id !== id));
+    dbDeleteTienda(id).catch(() => {});
+  }, []);
+
   // ── Usuarios — optimistic update + SecureStore + Supabase fire-and-forget ──
   const agregarUsuario = useCallback((u: Omit<Usuario, 'id'>) => {
-    const nuevo: Usuario = { ...u, id: genId() };
+    const nuevo: Usuario = { ...u, id: genId(), activo: true };
     setUsuarios(prev => [...prev, nuevo]);
-    // Guardar contraseña en SecureStore (cifrado)
     loadPasswords().then(map => { map[nuevo.id] = nuevo.pass; savePasswords(map); });
     dbInsertUsuario(nuevo).catch(() => {});
   }, []);
@@ -220,7 +270,6 @@ export function useAppState() {
       const actualizado = siguiente.find(u => u.id === id);
       if (actualizado) {
         dbInsertUsuario(actualizado).catch(() => {});
-        // Si cambió la contraseña, actualizar SecureStore
         if (cambios.pass) {
           loadPasswords().then(map => { map[id] = cambios.pass!; savePasswords(map); });
         }
@@ -231,7 +280,6 @@ export function useAppState() {
 
   const eliminarUsuario = useCallback((id: string) => {
     setUsuarios(prev => prev.filter(u => u.id !== id));
-    // Remover contraseña de SecureStore
     loadPasswords().then(map => { delete map[id]; savePasswords(map); });
     dbDeleteUsuario(id).catch(() => {});
   }, []);
@@ -291,13 +339,15 @@ export function useAppState() {
     cargando,
     sincronizado,
     // State
-    usuarios, usuario, pantalla, tiendaActiva, registros, catalogos, sobrantes,
+    tiendas, usuarios, usuario, pantalla, tiendaActiva, registros, catalogos, sobrantes,
     // Auth
     login, logout,
     // Navegación
     navTienda, navScanner, navRegistros, navResultados, navImportar, navSobrantes, navPerfil,
     volverATienda, volverAHome,
     setPantalla,
+    // Tiendas
+    agregarTienda, editarTienda, eliminarTienda,
     // Usuarios
     agregarUsuario, editarUsuario, eliminarUsuario,
     // Inventario

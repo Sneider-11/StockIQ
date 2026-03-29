@@ -4,20 +4,21 @@ import {
   ScrollView, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Usuario, Registro, TIENDAS } from '../constants/data';
+import { Usuario, Registro, Tienda } from '../constants/data';
 import { Avatar, RolBadge, SecHeader } from '../components/common';
 import { PRP, BLK, LGR, BRD, MTD, GRN } from '../constants/colors';
 
 interface Props {
   usuario:       Usuario;
   registros:     Registro[];
+  tiendas:       Tienda[];
   onCambiarPass: (nueva: string) => void;
   onLogout:      () => void;
   onBack:        () => void;
 }
 
 export const PerfilScreen: React.FC<Props> = ({
-  usuario, registros, onCambiarPass, onLogout, onBack,
+  usuario, registros, tiendas, onCambiarPass, onLogout, onBack,
 }) => {
   const [passActual,    setPassActual]    = useState('');
   const [passNueva,     setPassNueva]     = useState('');
@@ -27,8 +28,11 @@ export const PerfilScreen: React.FC<Props> = ({
   const [exito,         setExito]         = useState(false);
 
   const misEscaneos  = registros.filter(r => r.usuarioNombre === usuario.nombre).length;
-  const misTiendas   = TIENDAS.filter(t => usuario.tiendas.includes(t.id));
-  const headerColor  = usuario.rol === 'SUPERADMIN' ? BLK : PRP;
+  const misTiendas   = tiendas.filter(t => usuario.tiendas.includes(t.id));
+  const headerColor  =
+    usuario.rol === 'SUPERADMIN' ? BLK :
+    usuario.rol === 'ADMIN'      ? '#0369A1' :
+    '#047857';
 
   const guardarPass = () => {
     setError('');

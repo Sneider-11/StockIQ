@@ -7,22 +7,68 @@
  */
 
 import { supabase, SUPABASE_LISTO } from './supabase';
-import { Usuario, Articulo, Registro, SobranteSinStock } from '../constants/data';
+import { Usuario, Articulo, Registro, SobranteSinStock, Tienda } from '../constants/data';
+
+// ─── TIENDAS ──────────────────────────────────────────────────────────────────
+/**
+ * Tabla requerida en Supabase:
+ * CREATE TABLE tiendas (
+ *   id TEXT PRIMARY KEY,
+ *   nombre TEXT NOT NULL,
+ *   icono TEXT NOT NULL DEFAULT 'storefront',
+ *   color TEXT NOT NULL DEFAULT '#09090B',
+ *   nit TEXT,
+ *   creado_en TIMESTAMPTZ DEFAULT NOW()
+ * );
+ */
+
+export async function dbGetTiendas(): Promise<Tienda[]> {
+  if (!SUPABASE_LISTO) return [];
+  const { data, error } = await supabase.from('tiendas').select('*').order('creado_en');
+  if (error || !data) return [];
+  return data.map(r => ({
+    id:     r.id,
+    nombre: r.nombre,
+    icono:  r.icono ?? 'storefront',
+    color:  r.color ?? '#09090B',
+    nit:    r.nit ?? undefined,
+  }));
+}
+
+export async function dbUpsertTienda(t: Tienda): Promise<void> {
+  if (!SUPABASE_LISTO) return;
+  await supabase.from('tiendas').upsert(
+    { id: t.id, nombre: t.nombre, icono: t.icono, color: t.color, nit: t.nit ?? null },
+    { onConflict: 'id' },
+  );
+}
+
+export async function dbDeleteTienda(id: string): Promise<void> {
+  if (!SUPABASE_LISTO) return;
+  await supabase.from('tiendas').delete().eq('id', id);
+}
 
 // ─── USUARIOS ─────────────────────────────────────────────────────────────────
+
+function migrateRol(rol: string): Usuario['rol'] {
+  if (rol === 'AUDITOR') return 'ADMIN'; // migración legacy
+  return rol as Usuario['rol'];
+}
 
 export async function dbGetUsuarios(): Promise<Usuario[]> {
   if (!SUPABASE_LISTO) return [];
   const { data, error } = await supabase.from('usuarios').select('*');
   if (error || !data) return [];
   return data.map(r => ({
-    id:       r.id,
-    cedula:   r.cedula,
-    nombre:   r.nombre,
-    rol:      r.rol,
-    tiendas:  r.tiendas,
-    pass:     r.pass,
-    telefono: r.telefono ?? undefined,
+    id:        r.id,
+    cedula:    r.cedula,
+    nombre:    r.nombre,
+    rol:       migrateRol(r.rol),
+    tiendas:   r.tiendas,
+    pass:      r.pass,
+    telefono:  r.telefono ?? undefined,
+    activo:    r.activo ?? true,
+    creadoPor: r.creado_por ?? undefined,
   }));
 }
 
@@ -30,13 +76,15 @@ export async function dbInsertUsuario(u: Usuario): Promise<void> {
   if (!SUPABASE_LISTO) return;
   await supabase.from('usuarios').upsert(
     {
-      id:       u.id,
-      cedula:   u.cedula,
-      nombre:   u.nombre,
-      rol:      u.rol,
-      tiendas:  u.tiendas,
-      pass:     u.pass,
-      telefono: u.telefono ?? null,
+      id:         u.id,
+      cedula:     u.cedula,
+      nombre:     u.nombre,
+      rol:        u.rol,
+      tiendas:    u.tiendas,
+      pass:       u.pass,
+      telefono:   u.telefono ?? null,
+      activo:     u.activo ?? true,
+      creado_por: u.creadoPor ?? null,
     },
     { onConflict: 'id' },
   );

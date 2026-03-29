@@ -19,9 +19,11 @@ interface RolBadgeProps {
 }
 
 export const RolBadge: React.FC<RolBadgeProps> = ({ rol }) => {
-  const cfg = rol === 'SUPERADMIN'
-    ? { label: 'Super Admin', color: '#6D28D9', bg: '#EDE9FE' }
-    : { label: 'Auditor',     color: '#374151', bg: '#F3F4F6' };
+  const cfg =
+    rol === 'SUPERADMIN' ? { label: 'Super Admin',   color: '#6D28D9', bg: '#EDE9FE' } :
+    rol === 'ADMIN'      ? { label: 'Admin Tienda',   color: '#0369A1', bg: '#E0F2FE' } :
+    rol === 'CONTADOR'   ? { label: 'Contador',       color: '#374151', bg: '#F3F4F6' } :
+                           { label: rol,              color: '#374151', bg: '#F3F4F6' };
   return <Badge {...cfg} />;
 };
 

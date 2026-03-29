@@ -12,11 +12,12 @@ const MAX_INTENTOS    = 5;
 const BLOQUEO_SEG     = 30;
 
 interface Props {
-  usuarios: Usuario[];
-  onLogin: (u: Usuario) => void;
+  usuarios:      Usuario[];
+  onLogin:       (u: Usuario) => void;
+  mensajeExtra?: string;
 }
 
-export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin }) => {
+export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }) => {
   const [cedula, setCedula]             = useState('');
   const [pass, setPass]                 = useState('');
   const [show, setShow]                 = useState(false);
@@ -67,6 +68,12 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin }) => {
     const u = usuarios.find(u => u.cedula === cedula.trim());
     if (!u) {
       setError('Cédula no registrada. Contacta al administrador.');
+      doShake();
+      return;
+    }
+
+    if (u.activo === false) {
+      setError('Tu cuenta está inactiva. Contacta al administrador.');
       doShake();
       return;
     }
@@ -123,6 +130,13 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin }) => {
         <Animated.View style={[s.card, { transform: [{ translateX: shake }] }]}>
           <Text style={s.cardTitle}>Iniciar sesión</Text>
           <Text style={s.cardSub}>Ingresa con tu cédula y contraseña</Text>
+
+          {mensajeExtra ? (
+            <View style={s.errBox}>
+              <Ionicons name="alert-circle" size={15} color="#DC2626" />
+              <Text style={s.errTxt}>{mensajeExtra}</Text>
+            </View>
+          ) : null}
 
           <View style={s.fieldWrap}>
             <View style={s.inputRow}>

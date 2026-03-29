@@ -26,19 +26,27 @@ export const TiendaScreen: React.FC<Props> = ({
   onBack, onNavScanner, onNavRegistros, onNavImportar, onNavResultados, onNavSobrantes,
   onLimpiar,
 }) => {
-  const CAT           = catalogos[tienda.id] || [];
-  const regTienda     = registros.filter(r => r.tiendaId === tienda.id);
-  const esSuperAdmin  = usuario.rol === 'SUPERADMIN';
-  const total         = CAT.length || 18;
-  const contados      = new Set(regTienda.map(r => r.itemId)).size;
-  const pct           = Math.round(contados / total * 100);
-  const auditoresActivos = usuarios.filter(u => u.tiendas.includes(tienda.id) && u.rol !== 'SUPERADMIN');
+  const CAT            = catalogos[tienda.id] || [];
+  const regTienda      = registros.filter(r => r.tiendaId === tienda.id);
+  const esSuperAdmin   = usuario.rol === 'SUPERADMIN';
+  const esAdmin        = usuario.rol === 'ADMIN' || esSuperAdmin;
+  const esContador     = usuario.rol === 'CONTADOR';
+  const total          = CAT.length || 18;
+  const contados       = new Set(regTienda.map(r => r.itemId)).size;
+  const pct            = Math.round(contados / total * 100);
+  const equipoTienda   = usuarios.filter(u => u.tiendas.includes(tienda.id) && u.rol !== 'SUPERADMIN' && u.activo !== false);
 
+  // Acciones visibles según rol
+  // CONTADOR: solo escanear + registros
+  // ADMIN: + resultados + sobrantes
+  // SUPERADMIN: + importar + limpiar
   const acciones: { icon: IoniconName; bg: string; title: string; sub: string; fn: () => void; badge?: string }[] = [
-    { icon: 'scan',           bg: tienda.color, title: 'Escanear artículo',       sub: 'Abrir cámara para contar',                           fn: () => onNavScanner(tienda) },
-    { icon: 'list',           bg: '#27272A',    title: 'Registros de conteo',      sub: `${regTienda.length} escaneos totales`,                fn: () => onNavRegistros(tienda) },
-    { icon: 'pie-chart',      bg: '#4C1D95',    title: 'Resultados',               sub: 'Análisis y resumen económico',                        fn: () => onNavResultados(tienda) },
-    { icon: 'add-circle',     bg: '#92400E',    title: 'Sobrantes sin Stock',      sub: sobrantesTienda > 0 ? `${sobrantesTienda} registrados` : 'Artículos sin existencia en sistema', fn: () => onNavSobrantes(tienda), badge: sobrantesTienda > 0 ? String(sobrantesTienda) : undefined },
+    { icon: 'scan',       bg: tienda.color, title: 'Escanear artículo',  sub: 'Abrir cámara para contar',                   fn: () => onNavScanner(tienda) },
+    { icon: 'list',       bg: '#27272A',    title: 'Registros de conteo', sub: `${regTienda.length} escaneos totales`,       fn: () => onNavRegistros(tienda) },
+    ...(esAdmin ? [
+      { icon: 'pie-chart'  as IoniconName, bg: '#4C1D95', title: 'Resultados',        sub: 'Análisis y resumen económico',   fn: () => onNavResultados(tienda) },
+      { icon: 'add-circle' as IoniconName, bg: '#92400E', title: 'Sobrantes sin Stock', sub: sobrantesTienda > 0 ? `${sobrantesTienda} registrados` : 'Artículos sin existencia en sistema', fn: () => onNavSobrantes(tienda), badge: sobrantesTienda > 0 ? String(sobrantesTienda) : undefined },
+    ] : []),
     ...(esSuperAdmin
       ? [{ icon: 'cloud-upload' as IoniconName, bg: '#09090B', title: 'Cargar catálogo Excel', sub: CAT.length > 0 ? `${CAT.length} artículos cargados` : 'Sin catálogo cargado', fn: () => onNavImportar(tienda) }]
       : []),
@@ -58,7 +66,7 @@ export const TiendaScreen: React.FC<Props> = ({
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={s.tiendaTag}>INVENTARIO</Text>
-            <Text style={s.tiendaNombre}>{tienda.nombre}</Text>
+            <Text style={s.tiendaNombre} numberOfLines={1}>{tienda.nombre}</Text>
           </View>
         </View>
 
@@ -74,7 +82,7 @@ export const TiendaScreen: React.FC<Props> = ({
           <View style={s.progBg}>
             <View style={[s.progFill, { width: `${pct}%` }]} />
           </View>
-          <Text style={s.progSub}>{contados} de {total} artículos · {regTienda.length} escaneos registrados</Text>
+          <Text style={s.progSub} numberOfLines={1}>{contados} de {total} artículos · {regTienda.length} escaneos</Text>
         </View>
       </View>
 
@@ -100,8 +108,8 @@ export const TiendaScreen: React.FC<Props> = ({
               <Ionicons name={ac.icon} size={22} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.actionTitle}>{ac.title}</Text>
-              <Text style={s.actionSub}>{ac.sub}</Text>
+              <Text style={s.actionTitle} numberOfLines={1}>{ac.title}</Text>
+              <Text style={s.actionSub} numberOfLines={1}>{ac.sub}</Text>
             </View>
             {ac.badge && (
               <View style={[s.badgeChip, { backgroundColor: '#92400E' }]}>
@@ -114,7 +122,7 @@ export const TiendaScreen: React.FC<Props> = ({
           </TouchableOpacity>
         ))}
 
-        {esSuperAdmin && onLimpiar && regTienda.length > 0 && (
+        {esSuperAdmin && onLimpiar && regTienda.length > 0 && (  // Solo SUPERADMIN puede limpiar
           <>
             <SecHeader title="Zona de peligro" />
             <TouchableOpacity
@@ -145,15 +153,15 @@ export const TiendaScreen: React.FC<Props> = ({
           </>
         )}
 
-        {auditoresActivos.length > 0 && (
+        {equipoTienda.length > 0 && (
           <>
             <SecHeader title="Equipo en esta tienda" />
-            {auditoresActivos.map(u => (
+            {equipoTienda.map(u => (
               <View key={u.id} style={s.audRow}>
                 <Avatar nombre={u.nombre} size={38} bg="#27272A" />
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={s.audNombre}>{u.nombre}</Text>
-                  <Text style={s.audSub}>{regTienda.filter(r => r.usuarioNombre === u.nombre).length} escaneos</Text>
+                <View style={{ flex: 1, marginLeft: 10, minWidth: 0 }}>
+                  <Text style={s.audNombre} numberOfLines={1}>{u.nombre}</Text>
+                  <Text style={s.audSub} numberOfLines={1}>{regTienda.filter(r => r.usuarioNombre === u.nombre).length} escaneos</Text>
                 </View>
               </View>
             ))}
