@@ -87,6 +87,7 @@ export default function App() {
           tiendas={tiendas}
           onCambiarPass={nueva => editarUsuario(usuario.id, { pass: nueva })}
           onActualizarFoto={uri => editarUsuario(usuario.id, { fotoUri: uri })}
+          onEliminarFoto={() => editarUsuario(usuario.id, { fotoUri: undefined })}
           onLogout={logout}
           onBack={() => setPantalla(tiendaActiva ? 'tienda' : 'home')}
         />

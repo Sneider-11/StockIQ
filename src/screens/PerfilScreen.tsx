@@ -15,12 +15,13 @@ interface Props {
   tiendas:           Tienda[];
   onCambiarPass:     (nueva: string) => void;
   onActualizarFoto?: (uri: string) => void;
+  onEliminarFoto?:   () => void;
   onLogout:          () => void;
   onBack:            () => void;
 }
 
 export const PerfilScreen: React.FC<Props> = ({
-  usuario, registros, tiendas, onCambiarPass, onActualizarFoto, onLogout, onBack,
+  usuario, registros, tiendas, onCambiarPass, onActualizarFoto, onEliminarFoto, onLogout, onBack,
 }) => {
   const [passActual,    setPassActual]    = useState('');
   const [passNueva,     setPassNueva]     = useState('');
@@ -31,7 +32,7 @@ export const PerfilScreen: React.FC<Props> = ({
 
   const misTiendas = tiendas.filter(t => usuario.tiendas.includes(t.id));
 
-  const elegirFoto = async () => {
+  const abrirGaleria = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para cambiar la foto.');
@@ -44,6 +45,26 @@ export const PerfilScreen: React.FC<Props> = ({
     });
     if (!result.canceled && result.assets[0]) {
       onActualizarFoto?.(result.assets[0].uri);
+    }
+  };
+
+  const elegirFoto = () => {
+    if (usuario.fotoUri) {
+      Alert.alert('Foto de perfil', '¿Qué deseas hacer?', [
+        { text: 'Cambiar foto', onPress: abrirGaleria },
+        {
+          text: 'Eliminar foto',
+          style: 'destructive',
+          onPress: () =>
+            Alert.alert('Eliminar foto', '¿Seguro que deseas eliminar tu foto de perfil?', [
+              { text: 'Cancelar', style: 'cancel' },
+              { text: 'Eliminar', style: 'destructive', onPress: () => onEliminarFoto?.() },
+            ]),
+        },
+        { text: 'Cancelar', style: 'cancel' },
+      ]);
+    } else {
+      abrirGaleria();
     }
   };
   const headerColor  =
