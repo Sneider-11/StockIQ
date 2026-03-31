@@ -115,7 +115,7 @@ export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
             <SecHeader title="Equipo activo" />
             {equipo.filter(u => u.activo !== false).map(u => (
               <View key={u.id} style={s.audRow}>
-                <Avatar nombre={u.nombre} size={40} bg={DRK} />
+                <Avatar nombre={u.nombre} size={40} bg={DRK} fotoUri={u.fotoUri} />
                 <View style={{ flex: 1, marginLeft: 12, minWidth: 0 }}>
                   <Text style={s.audNombre} numberOfLines={1}>{u.nombre}</Text>
                   <Text style={s.audTiendas} numberOfLines={1}>
@@ -205,7 +205,7 @@ export const HomeAdminScreen: React.FC<AdminProps> = ({
             <SecHeader title="Contadores activos" />
             {misContadores.filter(u => u.activo !== false).map(u => (
               <View key={u.id} style={s.audRow}>
-                <Avatar nombre={u.nombre} size={40} bg={DRK} />
+                <Avatar nombre={u.nombre} size={40} bg={DRK} fotoUri={u.fotoUri} />
                 <View style={{ flex: 1, marginLeft: 12, minWidth: 0 }}>
                   <Text style={s.audNombre} numberOfLines={1}>{u.nombre}</Text>
                   <Text style={s.audTiendas} numberOfLines={1}>

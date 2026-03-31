@@ -91,14 +91,15 @@ export const ResultadosScreen: React.FC<Props> = ({
   registros, tienda, catalogo, sobrantes, usuarios, esAdmin, confirmadosCero,
   onBack, onEliminarRegistro, onEditarRegistro, onConfirmarCero, onDesconfirmarCero,
 }) => {
-  const [tab,            setTab]            = useState<Tab>('resumen');
-  const [filtro,         setFiltro]         = useState<Filtro>('TODOS');
-  const [busqueda,       setBusqueda]       = useState('');
-  const [fotoModal,      setFotoModal]      = useState<string | null>(null);
-  const [detalleItem,    setDetalleItem]    = useState<ArticuloVista | null>(null);
-  const [miniReg,        setMiniReg]        = useState<Registro | null>(null);
-  const [editRegId,      setEditRegId]      = useState<string | null>(null);
-  const [editCantidad,   setEditCantidad]   = useState('');
+  const [tab,               setTab]               = useState<Tab>('resumen');
+  const [filtro,            setFiltro]            = useState<Filtro>('TODOS');
+  const [busqueda,          setBusqueda]          = useState('');
+  const [fotoModal,         setFotoModal]         = useState<string | null>(null);
+  const [detalleItem,       setDetalleItem]       = useState<ArticuloVista | null>(null);
+  const [miniReg,           setMiniReg]           = useState<Registro | null>(null);
+  const [editRegId,         setEditRegId]         = useState<string | null>(null);
+  const [editCantidad,      setEditCantidad]      = useState('');
+  const [auditorDetalle,    setAuditorDetalle]    = useState<string | null>(null);
 
   // ── Cálculos base ──────────────────────────────────────────────────────────
   const CAT   = catalogo.length > 0 ? catalogo : CATALOGO_BASE;
@@ -626,12 +627,13 @@ export const ResultadosScreen: React.FC<Props> = ({
               const barColors  = [tienda.color, '#4C1D95', '#6D28D9', '#8B5CF6', '#A78BFA'];
               const maxN       = auditores[0]?.n || 1;
               const barPct     = Math.round((a.n / maxN) * 100);
+              const aud        = usuarios.find(u => u.nombre === a.nombre);
               return (
-                <View key={a.nombre} style={s.audRow}>
+                <TouchableOpacity key={a.nombre} style={s.audRow} onPress={() => setAuditorDetalle(a.nombre)} activeOpacity={0.75}>
                   <View style={[s.audRank, { backgroundColor: rankColors[i] ?? LGR }]}>
                     <Text style={[s.audRankTxt, { color: rankTxtCol }]}>{i + 1}</Text>
                   </View>
-                  <Avatar nombre={a.nombre} size={42} bg="#27272A" />
+                  <Avatar nombre={a.nombre} size={42} bg="#27272A" fotoUri={aud?.fotoUri} />
                   <View style={{ flex: 1, marginLeft: 12, minWidth: 0 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
                       <Text style={s.audNombre} numberOfLines={1}>{a.nombre}</Text>
@@ -641,7 +643,8 @@ export const ResultadosScreen: React.FC<Props> = ({
                       <View style={[s.audBarFill, { width: `${barPct}%` as any, backgroundColor: barColors[i % barColors.length] }]} />
                     </View>
                   </View>
-                </View>
+                  <Ionicons name="chevron-forward" size={16} color="#A1A1AA" style={{ marginLeft: 8 }} />
+                </TouchableOpacity>
               );
             })}
           </View>
@@ -669,7 +672,7 @@ export const ResultadosScreen: React.FC<Props> = ({
       {/* ══════════════════════════════════════════════════════════════════
           MODAL: DETALLE DE ARTÍCULO
       ══════════════════════════════════════════════════════════════════ */}
-      <Modal visible={!!detalleItem} animationType="slide" transparent>
+      <Modal visible={!!detalleItem} animationType="slide" transparent onRequestClose={() => { if (miniReg) setMiniReg(null); else setDetalleItem(null); }}>
         <View style={s.detalleModalBg}>
           <View style={s.detalleSheet}>
             <View style={s.modalHandle} />
@@ -778,62 +781,128 @@ export const ResultadosScreen: React.FC<Props> = ({
                 </>
               );
             })()}
+          {/* Overlay del mini-detalle — dentro del mismo modal para evitar freeze en Android */}
+          {miniReg && (
+            <TouchableOpacity style={[StyleSheet.absoluteFillObject, s.miniModalBg]} activeOpacity={1} onPress={() => setMiniReg(null)}>
+              <View style={s.miniModalCard} onStartShouldSetResponder={() => true}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <Text style={s.miniTitle}>Detalle del conteo</Text>
+                  <TouchableOpacity onPress={() => setMiniReg(null)}>
+                    <Ionicons name="close-circle" size={22} color={MTD} />
+                  </TouchableOpacity>
+                </View>
+                {[
+                  { icon: 'person-circle-outline' as const, lbl: 'Usuario',     val: miniReg.usuarioNombre },
+                  { icon: 'layers-outline'         as const, lbl: 'Cantidad',    val: `${miniReg.cantidad} unidad${miniReg.cantidad !== 1 ? 'es' : ''}` },
+                  { icon: 'time-outline'           as const, lbl: 'Fecha y hora',val: miniReg.escaneadoEn },
+                ].map(row => (
+                  <View key={row.lbl} style={s.miniRow}>
+                    <Ionicons name={row.icon} size={16} color={tienda.color} style={{ marginRight: 10, marginTop: 2 }} />
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={s.miniLbl}>{row.lbl}</Text>
+                      <Text style={s.miniVal} numberOfLines={2}>{row.val}</Text>
+                    </View>
+                  </View>
+                ))}
+                {miniReg.nota ? (
+                  <View style={s.miniRow}>
+                    <Ionicons name="chatbubble-outline" size={16} color={tienda.color} style={{ marginRight: 10, marginTop: 2 }} />
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={s.miniLbl}>Nota</Text>
+                      <Text style={s.miniVal}>{miniReg.nota}</Text>
+                    </View>
+                  </View>
+                ) : null}
+                {miniReg.fotoUri ? (
+                  <TouchableOpacity style={{ marginTop: 10 }} onPress={() => { setMiniReg(null); setFotoModal(miniReg.fotoUri); }}>
+                    <Image source={{ uri: miniReg.fotoUri }} style={{ width: '100%', aspectRatio: 4/3, borderRadius: 12 }} resizeMode="cover" />
+                    <Text style={{ fontSize: 11, color: MTD, textAlign: 'center', marginTop: 6 }}>Toca la foto para ampliar</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View style={s.miniRow}>
+                    <Ionicons name="image-outline" size={16} color="#A1A1AA" style={{ marginRight: 10 }} />
+                    <Text style={[s.miniVal, { color: '#A1A1AA' }]}>Sin foto en este conteo</Text>
+                  </View>
+                )}
+                <Text style={{ fontSize: 11, color: '#A1A1AA', textAlign: 'center', marginTop: 14 }}>
+                  Toca fuera para cerrar
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
           </View>
         </View>
       </Modal>
 
       {/* ══════════════════════════════════════════════════════════════════
-          MINI-MODAL: Detalle de un conteo individual (tappable)
+          MODAL: DETALLE POR AUDITOR
       ══════════════════════════════════════════════════════════════════ */}
-      <Modal visible={!!miniReg} transparent animationType="fade">
-        <TouchableOpacity style={s.miniModalBg} activeOpacity={1} onPress={() => setMiniReg(null)}>
-          {miniReg && (
-            <View style={s.miniModalCard} onStartShouldSetResponder={() => true}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                <Text style={s.miniTitle}>Detalle del conteo</Text>
-                <TouchableOpacity onPress={() => setMiniReg(null)}>
-                  <Ionicons name="close-circle" size={22} color={MTD} />
-                </TouchableOpacity>
-              </View>
-              {[
-                { icon: 'person-circle-outline' as const, lbl: 'Usuario',     val: miniReg.usuarioNombre },
-                { icon: 'layers-outline'         as const, lbl: 'Cantidad',    val: `${miniReg.cantidad} unidad${miniReg.cantidad !== 1 ? 'es' : ''}` },
-                { icon: 'time-outline'           as const, lbl: 'Fecha y hora',val: miniReg.escaneadoEn },
-              ].map(row => (
-                <View key={row.lbl} style={s.miniRow}>
-                  <Ionicons name={row.icon} size={16} color={tienda.color} style={{ marginRight: 10, marginTop: 2 }} />
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={s.miniLbl}>{row.lbl}</Text>
-                    <Text style={s.miniVal} numberOfLines={2}>{row.val}</Text>
+      <Modal visible={!!auditorDetalle} animationType="slide" transparent onRequestClose={() => setAuditorDetalle(null)}>
+        <View style={s.detalleModalBg}>
+          <View style={s.detalleSheet}>
+            <View style={s.modalHandle} />
+            {auditorDetalle && (() => {
+              const regsAud   = regT.filter(r => r.usuarioNombre === auditorDetalle);
+              const aud       = usuarios.find(u => u.nombre === auditorDetalle);
+              const grupos: { k: string; label: string; color: string; bg: string; items: Registro[] }[] = [
+                { k: 'SIN_DIF',  label: 'Sin diferencia', color: '#6D28D9', bg: '#EDE9FE', items: regsAud.filter(r => r.clasificacion === 'SIN_DIF') },
+                { k: 'FALTANTE', label: 'Faltantes',      color: '#C2410C', bg: '#FFF7ED', items: regsAud.filter(r => r.clasificacion === 'FALTANTE') },
+                { k: 'SOBRANTE', label: 'Sobrantes',      color: '#15803D', bg: '#F0FDF4', items: regsAud.filter(r => r.clasificacion === 'SOBRANTE') },
+                { k: 'CERO',     label: 'Conteo cero',    color: '#991B1B', bg: '#FEF2F2', items: regsAud.filter(r => r.clasificacion === 'CERO') },
+              ];
+              return (
+                <>
+                  <View style={[s.detalleHeader, { backgroundColor: LGR }]}>
+                    <Avatar nombre={auditorDetalle} size={42} bg="#27272A" fotoUri={aud?.fotoUri} />
+                    <View style={{ flex: 1, marginLeft: 12, minWidth: 0 }}>
+                      <Text style={[s.detalleEstado, { color: BLK }]} numberOfLines={1}>{auditorDetalle}</Text>
+                      <Text style={{ fontSize: 12, color: MTD }}>{regsAud.length} escaneos registrados</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setAuditorDetalle(null)} style={s.detalleClose}>
+                      <Ionicons name="close" size={20} color={BLK} />
+                    </TouchableOpacity>
                   </View>
-                </View>
-              ))}
-              {miniReg.nota ? (
-                <View style={s.miniRow}>
-                  <Ionicons name="chatbubble-outline" size={16} color={tienda.color} style={{ marginRight: 10, marginTop: 2 }} />
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={s.miniLbl}>Nota</Text>
-                    <Text style={s.miniVal}>{miniReg.nota}</Text>
-                  </View>
-                </View>
-              ) : null}
-              {miniReg.fotoUri ? (
-                <TouchableOpacity style={{ marginTop: 10 }} onPress={() => { setMiniReg(null); setFotoModal(miniReg.fotoUri); }}>
-                  <Image source={{ uri: miniReg.fotoUri }} style={{ width: '100%', aspectRatio: 4/3, borderRadius: 12 }} resizeMode="cover" />
-                  <Text style={{ fontSize: 11, color: MTD, textAlign: 'center', marginTop: 6 }}>Toca la foto para ampliar</Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={s.miniRow}>
-                  <Ionicons name="image-outline" size={16} color="#A1A1AA" style={{ marginRight: 10 }} />
-                  <Text style={[s.miniVal, { color: '#A1A1AA' }]}>Sin foto en este conteo</Text>
-                </View>
-              )}
-              <Text style={{ fontSize: 11, color: '#A1A1AA', textAlign: 'center', marginTop: 14 }}>
-                Toca fuera para cerrar
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+                  <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+                    {grupos.map(g => g.items.length > 0 && (
+                      <View key={g.k} style={{ marginBottom: 16 }}>
+                        <View style={[s.detalleHeader, { backgroundColor: g.bg, borderRadius: 12, marginBottom: 8, paddingVertical: 10 }]}>
+                          <View style={[s.audRank, { backgroundColor: g.color, marginRight: 10 }]}>
+                            <Text style={[s.audRankTxt, { color: '#fff' }]}>{g.items.length}</Text>
+                          </View>
+                          <Text style={[s.detalleEstado, { color: g.color }]}>{g.label}</Text>
+                        </View>
+                        {g.items.map(reg => {
+                          const delta = reg.cantidad - reg.stockSistema;
+                          return (
+                            <View key={reg.id} style={[s.regRow, { marginBottom: 8 }]}>
+                              <View style={{ flex: 1, minWidth: 0 }}>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                                  <Text style={[s.codeTxt, { color: tienda.color, fontSize: 12 }]} numberOfLines={1}>{reg.itemId}</Text>
+                                  <Text style={[s.regCantidad, { color: g.color }]}>{reg.cantidad} und.</Text>
+                                </View>
+                                <Text style={{ fontSize: 13, fontWeight: '600', color: BLK, marginBottom: 2 }} numberOfLines={1}>{reg.descripcion}</Text>
+                                <Text style={{ fontSize: 10, color: MTD }}>
+                                  Sistema: {reg.stockSistema} · Dif: {delta > 0 ? '+' : ''}{delta} · {reg.escaneadoEn}
+                                </Text>
+                                {reg.nota ? <Text style={s.regNota} numberOfLines={1}>"{reg.nota}"</Text> : null}
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    ))}
+                    {regsAud.length === 0 && (
+                      <View style={{ alignItems: 'center', paddingTop: 40 }}>
+                        <Ionicons name="cube-outline" size={40} color="#A1A1AA" />
+                        <Text style={{ color: '#A1A1AA', fontSize: 13, marginTop: 10 }}>Sin registros</Text>
+                      </View>
+                    )}
+                  </ScrollView>
+                </>
+              );
+            })()}
+          </View>
+        </View>
       </Modal>
 
       {/* Modal editar cantidad de registro */}
@@ -914,7 +983,7 @@ const s = StyleSheet.create({
   searchInput:  { flex: 1, height: 48, paddingHorizontal: 10, fontSize: 14, color: BLK },
 
   // Filtros
-  filterBar:    { flexGrow: 0, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: BRD },
+  filterBar:    { flexGrow: 0, flexShrink: 0, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: BRD },
   chip:         { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: LGR, borderWidth: 1, borderColor: BRD },
   chipTxt:      { fontSize: 12, color: MTD, fontWeight: '500' },
 

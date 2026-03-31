@@ -405,7 +405,7 @@ const s = StyleSheet.create({
   tabTxt:       { fontSize: 13, color: MTD, fontWeight: '500' },
   tabTxtActiva: { color: PRP, fontWeight: '700' },
 
-  filterBar: { flexGrow: 0, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: BRD },
+  filterBar: { flexGrow: 0, flexShrink: 0, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: BRD },
   chip:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: LGR, borderWidth: 1, borderColor: BRD, gap: 5 },
   chipDot:   { width: 7, height: 7, borderRadius: 4 },
   chipTxt:   { fontSize: 12, color: MTD, fontWeight: '500' },

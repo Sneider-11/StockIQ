@@ -221,7 +221,7 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }
             </View>
             {usuarios.map(u => (
               <TouchableOpacity key={u.id} style={s.demoItem} onPress={() => loginRapido(u)} activeOpacity={0.7}>
-                <Avatar nombre={u.nombre} size={40} bg={u.rol === 'SUPERADMIN' ? PRP : DRK} />
+                <Avatar nombre={u.nombre} size={40} bg={u.rol === 'SUPERADMIN' ? PRP : DRK} fotoUri={u.fotoUri} />
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={s.demoName}>{u.nombre}</Text>
                   <Text style={s.demoCed}>CC {u.cedula}</Text>
