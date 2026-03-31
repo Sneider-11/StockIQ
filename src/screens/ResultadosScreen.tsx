@@ -334,7 +334,7 @@ export const ResultadosScreen: React.FC<Props> = ({
           {/* Progreso del catálogo */}
           <View style={s.card}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-              <Text style={s.cardTitle}>Progreso del catálogo</Text>
+              <Text style={s.cardTitle}>Progreso del inventario</Text>
               <Text style={[s.cardTitle, { color: tienda.color }]}>{pct}%</Text>
             </View>
             <View style={s.progBg}>

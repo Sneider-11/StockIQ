@@ -9,3 +9,4 @@ export { ResultadosScreen }                                             from './
 export { ImportarScreen }                                               from './ImportarScreen';
 export { SobrantesSinStockScreen }                                      from './SobrantesSinStockScreen';
 export { PerfilScreen }                                                 from './PerfilScreen';
+export { ReporteAuditoriaScreen }                                       from './ReporteAuditoriaScreen';

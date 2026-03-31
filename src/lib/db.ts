@@ -152,6 +152,14 @@ export async function dbLimpiarRegistrosTienda(tiendaId: string): Promise<void> 
   await supabase.from('registros').delete().eq('tienda_id', tiendaId);
 }
 
+export async function dbReiniciarInventario(tiendaId: string): Promise<void> {
+  if (!SUPABASE_LISTO) return;
+  await Promise.all([
+    supabase.from('registros').delete().eq('tienda_id', tiendaId),
+    supabase.from('sobrantes').delete().eq('tienda_id', tiendaId),
+  ]);
+}
+
 // ─── CATÁLOGOS ────────────────────────────────────────────────────────────────
 
 export async function dbGetAllCatalogos(): Promise<Record<string, Articulo[]>> {

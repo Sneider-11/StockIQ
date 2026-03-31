@@ -45,7 +45,7 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
     if (found) { Vibration.vibrate(60); abrirItem(found); }
     else {
       Vibration.vibrate([0, 60, 60, 60]);
-      Alert.alert('Código no encontrado', `"${data}" no está en el catálogo.`, [
+      Alert.alert('Código no encontrado', `"${data}" no está en el inventario.`, [
         { text: 'Buscar manual', onPress: () => { setSearch(true); setPausado(true); } },
         { text: 'Continuar',     onPress: () => { last.current = null; } },
       ]);
@@ -54,7 +54,7 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
 
   const simular = () => {
     const disp = CAT.filter(c => !registros.some(r => r.itemId === c.itemId));
-    if (!disp.length) { Alert.alert('¡Todo contado!', 'Ya escaneaste todos los artículos del catálogo.'); return; }
+    if (!disp.length) { Alert.alert('¡Todo contado!', 'Ya escaneaste todos los artículos del inventario.'); return; }
     Vibration.vibrate(60);
     abrirItem(disp[Math.floor(Math.random() * disp.length)]);
   };

@@ -17,6 +17,7 @@ import {
   ImportarScreen,
   SobrantesSinStockScreen,
   PerfilScreen,
+  ReporteAuditoriaScreen,
 } from './src/screens';
 
 export default function App() {
@@ -35,6 +36,7 @@ export default function App() {
     limpiarRegistrosTienda,
     agregarSobrante, eliminarSobrante, editarSobrante, getSobrantesTienda,
     confirmarCero, desconfirmarCero, getConfirmadosCero,
+    reiniciarInventario,
   } = state;
 
   // ── Pantalla de carga ────────────────────────────────────────────────────────
@@ -151,6 +153,8 @@ export default function App() {
           onNavResultados={navResultados}
           onNavSobrantes={navSobrantes}
           onNavEquipo={esAdminEnTienda ? () => setPantalla('equipo') : undefined}
+          onNavReporte={esAdminEnTienda ? () => setPantalla('reporte') : undefined}
+          onReiniciar={esAdminEnTienda ? () => reiniciarInventario(tiendaActiva.id) : undefined}
           onLimpiar={esSuperAdmin ? () => limpiarRegistrosTienda(tiendaActiva.id) : undefined}
         />
       </>
@@ -230,6 +234,24 @@ export default function App() {
           onGuardar={agregarSobrante}
           onEliminar={esSuperAdmin ? eliminarSobrante : undefined}
           onEditarEstado={esAdminEnTienda ? (id, estado) => editarSobrante(id, { estado }) : undefined}
+          onBack={volverATienda}
+        />
+      </>
+    );
+  }
+
+  // ── Reporte de Auditoría (Admin/SuperAdmin en esa tienda) ──────────────────
+  if (pantalla === 'reporte' && tiendaActiva && esAdminEnTienda) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <ReporteAuditoriaScreen
+          tienda={tiendaActiva}
+          registros={registros}
+          catalogo={getCatalogo(tiendaActiva.id)}
+          sobrantes={getSobrantesTienda(tiendaActiva.id)}
+          usuarios={usuarios}
+          confirmadosCero={getConfirmadosCero(tiendaActiva.id)}
           onBack={volverATienda}
         />
       </>

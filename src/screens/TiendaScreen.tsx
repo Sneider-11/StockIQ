@@ -20,13 +20,15 @@ interface Props {
   onNavResultados: (t: Tienda) => void;
   onNavSobrantes: (t: Tienda) => void;
   onNavEquipo?: () => void;
+  onNavReporte?: () => void;
+  onReiniciar?: () => void;
   onLimpiar?: () => void;
 }
 
 export const TiendaScreen: React.FC<Props> = ({
   tienda, usuario, usuarios, registros, catalogos, sobrantesTienda, confirmadosCero,
   onBack, onNavScanner, onNavRegistros, onNavImportar, onNavResultados, onNavSobrantes,
-  onNavEquipo, onLimpiar,
+  onNavEquipo, onNavReporte, onReiniciar, onLimpiar,
 }) => {
   const CAT            = catalogos[tienda.id] || [];
   const regTienda      = registros.filter(r => r.tiendaId === tienda.id);
@@ -57,7 +59,7 @@ export const TiendaScreen: React.FC<Props> = ({
       { icon: 'people'       as IoniconName, bg: '#0369A1', title: 'Gestionar equipo',        sub: `${equipoTienda.length} persona${equipoTienda.length !== 1 ? 's' : ''} asignada${equipoTienda.length !== 1 ? 's' : ''}`, fn: () => onNavEquipo?.() },
     ] : []),
     ...(esSuperAdmin
-      ? [{ icon: 'cloud-upload' as IoniconName, bg: '#09090B', title: 'Cargar catálogo Excel', sub: CAT.length > 0 ? `${CAT.length} artículos cargados` : 'Sin catálogo cargado', fn: () => onNavImportar(tienda) }]
+      ? [{ icon: 'cloud-upload' as IoniconName, bg: '#09090B', title: 'Cargar inventario Excel', sub: CAT.length > 0 ? `${CAT.length} artículos cargados` : 'Sin inventario cargado', fn: () => onNavImportar(tienda) }]
       : []),
   ];
 
@@ -150,7 +152,7 @@ export const TiendaScreen: React.FC<Props> = ({
           </TouchableOpacity>
         ))}
 
-        {esSuperAdmin && onLimpiar && regTienda.length > 0 && (  // Solo SUPERADMIN puede limpiar
+        {esAdmin && onReiniciar && (
           <>
             <SecHeader title="Zona de peligro" />
             <TouchableOpacity
@@ -158,21 +160,21 @@ export const TiendaScreen: React.FC<Props> = ({
               activeOpacity={0.85}
               onPress={() =>
                 Alert.alert(
-                  'Limpiar inventario',
-                  `¿Eliminar los ${regTienda.length} escaneos de "${tienda.nombre}"? Esta acción no se puede deshacer.`,
+                  'Reiniciar inventario',
+                  `¿Eliminar TODOS los escaneos, sobrantes y conteos cero de "${tienda.nombre}"? Esta acción no se puede deshacer.`,
                   [
                     { text: 'Cancelar', style: 'cancel' },
-                    { text: 'Limpiar', style: 'destructive', onPress: onLimpiar },
+                    { text: 'Reiniciar', style: 'destructive', onPress: onReiniciar },
                   ],
                 )
               }
             >
               <View style={s.dangerIcon}>
-                <Ionicons name="trash-outline" size={22} color="#DC2626" />
+                <Ionicons name="refresh-circle-outline" size={22} color="#DC2626" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.dangerTitle}>Limpiar inventario</Text>
-                <Text style={s.dangerSub}>Eliminar los {regTienda.length} escaneos de esta tienda</Text>
+                <Text style={s.dangerTitle}>Reiniciar inventario</Text>
+                <Text style={s.dangerSub}>Borra todos los datos para comenzar de cero</Text>
               </View>
               <View style={s.actionArrow}>
                 <Ionicons name="chevron-forward" size={16} color="#A1A1AA" />
@@ -193,6 +195,24 @@ export const TiendaScreen: React.FC<Props> = ({
                 </View>
               </View>
             ))}
+          </>
+        )}
+
+        {esAdmin && onNavReporte && (
+          <>
+            <SecHeader title="Informes" />
+            <TouchableOpacity style={s.actionCard} onPress={onNavReporte} activeOpacity={0.88}>
+              <View style={[s.actionIcon, { backgroundColor: '#1D4ED8' }]}>
+                <Ionicons name="bar-chart" size={22} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.actionTitle} numberOfLines={1}>Reporte de Auditoría</Text>
+                <Text style={s.actionSub} numberOfLines={1}>Informe ejecutivo para la administración</Text>
+              </View>
+              <View style={s.actionArrow}>
+                <Ionicons name="chevron-forward" size={16} color="#A1A1AA" />
+              </View>
+            </TouchableOpacity>
           </>
         )}
       </View>

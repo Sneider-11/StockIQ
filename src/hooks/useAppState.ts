@@ -7,7 +7,7 @@ import { SUPABASE_LISTO } from '../lib/supabase';
 import {
   dbGetTiendas, dbUpsertTienda, dbDeleteTienda,
   dbGetUsuarios, dbInsertUsuario, dbDeleteUsuario,
-  dbGetRegistros, dbInsertRegistro, dbDeleteRegistro, dbLimpiarRegistrosTienda,
+  dbGetRegistros, dbInsertRegistro, dbDeleteRegistro, dbLimpiarRegistrosTienda, dbReiniciarInventario,
   dbGetAllCatalogos, dbUpsertCatalogo,
   dbGetSobrantes, dbInsertSobrante, dbDeleteSobrante, dbUpdateSobranteEstado,
 } from '../lib/db';
@@ -76,7 +76,8 @@ export type Pantalla =
   | 'resultados'
   | 'importar'
   | 'sobrantes'
-  | 'perfil';
+  | 'perfil'
+  | 'reporte';
 
 export function useAppState() {
   const [cargando, setCargando]           = useState(true);
@@ -396,6 +397,13 @@ export function useAppState() {
     dbLimpiarRegistrosTienda(tiendaId).catch(() => {});
   }, []);
 
+  const reiniciarInventario = useCallback((tiendaId: string) => {
+    setRegistros(prev => prev.filter(r => r.tiendaId !== tiendaId));
+    setSobrantes(prev => prev.filter(s => s.tiendaId !== tiendaId));
+    setConfirmadosCero(prev => { const next = { ...prev }; delete next[tiendaId]; return next; });
+    dbReiniciarInventario(tiendaId).catch(() => {});
+  }, []);
+
   const confirmarCero = useCallback((tiendaId: string, itemId: string) => {
     setConfirmadosCero(prev => {
       const lista = prev[tiendaId] ?? [];
@@ -433,7 +441,7 @@ export function useAppState() {
     agregarUsuario, editarUsuario, eliminarUsuario,
     // Inventario
     agregarRegistro, eliminarRegistro, editarRegistro, cargarCatalogo, getCatalogo, getRegistrosTienda,
-    limpiarRegistrosTienda,
+    limpiarRegistrosTienda, reiniciarInventario,
     // Sobrantes sin stock
     agregarSobrante, eliminarSobrante, editarSobrante, getSobrantesTienda,
     // Confirmados cero

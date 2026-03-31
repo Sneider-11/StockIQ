@@ -69,7 +69,7 @@ export const ImportarScreen: React.FC<Props> = ({ tienda, catalogoActual = [], o
           <Ionicons name="arrow-back" size={20} color={BLK} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={s.title}>Cargar catálogo</Text>
+          <Text style={s.title}>Cargar inventario</Text>
           <Text style={s.sub}>{tienda.nombre}</Text>
         </View>
       </View>
@@ -82,7 +82,7 @@ export const ImportarScreen: React.FC<Props> = ({ tienda, catalogoActual = [], o
             <Text style={s.warnTxt}>
               Esta tienda ya tiene{' '}
               <Text style={{ fontWeight: '800' }}>{catalogoActual.length} artículos</Text>{' '}
-              cargados. Al confirmar, el catálogo será reemplazado completamente.
+              cargados. Al confirmar, el inventario será reemplazado completamente.
             </Text>
           </View>
         )}
