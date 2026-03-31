@@ -114,7 +114,7 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
       <CameraView
         style={StyleSheet.absoluteFillObject}
         enableTorch={flash}
-        zoom={0.0190}
+        zoom={0.190}
         onBarcodeScanned={pausado ? undefined : handleCode}
         barcodeScannerSettings={{ barcodeTypes: ['qr', 'code128', 'code39', 'ean13', 'ean8', 'upc_a'] }}
       />
