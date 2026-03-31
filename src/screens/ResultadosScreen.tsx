@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, FlatList, Share, Image, Modal, TextInput, Alert,
+  Animated, Easing,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
@@ -100,6 +101,69 @@ export const ResultadosScreen: React.FC<Props> = ({
   const [editRegId,         setEditRegId]         = useState<string | null>(null);
   const [editCantidad,      setEditCantidad]      = useState('');
   const [auditorDetalle,    setAuditorDetalle]    = useState<string | null>(null);
+
+  // ── Animaciones de bottom-sheet ────────────────────────────────────────────
+  const sheetY       = useRef(new Animated.Value(500)).current;
+  const bgOpacity    = useRef(new Animated.Value(0)).current;
+  const audSheetY    = useRef(new Animated.Value(500)).current;
+  const audBgOpacity = useRef(new Animated.Value(0)).current;
+  const miniOpacity  = useRef(new Animated.Value(0)).current;
+  const editOpacity  = useRef(new Animated.Value(0)).current;
+
+  const SPRING = { tension: 70, friction: 13, useNativeDriver: true } as const;
+  const FADE   = { duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true } as const;
+
+  useEffect(() => {
+    if (detalleItem) {
+      sheetY.setValue(500);
+      bgOpacity.setValue(0);
+      Animated.parallel([
+        Animated.timing(bgOpacity, { ...FADE, toValue: 1 }),
+        Animated.spring(sheetY,    { ...SPRING, toValue: 0 }),
+      ]).start();
+    }
+  }, [detalleItem]);
+
+  useEffect(() => {
+    if (auditorDetalle) {
+      audSheetY.setValue(500);
+      audBgOpacity.setValue(0);
+      Animated.parallel([
+        Animated.timing(audBgOpacity, { ...FADE, toValue: 1 }),
+        Animated.spring(audSheetY,    { ...SPRING, toValue: 0 }),
+      ]).start();
+    }
+  }, [auditorDetalle]);
+
+  useEffect(() => {
+    if (miniReg) {
+      miniOpacity.setValue(0);
+      Animated.timing(miniOpacity, { ...FADE, toValue: 1 }).start();
+    }
+  }, [miniReg]);
+
+  useEffect(() => {
+    if (editRegId) {
+      editOpacity.setValue(0);
+      Animated.timing(editOpacity, { duration: 160, easing: Easing.out(Easing.cubic), useNativeDriver: true, toValue: 1 }).start();
+    }
+  }, [editRegId]);
+
+  // Cierra el detalle de artículo con animación de salida
+  const cerrarDetalle = () => {
+    Animated.parallel([
+      Animated.timing(bgOpacity, { toValue: 0, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(sheetY,    { toValue: 500, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
+    ]).start(() => setDetalleItem(null));
+  };
+
+  // Cierra el detalle del auditor con animación de salida
+  const cerrarAuditor = () => {
+    Animated.parallel([
+      Animated.timing(audBgOpacity, { toValue: 0, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(audSheetY,    { toValue: 500, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
+    ]).start(() => setAuditorDetalle(null));
+  };
 
   // ── Cálculos base ──────────────────────────────────────────────────────────
   const CAT   = catalogo.length > 0 ? catalogo : CATALOGO_BASE;
@@ -672,9 +736,9 @@ export const ResultadosScreen: React.FC<Props> = ({
       {/* ══════════════════════════════════════════════════════════════════
           MODAL: DETALLE DE ARTÍCULO
       ══════════════════════════════════════════════════════════════════ */}
-      <Modal visible={!!detalleItem} animationType="slide" transparent onRequestClose={() => { if (miniReg) setMiniReg(null); else setDetalleItem(null); }}>
-        <View style={s.detalleModalBg}>
-          <View style={s.detalleSheet}>
+      <Modal visible={!!detalleItem} animationType="none" transparent onRequestClose={() => { if (miniReg) setMiniReg(null); else cerrarDetalle(); }}>
+        <Animated.View style={[s.detalleModalBg, { opacity: bgOpacity }]}>
+          <Animated.View style={[s.detalleSheet, { transform: [{ translateY: sheetY }] }]}>
             <View style={s.modalHandle} />
             {detalleItem && (() => {
               const est     = getEstadoLabel(detalleItem.clasificacion);
@@ -688,7 +752,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                       <Text style={[s.detalleEstado, { color: est.color }]}>{est.label}</Text>
                       <Text style={s.detalleRef} numberOfLines={1}>{detalleItem.itemId}</Text>
                     </View>
-                    <TouchableOpacity onPress={() => setDetalleItem(null)} style={s.detalleClose}>
+                    <TouchableOpacity onPress={cerrarDetalle} style={s.detalleClose}>
                       <Ionicons name="close" size={20} color={BLK} />
                     </TouchableOpacity>
                   </View>
@@ -786,10 +850,11 @@ export const ResultadosScreen: React.FC<Props> = ({
                 </>
               );
             })()}
-          </View>{/* ← cierra detalleSheet */}
+          </Animated.View>{/* ← cierra detalleSheet */}
 
           {/* ── Overlay mini-detalle: hermano de detalleSheet → cubre pantalla completa ── */}
           {miniReg && (
+            <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: miniOpacity }]}>
             <TouchableOpacity
               style={[StyleSheet.absoluteFillObject, s.overlayBg]}
               activeOpacity={1}
@@ -840,11 +905,12 @@ export const ResultadosScreen: React.FC<Props> = ({
                 </Text>
               </View>
             </TouchableOpacity>
+            </Animated.View>
           )}
 
           {/* ── Overlay editar cantidad: hermano de detalleSheet → sin Modal anidado ── */}
           {editRegId && (
-            <View style={[StyleSheet.absoluteFillObject, s.overlayBg]}>
+            <Animated.View style={[StyleSheet.absoluteFillObject, s.overlayBg, { opacity: editOpacity }]}>
               <View style={[s.miniModalCard, { width: '85%' }]} onStartShouldSetResponder={() => true}>
                 <Text style={s.miniTitle}>Editar cantidad</Text>
                 <TextInput
@@ -865,17 +931,17 @@ export const ResultadosScreen: React.FC<Props> = ({
                   </TouchableOpacity>
                 </View>
               </View>
-            </View>
+            </Animated.View>
           )}
-        </View>{/* ← cierra detalleModalBg */}
+        </Animated.View>{/* ← cierra detalleModalBg */}
       </Modal>
 
       {/* ══════════════════════════════════════════════════════════════════
           MODAL: DETALLE POR AUDITOR
       ══════════════════════════════════════════════════════════════════ */}
-      <Modal visible={!!auditorDetalle} animationType="slide" transparent onRequestClose={() => setAuditorDetalle(null)}>
-        <View style={s.detalleModalBg}>
-          <View style={s.detalleSheet}>
+      <Modal visible={!!auditorDetalle} animationType="none" transparent onRequestClose={cerrarAuditor}>
+        <Animated.View style={[s.detalleModalBg, { opacity: audBgOpacity }]}>
+          <Animated.View style={[s.detalleSheet, { transform: [{ translateY: audSheetY }] }]}>
             <View style={s.modalHandle} />
             {auditorDetalle && (() => {
               const regsAud   = regT.filter(r => r.usuarioNombre === auditorDetalle);
@@ -894,7 +960,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                       <Text style={[s.detalleEstado, { color: BLK }]} numberOfLines={1}>{auditorDetalle}</Text>
                       <Text style={{ fontSize: 12, color: MTD }}>{regsAud.length} escaneos registrados</Text>
                     </View>
-                    <TouchableOpacity onPress={() => setAuditorDetalle(null)} style={s.detalleClose}>
+                    <TouchableOpacity onPress={cerrarAuditor} style={s.detalleClose}>
                       <Ionicons name="close" size={20} color={BLK} />
                     </TouchableOpacity>
                   </View>
@@ -937,8 +1003,8 @@ export const ResultadosScreen: React.FC<Props> = ({
                 </>
               );
             })()}
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
       </Modal>
 
       {/* Modal foto fullscreen */}

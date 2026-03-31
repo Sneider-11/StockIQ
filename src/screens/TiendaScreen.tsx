@@ -152,37 +152,6 @@ export const TiendaScreen: React.FC<Props> = ({
           </TouchableOpacity>
         ))}
 
-        {esAdmin && onReiniciar && (
-          <>
-            <SecHeader title="Zona de peligro" />
-            <TouchableOpacity
-              style={s.dangerCard}
-              activeOpacity={0.85}
-              onPress={() =>
-                Alert.alert(
-                  'Reiniciar inventario',
-                  `¿Eliminar TODOS los escaneos, sobrantes y conteos cero de "${tienda.nombre}"? Esta acción no se puede deshacer.`,
-                  [
-                    { text: 'Cancelar', style: 'cancel' },
-                    { text: 'Reiniciar', style: 'destructive', onPress: onReiniciar },
-                  ],
-                )
-              }
-            >
-              <View style={s.dangerIcon}>
-                <Ionicons name="refresh-circle-outline" size={22} color="#DC2626" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.dangerTitle}>Reiniciar inventario</Text>
-                <Text style={s.dangerSub}>Borra todos los datos para comenzar de cero</Text>
-              </View>
-              <View style={s.actionArrow}>
-                <Ionicons name="chevron-forward" size={16} color="#A1A1AA" />
-              </View>
-            </TouchableOpacity>
-          </>
-        )}
-
         {equipoTienda.length > 0 && (
           <>
             <SecHeader title="Equipo en esta tienda" />
@@ -208,6 +177,37 @@ export const TiendaScreen: React.FC<Props> = ({
               <View style={{ flex: 1 }}>
                 <Text style={s.actionTitle} numberOfLines={1}>Reporte de Auditoría</Text>
                 <Text style={s.actionSub} numberOfLines={1}>Informe ejecutivo para la administración</Text>
+              </View>
+              <View style={s.actionArrow}>
+                <Ionicons name="chevron-forward" size={16} color="#A1A1AA" />
+              </View>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {esAdmin && onReiniciar && (
+          <>
+            <SecHeader title="Zona de peligro" />
+            <TouchableOpacity
+              style={s.dangerCard}
+              activeOpacity={0.85}
+              onPress={() =>
+                Alert.alert(
+                  'Reiniciar inventario',
+                  `¿Eliminar TODOS los escaneos, sobrantes y conteos cero de "${tienda.nombre}"? Esta acción no se puede deshacer.`,
+                  [
+                    { text: 'Cancelar', style: 'cancel' },
+                    { text: 'Reiniciar', style: 'destructive', onPress: onReiniciar },
+                  ],
+                )
+              }
+            >
+              <View style={s.dangerIcon}>
+                <Ionicons name="refresh-circle-outline" size={22} color="#DC2626" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.dangerTitle}>Reiniciar inventario</Text>
+                <Text style={s.dangerSub}>Borra todos los datos para comenzar de cero</Text>
               </View>
               <View style={s.actionArrow}>
                 <Ionicons name="chevron-forward" size={16} color="#A1A1AA" />
