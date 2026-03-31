@@ -753,19 +753,25 @@ export const ResultadosScreen: React.FC<Props> = ({
                         <Text style={{ color: '#A1A1AA', fontSize: 13, marginTop: 8 }}>Sin conteos registrados</Text>
                       </View>
                     ) : detalleItem.registros.map((reg, idx) => (
-                      <TouchableOpacity key={reg.id} style={s.regRow} onPress={() => setMiniReg(reg)} activeOpacity={0.82}>
-                        <View style={[s.regNumBadge, { backgroundColor: tienda.color }]}>
-                          <Text style={s.regNumTxt}>{idx + 1}</Text>
-                        </View>
-                        <View style={{ flex: 1, minWidth: 0 }}>
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Text style={s.regUsuario} numberOfLines={1}>{reg.usuarioNombre}</Text>
-                            <Text style={[s.regCantidad, { color: tienda.color }]}>{reg.cantidad} und.</Text>
+                      <View key={reg.id} style={s.regRow}>
+                        <TouchableOpacity
+                          style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                          onPress={() => setMiniReg(reg)}
+                          activeOpacity={0.82}
+                        >
+                          <View style={[s.regNumBadge, { backgroundColor: tienda.color }]}>
+                            <Text style={s.regNumTxt}>{idx + 1}</Text>
                           </View>
-                          <Text style={s.regFecha} numberOfLines={1}>{reg.escaneadoEn}</Text>
-                          {reg.nota ? <Text style={s.regNota} numberOfLines={1}>"{reg.nota}"</Text> : null}
-                        </View>
-                        {/* Editar cantidad (solo admin) */}
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Text style={s.regUsuario} numberOfLines={1}>{reg.usuarioNombre}</Text>
+                              <Text style={[s.regCantidad, { color: tienda.color }]}>{reg.cantidad} und.</Text>
+                            </View>
+                            <Text style={s.regFecha} numberOfLines={1}>{reg.escaneadoEn}</Text>
+                            {reg.nota ? <Text style={s.regNota} numberOfLines={1}>"{reg.nota}"</Text> : null}
+                          </View>
+                          <Ionicons name="chevron-forward" size={14} color="#A1A1AA" style={{ marginLeft: 4 }} />
+                        </TouchableOpacity>
                         {esAdmin && (
                           <TouchableOpacity
                             style={s.editBtn}
@@ -774,16 +780,21 @@ export const ResultadosScreen: React.FC<Props> = ({
                             <Ionicons name="pencil-outline" size={15} color={PRP} />
                           </TouchableOpacity>
                         )}
-                        <Ionicons name="chevron-forward" size={14} color="#A1A1AA" style={{ marginLeft: 4 }} />
-                      </TouchableOpacity>
+                      </View>
                     ))}
                   </ScrollView>
                 </>
               );
             })()}
-          {/* Overlay del mini-detalle — dentro del mismo modal para evitar freeze en Android */}
+          </View>{/* ← cierra detalleSheet */}
+
+          {/* ── Overlay mini-detalle: hermano de detalleSheet → cubre pantalla completa ── */}
           {miniReg && (
-            <TouchableOpacity style={[StyleSheet.absoluteFillObject, s.miniModalBg]} activeOpacity={1} onPress={() => setMiniReg(null)}>
+            <TouchableOpacity
+              style={[StyleSheet.absoluteFillObject, s.overlayBg]}
+              activeOpacity={1}
+              onPress={() => setMiniReg(null)}
+            >
               <View style={s.miniModalCard} onStartShouldSetResponder={() => true}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                   <Text style={s.miniTitle}>Detalle del conteo</Text>
@@ -792,9 +803,9 @@ export const ResultadosScreen: React.FC<Props> = ({
                   </TouchableOpacity>
                 </View>
                 {[
-                  { icon: 'person-circle-outline' as const, lbl: 'Usuario',     val: miniReg.usuarioNombre },
-                  { icon: 'layers-outline'         as const, lbl: 'Cantidad',    val: `${miniReg.cantidad} unidad${miniReg.cantidad !== 1 ? 'es' : ''}` },
-                  { icon: 'time-outline'           as const, lbl: 'Fecha y hora',val: miniReg.escaneadoEn },
+                  { icon: 'person-circle-outline' as const, lbl: 'Usuario',      val: miniReg.usuarioNombre },
+                  { icon: 'layers-outline'         as const, lbl: 'Cantidad',     val: `${miniReg.cantidad} unidad${miniReg.cantidad !== 1 ? 'es' : ''}` },
+                  { icon: 'time-outline'           as const, lbl: 'Fecha y hora', val: miniReg.escaneadoEn },
                 ].map(row => (
                   <View key={row.lbl} style={s.miniRow}>
                     <Ionicons name={row.icon} size={16} color={tienda.color} style={{ marginRight: 10, marginTop: 2 }} />
@@ -815,7 +826,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                 ) : null}
                 {miniReg.fotoUri ? (
                   <TouchableOpacity style={{ marginTop: 10 }} onPress={() => { setMiniReg(null); setFotoModal(miniReg.fotoUri); }}>
-                    <Image source={{ uri: miniReg.fotoUri }} style={{ width: '100%', aspectRatio: 4/3, borderRadius: 12 }} resizeMode="cover" />
+                    <Image source={{ uri: miniReg.fotoUri }} style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: 12 }} resizeMode="cover" />
                     <Text style={{ fontSize: 11, color: MTD, textAlign: 'center', marginTop: 6 }}>Toca la foto para ampliar</Text>
                   </TouchableOpacity>
                 ) : (
@@ -830,8 +841,33 @@ export const ResultadosScreen: React.FC<Props> = ({
               </View>
             </TouchableOpacity>
           )}
-          </View>
-        </View>
+
+          {/* ── Overlay editar cantidad: hermano de detalleSheet → sin Modal anidado ── */}
+          {editRegId && (
+            <View style={[StyleSheet.absoluteFillObject, s.overlayBg]}>
+              <View style={[s.miniModalCard, { width: '85%' }]} onStartShouldSetResponder={() => true}>
+                <Text style={s.miniTitle}>Editar cantidad</Text>
+                <TextInput
+                  style={s.editInput}
+                  value={editCantidad}
+                  onChangeText={setEditCantidad}
+                  keyboardType="numeric"
+                  placeholder="Nueva cantidad"
+                  placeholderTextColor="#A1A1AA"
+                  autoFocus
+                />
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                  <TouchableOpacity style={[s.editAction, { backgroundColor: LGR, flex: 1 }]} onPress={() => setEditRegId(null)}>
+                    <Text style={{ color: BLK, fontWeight: '700', fontSize: 14 }}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[s.editAction, { backgroundColor: PRP, flex: 1 }]} onPress={guardarEdicion}>
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Guardar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+        </View>{/* ← cierra detalleModalBg */}
       </Modal>
 
       {/* ══════════════════════════════════════════════════════════════════
@@ -901,32 +937,6 @@ export const ResultadosScreen: React.FC<Props> = ({
                 </>
               );
             })()}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal editar cantidad de registro */}
-      <Modal visible={!!editRegId} transparent animationType="fade">
-        <View style={s.miniModalBg}>
-          <View style={[s.miniModalCard, { width: '85%' }]}>
-            <Text style={s.miniTitle}>Editar cantidad</Text>
-            <TextInput
-              style={s.editInput}
-              value={editCantidad}
-              onChangeText={setEditCantidad}
-              keyboardType="numeric"
-              placeholder="Nueva cantidad"
-              placeholderTextColor="#A1A1AA"
-              autoFocus
-            />
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-              <TouchableOpacity style={[s.editAction, { backgroundColor: LGR, flex: 1 }]} onPress={() => setEditRegId(null)}>
-                <Text style={{ color: BLK, fontWeight: '700', fontSize: 14 }}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[s.editAction, { backgroundColor: PRP, flex: 1 }]} onPress={guardarEdicion}>
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Guardar</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
       </Modal>
@@ -1066,7 +1076,8 @@ const s = StyleSheet.create({
   regNota:          { fontSize: 11, color: '#92400E', marginTop: 2, fontStyle: 'italic' },
   editBtn:          { width: 32, height: 32, borderRadius: 16, backgroundColor: '#EDE9FE', alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
 
-  // Mini-modal conteo individual
+  // Overlay centrado (mini-detalle y editar) — se usa con absoluteFillObject, NO como Modal independiente
+  overlayBg:        { backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24, zIndex: 99 },
   miniModalBg:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   miniModalCard:    { backgroundColor: '#fff', borderRadius: 20, padding: 20, width: '92%', maxWidth: 400 },
   miniTitle:        { fontSize: 16, fontWeight: '800', color: BLK, marginBottom: 16 },
