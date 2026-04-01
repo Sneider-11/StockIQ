@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useAppState } from './src/hooks/useAppState';
 import { getRolEnTienda } from './src/utils/helpers';
@@ -27,7 +27,7 @@ export default function App() {
     tiendas,
     usuario, usuarios, pantalla, tiendaActiva, registros, catalogos,
     login, logout,
-    navTienda, navScanner, navRegistros, navResultados, navImportar, navSobrantes, navPerfil,
+    navTienda, navScanner, navRegistros, navMisRegistros, navResultados, navImportar, navSobrantes, navPerfil,
     volverATienda, volverAHome,
     setPantalla,
     agregarTienda, editarTienda, eliminarTienda,
@@ -37,7 +37,34 @@ export default function App() {
     agregarSobrante, eliminarSobrante, editarSobrante, getSobrantesTienda,
     confirmarCero, desconfirmarCero, getConfirmadosCero,
     reiniciarInventario,
+    toggleModoInventario,
   } = state;
+
+  // Derivados (seguros de calcular siempre, incluso si usuario es null)
+  const esSuperAdmin    = usuario?.rol === 'SUPERADMIN';
+  const esAdmin         = usuario?.rol === 'ADMIN' || esSuperAdmin;
+  const rolEnTienda     = tiendaActiva && usuario ? getRolEnTienda(usuario, tiendaActiva.id) : (usuario?.rol ?? 'CONTADOR');
+  const esAdminEnTienda = rolEnTienda === 'ADMIN' || rolEnTienda === 'SUPERADMIN';
+
+  // Siempre leer el estado VIVO de la tienda activa desde el array (para detectar cambios de modo)
+  const tiendaActivaLive = tiendaActiva
+    ? (tiendas.find(t => t.id === tiendaActiva.id) ?? tiendaActiva)
+    : null;
+
+  // ── Kick-out reactivo: si la tienda cambia a OFFLINE mientras el usuario está dentro ──
+  // DEBE estar antes de cualquier return condicional (Rules of Hooks)
+  useEffect(() => {
+    if (!tiendaActivaLive || esAdminEnTienda) return;
+    if (tiendaActivaLive.modoInventario === 'OFFLINE') {
+      volverAHome();
+      Alert.alert(
+        'Inventario cerrado',
+        `El inventario de "${tiendaActivaLive.nombre}" fue cerrado por ${tiendaActivaLive.cerradoPor ?? 'el administrador'}.\n\nContacta al administrador para reactivarlo.`,
+        [{ text: 'Entendido', style: 'default' }],
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tiendas, tiendaActiva]);
 
   // ── Pantalla de carga ────────────────────────────────────────────────────────
   if (cargando) {
@@ -72,11 +99,6 @@ export default function App() {
       </>
     );
   }
-
-  const esSuperAdmin    = usuario.rol === 'SUPERADMIN';
-  const esAdmin         = usuario.rol === 'ADMIN' || esSuperAdmin;
-  const rolEnTienda     = tiendaActiva ? getRolEnTienda(usuario, tiendaActiva.id) : usuario.rol;
-  const esAdminEnTienda = rolEnTienda === 'ADMIN' || rolEnTienda === 'SUPERADMIN';
 
   // ── Perfil ─────────────────────────────────────────────────────────────────
   if (pantalla === 'perfil') {
@@ -134,31 +156,49 @@ export default function App() {
   }
 
   // ── Interior de tienda ──────────────────────────────────────────────────────
-  if (pantalla === 'tienda' && tiendaActiva) {
+  if (pantalla === 'tienda' && tiendaActivaLive) {
+    // No-admins bloqueados si la tienda está OFFLINE
+    if (tiendaActivaLive.modoInventario === 'OFFLINE' && !esAdminEnTienda) {
+      return <InventarioCerradoScreen tienda={tiendaActivaLive} onVolver={volverAHome} />;
+    }
+
     return (
       <>
         <StatusBar style="light" />
         <TiendaScreen
-          tienda={tiendaActiva}
+          tienda={tiendaActivaLive}
           usuario={{ ...usuario, rol: rolEnTienda }}
           usuarios={usuarios}
           registros={registros}
           catalogos={catalogos}
-          sobrantesTienda={getSobrantesTienda(tiendaActiva.id).length}
-          confirmadosCero={getConfirmadosCero(tiendaActiva.id)}
+          sobrantesTienda={getSobrantesTienda(tiendaActivaLive.id).length}
+          confirmadosCero={getConfirmadosCero(tiendaActivaLive.id)}
           onBack={volverAHome}
           onNavScanner={navScanner}
           onNavRegistros={navRegistros}
+          onNavMisRegistros={esAdminEnTienda ? navMisRegistros : undefined}
           onNavImportar={navImportar}
           onNavResultados={navResultados}
           onNavSobrantes={navSobrantes}
           onNavEquipo={esAdminEnTienda ? () => setPantalla('equipo') : undefined}
           onNavReporte={esAdminEnTienda ? () => setPantalla('reporte') : undefined}
-          onReiniciar={esAdminEnTienda ? () => reiniciarInventario(tiendaActiva.id) : undefined}
-          onLimpiar={esSuperAdmin ? () => limpiarRegistrosTienda(tiendaActiva.id) : undefined}
+          onReiniciar={esAdminEnTienda ? () => reiniciarInventario(tiendaActivaLive.id) : undefined}
+          onLimpiar={esSuperAdmin ? () => limpiarRegistrosTienda(tiendaActivaLive.id) : undefined}
+          onToggleModo={esAdminEnTienda ? (modo) => toggleModoInventario(tiendaActivaLive.id, modo, usuario.nombre) : undefined}
         />
       </>
     );
+  }
+
+  // Guardia OFFLINE global para pantallas que requieren tiendaActiva
+  // Si la tienda está en modo OFFLINE y el usuario no es admin → volver a tienda (muestra pantalla bloqueada)
+  if (
+    tiendaActivaLive?.modoInventario === 'OFFLINE' &&
+    !esAdminEnTienda &&
+    (pantalla === 'scanner' || pantalla === 'registros' || pantalla === 'sobrantes')
+  ) {
+    // redirigir a la vista de tienda que mostrará el bloqueo
+    return null; // el useEffect de kick-out ya habrá redirigido; fallback silencioso
   }
 
   // ── Escáner ─────────────────────────────────────────────────────────────────
@@ -178,7 +218,7 @@ export default function App() {
     );
   }
 
-  // ── Registros ───────────────────────────────────────────────────────────────
+  // ── Registros (vista admin = todos, vista contador = solo propios) ─────────
   if (pantalla === 'registros' && tiendaActiva) {
     return (
       <>
@@ -189,9 +229,32 @@ export default function App() {
           registros={registros}
           sobrantes={getSobrantesTienda(tiendaActiva.id)}
           esAdmin={esAdminEnTienda}
+          forzarSoloMios={false}
           onVolver={volverATienda}
           onEliminar={esAdminEnTienda ? eliminarRegistro : undefined}
           onEliminarSobrante={esAdminEnTienda ? eliminarSobrante : undefined}
+          onEditarRegistro={esAdminEnTienda ? editarRegistro : undefined}
+        />
+      </>
+    );
+  }
+
+  // ── Mis Registros (solo los propios del admin/superadmin con edición) ───────
+  if (pantalla === 'mis_registros' && tiendaActiva && esAdminEnTienda) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <MisRegistrosScreen
+          usuario={usuario}
+          tienda={tiendaActiva}
+          registros={registros}
+          sobrantes={getSobrantesTienda(tiendaActiva.id)}
+          esAdmin={esAdminEnTienda}
+          forzarSoloMios={true}
+          onVolver={volverATienda}
+          onEliminar={eliminarRegistro}
+          onEliminarSobrante={eliminarSobrante}
+          onEditarRegistro={editarRegistro}
         />
       </>
     );
@@ -328,3 +391,43 @@ export default function App() {
     </>
   );
 }
+
+// ─── PANTALLA: INVENTARIO CERRADO (no-admins bloqueados) ─────────────────────
+import { Tienda } from './src/constants/data';
+import { Ionicons } from '@expo/vector-icons';
+
+const InventarioCerradoScreen: React.FC<{ tienda: Tienda; onVolver: () => void }> = ({
+  tienda, onVolver,
+}) => (
+  <>
+    <StatusBar style="light" />
+    <View style={sc.bloqFondo}>
+      <View style={sc.bloqIconBox}>
+        <Ionicons name="lock-closed" size={36} color="#DC2626" />
+      </View>
+      <Text style={sc.bloqTitulo}>Inventario cerrado</Text>
+      <Text style={sc.bloqTienda}>{tienda.nombre}</Text>
+      <Text style={sc.bloqMensaje}>
+        El acceso fue cerrado por{'\n'}
+        <Text style={sc.bloqAdmin}>
+          {tienda.cerradoPor ?? 'el administrador'}
+        </Text>
+        {'\n\n'}Contacta al administrador para reactivar el inventario.
+      </Text>
+      <TouchableOpacity style={sc.bloqBtn} onPress={onVolver} activeOpacity={0.85}>
+        <Text style={sc.bloqBtnTxt}>Volver al inicio</Text>
+      </TouchableOpacity>
+    </View>
+  </>
+);
+
+const sc = StyleSheet.create({
+  bloqFondo:   { flex: 1, backgroundColor: '#09090B', alignItems: 'center', justifyContent: 'center', padding: 36 },
+  bloqIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#1C1C1E', borderWidth: 1.5, borderColor: '#DC2626', alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
+  bloqTitulo:  { fontSize: 24, fontWeight: '900', color: '#fff', textAlign: 'center', marginBottom: 8 },
+  bloqTienda:  { fontSize: 16, fontWeight: '700', color: '#DC2626', textAlign: 'center', marginBottom: 16 },
+  bloqMensaje: { fontSize: 14, color: 'rgba(255,255,255,0.55)', textAlign: 'center', lineHeight: 22, marginBottom: 36 },
+  bloqAdmin:   { color: 'rgba(255,255,255,0.85)', fontWeight: '700' },
+  bloqBtn:     { backgroundColor: '#1C1C1E', borderRadius: 16, paddingHorizontal: 32, paddingVertical: 16, borderWidth: 1, borderColor: '#3F3F46' },
+  bloqBtnTxt:  { color: '#fff', fontWeight: '700', fontSize: 15 },
+});

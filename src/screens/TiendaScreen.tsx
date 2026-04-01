@@ -16,6 +16,7 @@ interface Props {
   onBack: () => void;
   onNavScanner: (t: Tienda) => void;
   onNavRegistros: (t: Tienda) => void;
+  onNavMisRegistros?: (t: Tienda) => void;
   onNavImportar: (t: Tienda) => void;
   onNavResultados: (t: Tienda) => void;
   onNavSobrantes: (t: Tienda) => void;
@@ -23,12 +24,14 @@ interface Props {
   onNavReporte?: () => void;
   onReiniciar?: () => void;
   onLimpiar?: () => void;
+  /** Cambia el modo de acceso de la tienda: ONLINE o OFFLINE */
+  onToggleModo?: (modo: 'ONLINE' | 'OFFLINE') => void;
 }
 
 export const TiendaScreen: React.FC<Props> = ({
   tienda, usuario, usuarios, registros, catalogos, sobrantesTienda, confirmadosCero,
-  onBack, onNavScanner, onNavRegistros, onNavImportar, onNavResultados, onNavSobrantes,
-  onNavEquipo, onNavReporte, onReiniciar, onLimpiar,
+  onBack, onNavScanner, onNavRegistros, onNavMisRegistros, onNavImportar, onNavResultados, onNavSobrantes,
+  onNavEquipo, onNavReporte, onReiniciar, onLimpiar, onToggleModo,
 }) => {
   const CAT            = catalogos[tienda.id] || [];
   const regTienda      = registros.filter(r => r.tiendaId === tienda.id);
@@ -36,6 +39,7 @@ export const TiendaScreen: React.FC<Props> = ({
   const esAdmin        = usuario.rol === 'ADMIN' || esSuperAdmin;
   const esContador     = usuario.rol === 'CONTADOR';
   const total          = CAT.length || 18;
+  const modoOffline    = tienda.modoInventario === 'OFFLINE';
 
   // Porcentaje considera escaneados + confirmados cero (sin doble contar)
   const escaneadosSet   = new Set(regTienda.map(r => r.itemId));
@@ -50,9 +54,14 @@ export const TiendaScreen: React.FC<Props> = ({
   // CONTADOR: solo escanear + registros
   // ADMIN: + resultados + sobrantes
   // SUPERADMIN: + importar + limpiar
+  const misEscaneos = regTienda.filter(r => r.usuarioNombre === usuario.nombre).length;
+
   const acciones: { icon: IoniconName; bg: string; title: string; sub: string; fn: () => void; badge?: string }[] = [
     { icon: 'scan',        bg: tienda.color, title: 'Escanear artículo',    sub: 'Abrir cámara para contar',                                   fn: () => onNavScanner(tienda) },
-    { icon: 'list',        bg: '#27272A',    title: 'Registros de conteo',  sub: `${regTienda.length} escaneos totales`,                       fn: () => onNavRegistros(tienda) },
+    { icon: 'list',        bg: '#27272A',    title: 'Registros de conteo',  sub: `${regTienda.length} escaneos totales en la tienda`,          fn: () => onNavRegistros(tienda) },
+    ...(esAdmin && onNavMisRegistros ? [
+      { icon: 'person-circle' as IoniconName, bg: '#6D28D9', title: 'Mis registros', sub: misEscaneos > 0 ? `${misEscaneos} escaneos propios` : 'Ver y editar mis propios conteos', fn: () => onNavMisRegistros(tienda) },
+    ] : []),
     { icon: 'add-circle' as IoniconName, bg: '#92400E', title: 'Sobrantes sin Stock', sub: sobrantesTienda > 0 ? `${sobrantesTienda} registrados` : 'Artículos sin existencia en sistema', fn: () => onNavSobrantes(tienda), badge: sobrantesTienda > 0 ? String(sobrantesTienda) : undefined },
     ...(esAdmin ? [
       { icon: 'pie-chart'    as IoniconName, bg: '#4C1D95', title: 'Resultados',             sub: 'Análisis, artículos y resumen económico',   fn: () => onNavResultados(tienda) },
@@ -84,10 +93,17 @@ export const TiendaScreen: React.FC<Props> = ({
         {/* Progreso */}
         <View style={s.progCard}>
           <View style={s.progTop}>
-            <View style={s.liveChip}>
-              <View style={s.liveDot} />
-              <Text style={s.liveTxt}>EN VIVO</Text>
-            </View>
+            {modoOffline ? (
+              <View style={[s.liveChip, { backgroundColor: 'rgba(220,38,38,0.25)' }]}>
+                <View style={[s.liveDot, { backgroundColor: '#F87171' }]} />
+                <Text style={[s.liveTxt, { color: '#FECACA' }]}>OFFLINE</Text>
+              </View>
+            ) : (
+              <View style={s.liveChip}>
+                <View style={s.liveDot} />
+                <Text style={s.liveTxt}>EN VIVO</Text>
+              </View>
+            )}
             <Text style={s.progPct}>{pct}%</Text>
           </View>
           <View style={s.progBg}>
@@ -180,6 +196,55 @@ export const TiendaScreen: React.FC<Props> = ({
               </View>
               <View style={s.actionArrow}>
                 <Ionicons name="chevron-forward" size={16} color="#A1A1AA" />
+              </View>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* ── Control de acceso (solo Admin/SuperAdmin) ── */}
+        {esAdmin && onToggleModo && (
+          <>
+            <SecHeader title="Control de acceso" />
+            <TouchableOpacity
+              style={[s.actionCard, modoOffline && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}
+              activeOpacity={0.88}
+              onPress={() => {
+                if (modoOffline) {
+                  Alert.alert(
+                    'Activar inventario',
+                    `¿Volver a poner "${tienda.nombre}" en modo ONLINE? Los auditores podrán ingresar nuevamente.`,
+                    [
+                      { text: 'Cancelar', style: 'cancel' },
+                      { text: 'Activar', style: 'default', onPress: () => onToggleModo('ONLINE') },
+                    ],
+                  );
+                } else {
+                  Alert.alert(
+                    'Cerrar inventario',
+                    `¿Pasar "${tienda.nombre}" a modo OFFLINE?\n\nLos auditores activos serán expulsados y no podrán volver a ingresar hasta que lo reactives.`,
+                    [
+                      { text: 'Cancelar', style: 'cancel' },
+                      { text: 'Cerrar inventario', style: 'destructive', onPress: () => onToggleModo('OFFLINE') },
+                    ],
+                  );
+                }
+              }}
+            >
+              <View style={[s.actionIcon, { backgroundColor: modoOffline ? '#DC2626' : '#15803D' }]}>
+                <Ionicons name={modoOffline ? 'lock-closed' : 'lock-open'} size={22} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.actionTitle, modoOffline && { color: '#DC2626' }]} numberOfLines={1}>
+                  Inventario {modoOffline ? 'OFFLINE' : 'ONLINE'}
+                </Text>
+                <Text style={[s.actionSub, modoOffline && { color: '#F87171' }]} numberOfLines={1}>
+                  {modoOffline
+                    ? `Cerrado por ${tienda.cerradoPor ?? 'administrador'} — toca para reactivar`
+                    : 'Toca para cerrar el acceso de auditores'}
+                </Text>
+              </View>
+              <View style={[s.actionArrow, modoOffline && { backgroundColor: '#FEE2E2' }]}>
+                <Ionicons name="chevron-forward" size={16} color={modoOffline ? '#DC2626' : '#A1A1AA'} />
               </View>
             </TouchableOpacity>
           </>

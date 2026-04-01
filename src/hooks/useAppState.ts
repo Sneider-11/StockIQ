@@ -69,10 +69,11 @@ function normalizarTiendasRoles(u: any): Record<string, 'ADMIN' | 'CONTADOR'> {
 export type Pantalla =
   | 'home'
   | 'equipo'
-  | 'tiendas'    // gestión de tiendas (solo SUPERADMIN)
+  | 'tiendas'        // gestión de tiendas (solo SUPERADMIN)
   | 'tienda'
   | 'scanner'
-  | 'registros'
+  | 'registros'      // todos los registros de la tienda (admin ve todos, contador solo suyos)
+  | 'mis_registros'  // solo los registros propios con edición (para admin/superadmin)
   | 'resultados'
   | 'importar'
   | 'sobrantes'
@@ -265,15 +266,16 @@ export function useAppState() {
   }, []);
 
   // ── Navegación ────────────────────────────────────────────────────────────
-  const navTienda     = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('tienda');     }, []);
-  const navScanner    = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('scanner');    }, []);
-  const navRegistros  = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('registros');  }, []);
-  const navResultados = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('resultados'); }, []);
-  const navImportar   = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('importar');   }, []);
-  const navSobrantes  = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('sobrantes');  }, []);
-  const navPerfil     = useCallback(() => setPantalla('perfil'), []);
-  const volverATienda = useCallback(() => setPantalla('tienda'), []);
-  const volverAHome   = useCallback(() => { setPantalla('home'); setTiendaActiva(null); }, []);
+  const navTienda        = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('tienda');        }, []);
+  const navScanner       = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('scanner');       }, []);
+  const navRegistros     = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('registros');     }, []);
+  const navMisRegistros  = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('mis_registros'); }, []);
+  const navResultados    = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('resultados');    }, []);
+  const navImportar      = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('importar');      }, []);
+  const navSobrantes     = useCallback((t: Tienda) => { setTiendaActiva(t); setPantalla('sobrantes');     }, []);
+  const navPerfil        = useCallback(() => setPantalla('perfil'), []);
+  const volverATienda    = useCallback(() => setPantalla('tienda'), []);
+  const volverAHome      = useCallback(() => { setPantalla('home'); setTiendaActiva(null); }, []);
 
   // ── Tiendas — CRUD ────────────────────────────────────────────────────────
   const agregarTienda = useCallback((t: Omit<Tienda, 'id'>) => {
@@ -423,6 +425,21 @@ export function useAppState() {
     confirmadosCero[tiendaId] ?? [],
   [confirmadosCero]);
 
+  /**
+   * Cambia el modo de inventario de una tienda a ONLINE u OFFLINE.
+   * OFFLINE bloquea el acceso de auditores/contadores desde cualquier pantalla.
+   */
+  const toggleModoInventario = useCallback((
+    tiendaId: string,
+    modo: 'ONLINE' | 'OFFLINE',
+    cerradoPor: string,
+  ) => {
+    editarTienda(tiendaId, modo === 'OFFLINE'
+      ? { modoInventario: 'OFFLINE', cerradoPor }
+      : { modoInventario: 'ONLINE',  cerradoPor: undefined },
+    );
+  }, [editarTienda]);
+
   return {
     // Estado de carga
     cargando,
@@ -432,7 +449,7 @@ export function useAppState() {
     // Auth
     login, logout,
     // Navegación
-    navTienda, navScanner, navRegistros, navResultados, navImportar, navSobrantes, navPerfil,
+    navTienda, navScanner, navRegistros, navMisRegistros, navResultados, navImportar, navSobrantes, navPerfil,
     volverATienda, volverAHome,
     setPantalla,
     // Tiendas
@@ -446,5 +463,7 @@ export function useAppState() {
     agregarSobrante, eliminarSobrante, editarSobrante, getSobrantesTienda,
     // Confirmados cero
     confirmadosCero, confirmarCero, desconfirmarCero, getConfirmadosCero,
+    // Modo inventario
+    toggleModoInventario,
   };
 }

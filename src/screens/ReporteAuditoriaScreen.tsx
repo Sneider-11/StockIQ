@@ -295,9 +295,13 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reporte de Auditoría — ${tienda.nombre}</title>
   <style>
+    @page {
+      size: A4;
+      margin: 22mm 20mm 28mm 20mm;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, Helvetica, sans-serif; background: #F4F4F5; color: #18181B; }
-    .page { max-width: 780px; margin: 0 auto; padding: 32px 24px; }
+    body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #18181B; }
+    .page { max-width: 760px; margin: 0 auto; padding: 24px 16px; }
     .header { background: ${tienda.color}; border-radius: 16px; padding: 28px 32px; margin-bottom: 24px; color: #fff; }
     .header-brand { font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; text-transform: uppercase; margin-bottom: 4px; }
     .header-title { font-size: 26px; font-weight: 900; margin-bottom: 2px; }
@@ -342,7 +346,10 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
 
     @media print {
       body { background: #fff; }
-      .page { padding: 16px; }
+      .page { padding: 0; max-width: 100%; }
+      .section { break-inside: avoid; }
+      .header  { break-after: avoid; }
+      .footer  { break-before: avoid; margin-top: 16px; }
     }
   </style>
 </head>

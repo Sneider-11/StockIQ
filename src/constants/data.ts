@@ -28,6 +28,10 @@ export interface Tienda {
   icono: IoniconName;
   color: string;
   nit?: string;          // NIT opcional de la empresa/tienda
+  /** 'OFFLINE' = inventario cerrado por un admin, auditores bloqueados */
+  modoInventario?: 'ONLINE' | 'OFFLINE';
+  /** Nombre del admin que cerró el inventario (solo cuando modoInventario = 'OFFLINE') */
+  cerradoPor?: string;
 }
 
 export interface Articulo {
