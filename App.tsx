@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } fr
 import { StatusBar } from 'expo-status-bar';
 import { useAppState } from './src/hooks/useAppState';
 import { getRolEnTienda } from './src/utils/helpers';
+import { ThemeProvider } from './src/context/ThemeContext';
 import {
   LoginScreen,
   HomeSuperAdminScreen,
@@ -21,6 +22,14 @@ import {
 } from './src/screens';
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
+  );
+}
+
+function AppInner() {
   const state = useAppState();
   const {
     cargando,

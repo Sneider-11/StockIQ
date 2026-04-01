@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Tienda, Usuario, Registro, Articulo, CLSF, IoniconName } from '../constants/data';
 import { Avatar, SecHeader } from '../components/common';
@@ -28,6 +28,35 @@ interface Props {
   onToggleModo?: (modo: 'ONLINE' | 'OFFLINE') => void;
 }
 
+// ── Tarjetas de estadísticas con glassmorphism + animaciones ─────────────────
+const GlassStatCard: React.FC<{
+  children: React.ReactNode;
+  anim: { opacity: Animated.Value; scale: Animated.Value };
+  onPress?: () => void;
+  wide?: boolean;
+}> = ({ children, anim, onPress, wide }) => {
+  const pressScale = useRef(new Animated.Value(1)).current;
+  const onPressIn  = () => Animated.spring(pressScale, { toValue: 0.91, useNativeDriver: true, tension: 220, friction: 10 }).start();
+  const onPressOut = () => Animated.spring(pressScale, { toValue: 1,    useNativeDriver: true, tension: 220, friction: 10 }).start();
+
+  return (
+    <Animated.View style={[
+      wide ? s.statCardWide : s.statCard,
+      { opacity: anim.opacity, transform: [{ scale: Animated.multiply(anim.scale, pressScale) }] }
+    ]}>
+      <TouchableOpacity
+        style={s.statCardInner}
+        onPress={onPress}
+        onPressIn={onPress ? onPressIn  : undefined}
+        onPressOut={onPress ? onPressOut : undefined}
+        activeOpacity={1}
+      >
+        {children}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
 export const TiendaScreen: React.FC<Props> = ({
   tienda, usuario, usuarios, registros, catalogos, sobrantesTienda, confirmadosCero,
   onBack, onNavScanner, onNavRegistros, onNavMisRegistros, onNavImportar, onNavResultados, onNavSobrantes,
@@ -40,6 +69,26 @@ export const TiendaScreen: React.FC<Props> = ({
   const esContador     = usuario.rol === 'CONTADOR';
   const total          = CAT.length || 18;
   const modoOffline    = tienda.modoInventario === 'OFFLINE';
+
+  // ── Animaciones de las tarjetas de estadísticas ────────────────────────────
+  const NCARDS = esAdmin ? 5 : 4;
+  const cardAnims = useRef(
+    Array(NCARDS).fill(null).map(() => ({
+      opacity: new Animated.Value(0),
+      scale:   new Animated.Value(0.78),
+    }))
+  ).current;
+
+  useEffect(() => {
+    Animated.stagger(70,
+      cardAnims.map(a =>
+        Animated.parallel([
+          Animated.spring(a.scale,   { toValue: 1, tension: 80, friction: 10, useNativeDriver: true }),
+          Animated.timing(a.opacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+        ])
+      )
+    ).start();
+  }, []);
 
   // Porcentaje considera escaneados + confirmados cero (sin doble contar)
   const escaneadosSet   = new Set(regTienda.map(r => r.itemId));
@@ -62,7 +111,9 @@ export const TiendaScreen: React.FC<Props> = ({
     ...(esAdmin && onNavMisRegistros ? [
       { icon: 'person-circle' as IoniconName, bg: '#6D28D9', title: 'Mis registros', sub: misEscaneos > 0 ? `${misEscaneos} escaneos propios` : 'Ver y editar mis propios conteos', fn: () => onNavMisRegistros(tienda) },
     ] : []),
-    { icon: 'add-circle' as IoniconName, bg: '#92400E', title: 'Sobrantes sin Stock', sub: sobrantesTienda > 0 ? `${sobrantesTienda} registrados` : 'Artículos sin existencia en sistema', fn: () => onNavSobrantes(tienda), badge: sobrantesTienda > 0 ? String(sobrantesTienda) : undefined },
+    ...(esAdmin ? [
+      { icon: 'add-circle' as IoniconName, bg: '#92400E', title: 'Sobrantes sin Stock', sub: sobrantesTienda > 0 ? `${sobrantesTienda} registrados` : 'Artículos sin existencia en sistema', fn: () => onNavSobrantes(tienda), badge: sobrantesTienda > 0 ? String(sobrantesTienda) : undefined },
+    ] : []),
     ...(esAdmin ? [
       { icon: 'pie-chart'    as IoniconName, bg: '#4C1D95', title: 'Resultados',             sub: 'Análisis, artículos y resumen económico',   fn: () => onNavResultados(tienda) },
       { icon: 'people'       as IoniconName, bg: '#0369A1', title: 'Gestionar equipo',        sub: `${equipoTienda.length} persona${equipoTienda.length !== 1 ? 's' : ''} asignada${equipoTienda.length !== 1 ? 's' : ''}`, fn: () => onNavEquipo?.() },
@@ -111,39 +162,42 @@ export const TiendaScreen: React.FC<Props> = ({
           </View>
           <Text style={s.progSub} numberOfLines={1}>{contados} de {total} artículos · {regTienda.length} escaneos</Text>
         </View>
-      </View>
 
-      {/* Estadísticas de clasificación — interactivas para Admin */}
-      <View style={s.statsGrid}>
-        {(['SIN_DIF', 'FALTANTE', 'SOBRANTE', 'CERO'] as const).map(k => {
-          const cfg = CLSF[k];
-          const n   = regTienda.filter(r => r.clasificacion === k).length;
-          return (
-            <TouchableOpacity
-              key={k}
-              style={[s.statCard, { borderTopColor: cfg.dot }]}
-              onPress={esAdmin ? () => onNavResultados(tienda) : undefined}
-              activeOpacity={esAdmin ? 0.8 : 1}
+        {/* Estadísticas — glassmorphism sobre el fondo coloreado del header */}
+        <View style={s.statsGrid}>
+          {(['SIN_DIF', 'FALTANTE', 'SOBRANTE', 'CERO'] as const).map((k, idx) => {
+            const cfg = CLSF[k];
+            const n   = regTienda.filter(r => r.clasificacion === k).length;
+            return (
+              <GlassStatCard
+                key={k}
+                anim={cardAnims[idx]}
+                onPress={esAdmin ? () => onNavResultados(tienda) : undefined}
+              >
+                <View style={[s.statAccent, { backgroundColor: cfg.dot }]} />
+                <Text style={[s.statN, { color: '#fff' }]} numberOfLines={1} adjustsFontSizeToFit>{n}</Text>
+                <Text style={s.statLbl} numberOfLines={1}>{cfg.label}</Text>
+                {esAdmin && <Text style={s.statHint}>Ver →</Text>}
+              </GlassStatCard>
+            );
+          })}
+          {esAdmin && (
+            <GlassStatCard
+              anim={cardAnims[4]}
+              onPress={() => onNavSobrantes(tienda)}
+              wide
             >
-              <Text style={[s.statN, { color: cfg.color }]} numberOfLines={1} adjustsFontSizeToFit>{n}</Text>
-              <Text style={s.statLbl} numberOfLines={1}>{cfg.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-        {/* Tarjeta sobrantes sin stock */}
-        <TouchableOpacity
-          style={[s.statCard, { borderTopColor: '#F59E0B', width: '100%' }]}
-          onPress={() => onNavSobrantes(tienda)}
-          activeOpacity={0.8}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <Text style={[s.statN, { color: '#92400E' }]} numberOfLines={1} adjustsFontSizeToFit>{sobrantesTienda}</Text>
-            <View style={{ alignItems: 'flex-start' }}>
-              <Text style={[s.statLbl, { color: '#92400E' }]}>Sobrantes sin stock</Text>
-              <Text style={{ fontSize: 9, color: '#A1A1AA', fontWeight: '600' }}>Toca para gestionar →</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
+              <View style={[s.statAccent, { backgroundColor: '#F59E0B', width: '28%' }]} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Text style={[s.statN, { color: '#FCD34D' }]} numberOfLines={1}>{sobrantesTienda}</Text>
+                <View>
+                  <Text style={[s.statLbl, { color: 'rgba(255,255,255,0.85)' }]}>Sobrantes sin stock</Text>
+                  <Text style={[s.statHint, { marginTop: 2 }]}>Toca para gestionar →</Text>
+                </View>
+              </View>
+            </GlassStatCard>
+          )}
+        </View>
       </View>
 
       <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
@@ -302,10 +356,14 @@ const s = StyleSheet.create({
   progFill:    { height: '100%', backgroundColor: '#fff', borderRadius: 4 },
   progSub:     { fontSize: 12, color: 'rgba(255,255,255,0.6)' },
 
-  statsGrid:   { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, paddingTop: 18, gap: 10 },
-  statCard:    { width: '47%', backgroundColor: '#fff', borderRadius: 16, padding: 14, alignItems: 'center', borderTopWidth: 4, borderWidth: 1, borderColor: BRD, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1, overflow: 'hidden' },
-  statN:       { fontSize: 26, fontWeight: '900', marginBottom: 4 },
-  statLbl:     { fontSize: 10, fontWeight: '700', color: MTD, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center', flexShrink: 1 },
+  statsGrid:     { flexDirection: 'row', flexWrap: 'wrap', paddingTop: 14, paddingBottom: 22, gap: 10 },
+  statCard:      { width: '47%', borderRadius: 18, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 14, elevation: 4 },
+  statCardWide:  { width: '100%', borderRadius: 18, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 14, elevation: 4 },
+  statCardInner: { padding: 16, alignItems: 'center', position: 'relative' },
+  statAccent:    { position: 'absolute', top: 0, left: 0, right: 0, height: 3, borderTopLeftRadius: 18, borderTopRightRadius: 18 },
+  statN:         { fontSize: 28, fontWeight: '900', marginBottom: 3, marginTop: 4 },
+  statLbl:       { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' },
+  statHint:      { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: '600', marginTop: 4 },
 
   actionCard:  { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: BRD, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
   actionIcon:  { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
