@@ -160,23 +160,7 @@ npx expo start --web      # Versión web (funcionalidad limitada)
 
 ---
 
-## Subir a GitHub
-
-```bash
-# Inicializar repositorio (si aún no lo tienes)
-git init
-git add .
-git commit -m "feat: StockIQ v2.0.0 - Sistema de auditoría de inventarios"
-
-# Conectar con GitHub
-git remote add origin https://github.com/tu-usuario/stockiq.git
-git branch -M main
-git push -u origin main
-```
-
----
-
-## Próximos pasos sugeridos
+## Próximos pasos
 
 - [ ] Backend real con NestJS + PostgreSQL
 - [ ] Autenticación JWT con refresh tokens
@@ -206,4 +190,3 @@ git push -u origin main
 ## Licencia
 
 Proyecto privado · Grupo Comercial AudiMeyer  
-Desarrollado con ❤️ usando React Native + Expo
