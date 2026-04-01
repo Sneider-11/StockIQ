@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, FlatList, Image, Modal, Alert, TextInput,
-  Animated, Easing,
+  Animated, Easing, PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Tienda, Usuario, Registro, SobranteSinStock, CLSF } from '../constants/data';
@@ -43,6 +43,8 @@ export const MisRegistrosScreen: React.FC<Props> = ({
   const sheetY      = useRef(new Animated.Value(700)).current;
   const bgOpacity   = useRef(new Animated.Value(0)).current;
   const editOpacity = useRef(new Animated.Value(0)).current;
+  // Desplazamiento del pan gesture (swipe-down para cerrar)
+  const panDy       = useRef(new Animated.Value(0)).current;
 
   const SPRING = { tension: 70, friction: 13, useNativeDriver: true } as const;
   const FADE   = { duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true } as const;
@@ -51,6 +53,7 @@ export const MisRegistrosScreen: React.FC<Props> = ({
     if (detalleReg) {
       sheetY.setValue(700);
       bgOpacity.setValue(0);
+      panDy.setValue(0);
       Animated.parallel([
         Animated.timing(bgOpacity, { ...FADE, toValue: 1 }),
         Animated.spring(sheetY,    { ...SPRING, toValue: 0 }),
@@ -70,8 +73,25 @@ export const MisRegistrosScreen: React.FC<Props> = ({
     Animated.parallel([
       Animated.timing(bgOpacity, { toValue: 0, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
       Animated.timing(sheetY,    { toValue: 700, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-    ]).start(() => setDetalleReg(null));
+    ]).start(() => { panDy.setValue(0); setDetalleReg(null); });
   };
+
+  // ── Pan responder: deslizar el handle hacia abajo cierra el sheet ─────────
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder:       () => false,
+      onMoveShouldSetPanResponder: (_, gs) => gs.dy > 6 && Math.abs(gs.dy) > Math.abs(gs.dx),
+      onPanResponderMove:          (_, gs) => { if (gs.dy > 0) panDy.setValue(gs.dy); },
+      onPanResponderRelease:       (_, gs) => {
+        if (gs.dy > 80 || gs.vy > 0.4) {
+          panDy.setValue(0);
+          cerrarDetalle();
+        } else {
+          Animated.spring(panDy, { toValue: 0, useNativeDriver: true, tension: 120, friction: 15 }).start();
+        }
+      },
+    })
+  ).current;
 
   // ── Permisos de edición ────────────────────────────────────────────────────
   /**
@@ -442,7 +462,13 @@ export const MisRegistrosScreen: React.FC<Props> = ({
         transparent
         onRequestClose={cerrarDetalle}
       >
-        <Animated.View style={[s.detalleModalBg, { opacity: bgOpacity }]}>
+        <View style={s.detalleModalBg}>
+
+          {/* Fondo oscuro animado — solo visual, no bloquea toques */}
+          <Animated.View
+            style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.55)', opacity: bgOpacity }]}
+            pointerEvents="none"
+          />
 
           {/* Tap en el fondo cierra el modal */}
           <TouchableOpacity
@@ -451,8 +477,11 @@ export const MisRegistrosScreen: React.FC<Props> = ({
             onPress={cerrarDetalle}
           />
 
-          <Animated.View style={[s.detalleSheet, { transform: [{ translateY: sheetY }] }]}>
-            <View style={s.modalHandle} />
+          <Animated.View style={[s.detalleSheet, { transform: [{ translateY: sheetY }, { translateY: panDy }] }]}>
+            {/* Handle — área de agarre para deslizar hacia abajo */}
+            <View {...panResponder.panHandlers} style={s.handleArea}>
+              <View style={s.modalHandle} />
+            </View>
 
             {detalleReg && (
               <>
@@ -588,7 +617,7 @@ export const MisRegistrosScreen: React.FC<Props> = ({
               </Animated.View>
             )}
           </Animated.View>
-        </Animated.View>
+        </View>
       </Modal>
 
     </View>
@@ -661,9 +690,10 @@ const s = StyleSheet.create({
   fotoHint:   { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 16 },
 
   // Modal detalle de artículo — bottom sheet
-  detalleModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  detalleSheet:   { backgroundColor: LGR, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '88%' },
-  modalHandle:    { width: 40, height: 4, backgroundColor: '#D4D4D8', borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
+  detalleModalBg: { flex: 1, justifyContent: 'flex-end' },
+  detalleSheet:   { backgroundColor: LGR, borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '90%' },
+  handleArea:     { paddingVertical: 12, alignItems: 'center' },
+  modalHandle:    { width: 44, height: 5, backgroundColor: '#D4D4D8', borderRadius: 3 },
 
   detalleHeader:  { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: BRD },
   detalleEstado:  { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
