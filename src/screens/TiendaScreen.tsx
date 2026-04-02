@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tienda, Usuario, Registro, Articulo, CLSF, IoniconName } from '../constants/data';
 import { Avatar, SecHeader } from '../components/common';
 import { LGR, BRD, MTD, BLK } from '../constants/colors';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 interface Props {
   tienda: Tienda;
@@ -62,6 +63,7 @@ export const TiendaScreen: React.FC<Props> = ({
   onBack, onNavScanner, onNavRegistros, onNavMisRegistros, onNavImportar, onNavResultados, onNavSobrantes,
   onNavEquipo, onNavReporte, onReiniciar, onLimpiar, onToggleModo,
 }) => {
+  const tc = useThemeColors();
   const CAT            = catalogos[tienda.id] || [];
   const regTienda      = registros.filter(r => r.tiendaId === tienda.id);
   const esSuperAdmin   = usuario.rol === 'SUPERADMIN';
@@ -125,7 +127,7 @@ export const TiendaScreen: React.FC<Props> = ({
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: LGR }}
+      style={{ flex: 1, backgroundColor: tc.bg }}
       contentContainerStyle={{ paddingBottom: 40 }}
       showsVerticalScrollIndicator={false}
     >
@@ -203,21 +205,21 @@ export const TiendaScreen: React.FC<Props> = ({
       <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
         <SecHeader title="Acciones" />
         {acciones.map(ac => (
-          <TouchableOpacity key={ac.title} style={s.actionCard} onPress={ac.fn} activeOpacity={0.88}>
+          <TouchableOpacity key={ac.title} style={[s.actionCard, { backgroundColor: tc.card, borderColor: tc.border }]} onPress={ac.fn} activeOpacity={0.88}>
             <View style={[s.actionIcon, { backgroundColor: ac.bg }]}>
               <Ionicons name={ac.icon} size={22} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.actionTitle} numberOfLines={1}>{ac.title}</Text>
-              <Text style={s.actionSub} numberOfLines={1}>{ac.sub}</Text>
+              <Text style={[s.actionTitle, { color: tc.text }]} numberOfLines={1}>{ac.title}</Text>
+              <Text style={[s.actionSub, { color: tc.muted }]} numberOfLines={1}>{ac.sub}</Text>
             </View>
             {ac.badge && (
               <View style={[s.badgeChip, { backgroundColor: '#92400E' }]}>
                 <Text style={s.badgeTxt}>{ac.badge}</Text>
               </View>
             )}
-            <View style={s.actionArrow}>
-              <Ionicons name="chevron-forward" size={16} color="#A1A1AA" />
+            <View style={[s.actionArrow, { backgroundColor: tc.btnBg }]}>
+              <Ionicons name="chevron-forward" size={16} color={tc.chevron} />
             </View>
           </TouchableOpacity>
         ))}
@@ -226,11 +228,11 @@ export const TiendaScreen: React.FC<Props> = ({
           <>
             <SecHeader title="Equipo en esta tienda" />
             {equipoTienda.map(u => (
-              <View key={u.id} style={s.audRow}>
+              <View key={u.id} style={[s.audRow, { backgroundColor: tc.card, borderColor: tc.border }]}>
                 <Avatar nombre={u.nombre} size={38} bg="#27272A" />
                 <View style={{ flex: 1, marginLeft: 10, minWidth: 0 }}>
-                  <Text style={s.audNombre} numberOfLines={1}>{u.nombre}</Text>
-                  <Text style={s.audSub} numberOfLines={1}>{regTienda.filter(r => r.usuarioNombre === u.nombre).length} escaneos</Text>
+                  <Text style={[s.audNombre, { color: tc.text }]} numberOfLines={1}>{u.nombre}</Text>
+                  <Text style={[s.audSub, { color: tc.muted }]} numberOfLines={1}>{regTienda.filter(r => r.usuarioNombre === u.nombre).length} escaneos</Text>
                 </View>
               </View>
             ))}
@@ -240,16 +242,16 @@ export const TiendaScreen: React.FC<Props> = ({
         {esAdmin && onNavReporte && (
           <>
             <SecHeader title="Informes" />
-            <TouchableOpacity style={s.actionCard} onPress={onNavReporte} activeOpacity={0.88}>
+            <TouchableOpacity style={[s.actionCard, { backgroundColor: tc.card, borderColor: tc.border }]} onPress={onNavReporte} activeOpacity={0.88}>
               <View style={[s.actionIcon, { backgroundColor: '#1D4ED8' }]}>
                 <Ionicons name="bar-chart" size={22} color="#fff" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.actionTitle} numberOfLines={1}>Reporte de Auditoría</Text>
-                <Text style={s.actionSub} numberOfLines={1}>Informe ejecutivo para la administración</Text>
+                <Text style={[s.actionTitle, { color: tc.text }]} numberOfLines={1}>Reporte de Auditoría</Text>
+                <Text style={[s.actionSub, { color: tc.muted }]} numberOfLines={1}>Informe ejecutivo para la administración</Text>
               </View>
-              <View style={s.actionArrow}>
-                <Ionicons name="chevron-forward" size={16} color="#A1A1AA" />
+              <View style={[s.actionArrow, { backgroundColor: tc.btnBg }]}>
+                <Ionicons name="chevron-forward" size={16} color={tc.chevron} />
               </View>
             </TouchableOpacity>
           </>
@@ -260,7 +262,7 @@ export const TiendaScreen: React.FC<Props> = ({
           <>
             <SecHeader title="Control de acceso" />
             <TouchableOpacity
-              style={[s.actionCard, modoOffline && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}
+              style={[s.actionCard, { backgroundColor: tc.card, borderColor: tc.border }, modoOffline && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}
               activeOpacity={0.88}
               onPress={() => {
                 if (modoOffline) {
@@ -288,17 +290,17 @@ export const TiendaScreen: React.FC<Props> = ({
                 <Ionicons name={modoOffline ? 'lock-closed' : 'lock-open'} size={22} color="#fff" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[s.actionTitle, modoOffline && { color: '#DC2626' }]} numberOfLines={1}>
+                <Text style={[s.actionTitle, { color: tc.text }, modoOffline && { color: '#DC2626' }]} numberOfLines={1}>
                   Inventario {modoOffline ? 'OFFLINE' : 'ONLINE'}
                 </Text>
-                <Text style={[s.actionSub, modoOffline && { color: '#F87171' }]} numberOfLines={1}>
+                <Text style={[s.actionSub, { color: tc.muted }, modoOffline && { color: '#F87171' }]} numberOfLines={1}>
                   {modoOffline
                     ? `Cerrado por ${tienda.cerradoPor ?? 'administrador'} — toca para reactivar`
                     : 'Toca para cerrar el acceso de auditores'}
                 </Text>
               </View>
-              <View style={[s.actionArrow, modoOffline && { backgroundColor: '#FEE2E2' }]}>
-                <Ionicons name="chevron-forward" size={16} color={modoOffline ? '#DC2626' : '#A1A1AA'} />
+              <View style={[s.actionArrow, { backgroundColor: tc.btnBg }, modoOffline && { backgroundColor: '#FEE2E2' }]}>
+                <Ionicons name="chevron-forward" size={16} color={modoOffline ? '#DC2626' : tc.chevron} />
               </View>
             </TouchableOpacity>
           </>

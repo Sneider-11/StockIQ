@@ -9,6 +9,7 @@ import { Tienda, Usuario, Registro, SobranteSinStock, CLSF } from '../constants/
 import { fCOP, clasificar } from '../utils/helpers';
 import { Badge, Avatar } from '../components/common';
 import { PRP, BLK, LGR, BRD, MTD } from '../constants/colors';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 interface Props {
   usuario:               Usuario;
