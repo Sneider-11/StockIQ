@@ -650,7 +650,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                             </Text>
                           </View>
                         </View>
-                        <Text style={[s.codeTxt, { color: '#92400E', marginBottom: 4 }]} numberOfLines={1}>{ss.codigo}</Text>
+                        <Text style={[s.codeTxt, { color: tc.isDark ? '#FCD34D' : '#92400E', marginBottom: 4 }]} numberOfLines={1}>{ss.codigo}</Text>
                         <Text style={[s.artDesc, { color: tc.text }]} numberOfLines={2}>{ss.descripcion}</Text>
                         <Text style={[s.artUbic, { color: tc.muted }]} numberOfLines={1}>{ss.ubicacion}</Text>
                       </View>

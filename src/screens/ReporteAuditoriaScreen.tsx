@@ -18,6 +18,7 @@ import {
 } from '../constants/data';
 import { clasificar, fCOP } from '../utils/helpers';
 import { PRP, BLK, LGR, BRD, MTD } from '../constants/colors';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 interface Props {
   tienda:          Tienda;
@@ -82,6 +83,7 @@ const TABS = ['Resumen', 'Clasificación', 'Económico', 'Conclusiones'];
 export const ReporteAuditoriaScreen: React.FC<Props> = ({
   tienda, registros, catalogo, sobrantes, confirmadosCero, onBack,
 }) => {
+  const tc = useThemeColors();
   const [tab,        setTab]        = useState(0);
   const [generando,  setGenerando]  = useState(false);
 
@@ -297,11 +299,11 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
   <style>
     @page {
       size: A4;
-      margin: 22mm 20mm 28mm 20mm;
+      margin: 28mm 32mm 32mm 32mm;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #18181B; }
-    .page { max-width: 760px; margin: 0 auto; padding: 24px 16px; }
+    .page { max-width: 760px; margin: 0 auto; padding: 28px 24px; }
     .header { background: ${tienda.color}; border-radius: 16px; padding: 28px 32px; margin-bottom: 24px; color: #fff; }
     .header-brand { font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; text-transform: uppercase; margin-bottom: 4px; }
     .header-title { font-size: 26px; font-weight: 900; margin-bottom: 2px; }
@@ -546,17 +548,17 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
           { label: 'Faltantes',     valor: `${faltPct}%`,     sub: `${falt} artículos`,             color: '#DC2626' },
           { label: 'Balance',       valor: fCOP(Math.abs(balance)), sub: balance >= 0 ? 'Superávit' : 'Déficit', color: balance >= 0 ? '#15803D' : '#DC2626' },
         ].map(k => (
-          <View key={k.label} style={s.kpiCard}>
+          <View key={k.label} style={[s.kpiCard, { backgroundColor: tc.card, borderColor: tc.border }]}>
             <Text style={[s.kpiValor, { color: k.color }]} numberOfLines={1} adjustsFontSizeToFit>{k.valor}</Text>
-            <Text style={s.kpiLabel}>{k.label}</Text>
-            <Text style={s.kpiSub}>{k.sub}</Text>
+            <Text style={[s.kpiLabel, { color: tc.muted }]}>{k.label}</Text>
+            <Text style={[s.kpiSub, { color: tc.muted }]}>{k.sub}</Text>
           </View>
         ))}
       </View>
 
       {/* Donut + barras */}
-      <View style={s.card}>
-        <Text style={s.cardTitle}>Avance del inventario</Text>
+      <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
+        <Text style={[s.cardTitle, { color: tc.text }]}>Avance del inventario</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
           <Donut pct={pct} color={tienda.color} size={120} />
           <View style={{ flex: 1, gap: 12 }}>
@@ -567,7 +569,7 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
             ].map(b => (
               <View key={b.label}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <Text style={s.barLabel}>{b.label}</Text>
+                  <Text style={[s.barLabel, { color: tc.muted }]}>{b.label}</Text>
                   <Text style={[s.barLabel, { color: b.color, fontWeight: '700' }]}>{b.n}</Text>
                 </View>
                 <BarH pct={Math.round(b.n / b.max * 100)} color={b.color} />
@@ -578,8 +580,8 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
       </View>
 
       {/* Datos generales */}
-      <View style={s.card}>
-        <Text style={s.cardTitle}>Datos generales</Text>
+      <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
+        <Text style={[s.cardTitle, { color: tc.text }]}>Datos generales</Text>
         {[
           { icon: 'storefront-outline' as const, label: 'Tienda',               val: tienda.nombre },
           { icon: 'calendar-outline'  as const, label: 'Fecha de reporte',      val: fecha },
@@ -587,12 +589,12 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
           { icon: 'scan-outline'      as const, label: 'Escaneos totales',       val: `${regT.length}` },
           { icon: 'warning-outline'   as const, label: 'Sobrantes sin stock',    val: `${sobrantes.length}` },
         ].map(row => (
-          <View key={row.label} style={s.infoRow}>
+          <View key={row.label} style={[s.infoRow, { borderBottomColor: tc.borderLight }]}>
             <View style={[s.infoIcon, { backgroundColor: tienda.color + '18' }]}>
               <Ionicons name={row.icon} size={15} color={tienda.color} />
             </View>
-            <Text style={s.infoLabel}>{row.label}</Text>
-            <Text style={s.infoVal}>{row.val}</Text>
+            <Text style={[s.infoLabel, { color: tc.muted }]}>{row.label}</Text>
+            <Text style={[s.infoVal, { color: tc.text }]}>{row.val}</Text>
           </View>
         ))}
       </View>
@@ -601,8 +603,8 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
 
   const renderClasificacion = () => (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
-      <View style={s.card}>
-        <Text style={s.cardTitle}>Distribución de artículos</Text>
+      <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
+        <Text style={[s.cardTitle, { color: tc.text }]}>Distribución de artículos</Text>
         {[
           { label: 'Sin diferencia', n: sinDif, pct: sinDifPct, color: '#6D28D9' },
           { label: 'Faltantes',      n: falt,   pct: faltPct,   color: '#DC2626' },
@@ -614,7 +616,7 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: it.color }} />
-                <Text style={s.barLabel}>{it.label}</Text>
+                <Text style={[s.barLabel, { color: tc.muted }]}>{it.label}</Text>
               </View>
               <Text style={[s.barLabel, { color: it.color, fontWeight: '800' }]}>{it.n} ({it.pct}%)</Text>
             </View>
@@ -624,24 +626,24 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
       </View>
 
       {topFalt.length > 0 && (
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Top faltantes críticos</Text>
+        <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
+          <Text style={[s.cardTitle, { color: tc.text }]}>Top faltantes críticos</Text>
           {topFalt.map((art, i) => {
             const dif = art.ct - art.stock;
             return (
-              <View key={art.itemId} style={s.topRow}>
+              <View key={art.itemId} style={[s.topRow, { backgroundColor: tc.cardAlt }]}>
                 <View style={[s.rankBadge, {
                   backgroundColor: i === 0 ? '#DC2626' : i === 1 ? '#F97316' : '#F59E0B',
                 }]}>
                   <Text style={s.rankTxt}>{i + 1}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.topCode} numberOfLines={1}>{art.itemId}</Text>
-                  <Text style={s.topDesc} numberOfLines={1}>{art.descripcion}</Text>
+                  <Text style={[s.topCode, { color: tc.muted }]} numberOfLines={1}>{art.itemId}</Text>
+                  <Text style={[s.topDesc, { color: tc.text }]} numberOfLines={1}>{art.descripcion}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={[s.topDif, { color: '#DC2626' }]}>{dif} uds.</Text>
-                  <Text style={s.topImpacto}>{fCOP(Math.abs(dif * art.costo))}</Text>
+                  <Text style={[s.topImpacto, { color: tc.muted }]}>{fCOP(Math.abs(dif * art.costo))}</Text>
                 </View>
               </View>
             );
@@ -666,8 +668,8 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
         </Text>
       </View>
 
-      <View style={s.card}>
-        <Text style={s.cardTitle}>Impacto económico por categoría</Text>
+      <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
+        <Text style={[s.cardTitle, { color: tc.text }]}>Impacto económico por categoría</Text>
         {[
           { label: 'Pérdida faltantes',  monto: costoPerd, color: '#DC2626', signo: '-' },
           { label: 'Valor sobrantes',    monto: costoSobr, color: '#15803D', signo: '+' },
@@ -685,16 +687,16 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
         ))}
       </View>
 
-      <View style={s.card}>
-        <Text style={s.cardTitle}>Indicadores financieros</Text>
+      <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
+        <Text style={[s.cardTitle, { color: tc.text }]}>Indicadores financieros</Text>
         {[
-          { label: 'Valor total inventario (sistema)', val: fCOP(ventasEst),  color: BLK },
+          { label: 'Valor total inventario (sistema)', val: fCOP(ventasEst),  color: tc.text },
           { label: 'Tasa de faltantes',                val: `${faltPct}%`,    color: faltPct > 10 ? '#DC2626' : '#15803D' },
           { label: 'Tasa de cobertura',                val: `${pct}%`,        color: pct >= 90 ? '#15803D' : '#B45309' },
           { label: 'Exactitud del inventario',         val: `${sinDifPct}%`,  color: sinDifPct >= 80 ? '#15803D' : '#DC2626' },
         ].map(row => (
-          <View key={row.label} style={s.infoRow}>
-            <Text style={[s.infoLabel, { flex: 1.5 }]}>{row.label}</Text>
+          <View key={row.label} style={[s.infoRow, { borderBottomColor: tc.borderLight }]}>
+            <Text style={[s.infoLabel, { flex: 1.5, color: tc.muted }]}>{row.label}</Text>
             <Text style={[s.infoVal, { color: row.color, fontWeight: '800' }]}>{row.val}</Text>
           </View>
         ))}
@@ -707,9 +709,9 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
     const bgNivel:  Record<NivelObs, string> = { 'CRÍTICO': '#FEF2F2', ALERTA: '#FFFBEB', OK: '#F0FDF4', INFO: '#EFF6FF' };
     return (
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Hallazgos y observaciones</Text>
-          <Text style={{ fontSize: 11, color: MTD, marginBottom: 14, lineHeight: 16 }}>
+        <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
+          <Text style={[s.cardTitle, { color: tc.text }]}>Hallazgos y observaciones</Text>
+          <Text style={{ fontSize: 11, color: tc.muted, marginBottom: 14, lineHeight: 16 }}>
             Basado en los estándares IPPF — IIA y mejores prácticas para auditorías de inventario físico en el sector comercial.
           </Text>
           {observaciones.map((o, i) => (
@@ -721,33 +723,33 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
                 style={{ marginRight: 10, marginTop: 2, flexShrink: 0 }} />
               <View style={{ flex: 1 }}>
                 <Text style={[s.obsNivel, { color: colNivel[o.nivel] }]}>{o.nivel}</Text>
-                <Text style={s.obsTxt}>{o.texto}</Text>
+                <Text style={[s.obsTxt, { color: tc.text }]}>{o.texto}</Text>
               </View>
             </View>
           ))}
         </View>
 
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Recomendaciones del auditor</Text>
+        <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
+          <Text style={[s.cardTitle, { color: tc.text }]}>Recomendaciones del auditor</Text>
           {recomendaciones.map((r, i) => (
             <View key={i} style={s.recRow}>
               <View style={[s.recNum, { backgroundColor: tienda.color }]}>
                 <Text style={s.recNumTxt}>{i + 1}</Text>
               </View>
-              <Text style={s.recTxt}>{r}</Text>
+              <Text style={[s.recTxt, { color: tc.text }]}>{r}</Text>
             </View>
           ))}
         </View>
 
-        <View style={[s.card, { backgroundColor: '#F8F7FF', borderColor: PRP + '30' }]}>
+        <View style={[s.card, { backgroundColor: tc.isDark ? '#1A1033' : '#F8F7FF', borderColor: PRP + '30' }]}>
           <Text style={[s.cardTitle, { color: PRP }]}>Certificación del auditor</Text>
-          <Text style={{ fontSize: 12, color: MTD, lineHeight: 19 }}>
+          <Text style={{ fontSize: 12, color: tc.muted, lineHeight: 19 }}>
             Este informe ha sido preparado siguiendo los estándares internacionales de auditoría interna (IPPF) y las mejores prácticas para auditorías de inventario físico en el sector comercial.{'\n\n'}
-            El sistema StockIQ certifica que los procedimientos de conteo fueron aplicados de acuerdo con los controles registrados y que los resultados reflejan fielmente la situación del inventario de <Text style={{ fontWeight: '700', color: BLK }}>Orvion Tech</Text> a la fecha indicada.
+            El sistema StockIQ certifica que los procedimientos de conteo fueron aplicados de acuerdo con los controles registrados y que los resultados reflejan fielmente la situación del inventario de <Text style={{ fontWeight: '700', color: tc.text }}>Orvion Tech</Text> a la fecha indicada.
           </Text>
-          <View style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: BRD }}>
-            <Text style={{ fontSize: 11, color: MTD }}>Sistema: StockIQ v2.3.0 · Orvion Tech</Text>
-            <Text style={{ fontSize: 11, color: MTD, marginTop: 2 }}>Generado el: {fecha}</Text>
+          <View style={{ marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: tc.border }}>
+            <Text style={{ fontSize: 11, color: tc.muted }}>Sistema: StockIQ v2.3.0 · Orvion Tech</Text>
+            <Text style={{ fontSize: 11, color: tc.muted, marginTop: 2 }}>Generado el: {fecha}</Text>
           </View>
         </View>
       </ScrollView>
@@ -766,9 +768,9 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
 
   // ── RENDER PRINCIPAL ───────────────────────────────────────────────────────
   return (
-    <View style={{ flex: 1, backgroundColor: LGR }}>
+    <View style={{ flex: 1, backgroundColor: tc.bg }}>
 
-      {/* Header */}
+      {/* Header — usa color de la tienda, intacto */}
       <View style={[s.header, { backgroundColor: tienda.color }]}>
         <TouchableOpacity onPress={onBack} style={s.headerBtn}>
           <Ionicons name="arrow-back" size={20} color="rgba(255,255,255,0.9)" />
@@ -791,11 +793,12 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
 
       {/* Tabs */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
-        style={s.tabBar} contentContainerStyle={{ paddingHorizontal: 8 }}>
+        style={[s.tabBar, { backgroundColor: tc.headerBg, borderBottomColor: tc.border }]}
+        contentContainerStyle={{ paddingHorizontal: 8 }}>
         {TABS.map((t, i) => (
           <TouchableOpacity key={t} style={[s.tab, tab === i && { borderBottomColor: tienda.color, borderBottomWidth: 3 }]}
             onPress={() => setTab(i)}>
-            <Text style={[s.tabTxt, tab === i && { color: tienda.color, fontWeight: '700' }]}>{t}</Text>
+            <Text style={[s.tabTxt, { color: tc.muted }, tab === i && { color: tienda.color, fontWeight: '700' }]}>{t}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>

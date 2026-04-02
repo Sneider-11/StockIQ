@@ -282,7 +282,7 @@ export const MisRegistrosScreen: React.FC<Props> = ({
                   activeOpacity={0.88}
                 >
                   <View style={s.cardTop}>
-                    <View style={[s.codeTag, { borderLeftColor: cfg.dot }]}>
+                    <View style={[s.codeTag, { borderLeftColor: cfg.dot, backgroundColor: tc.cardAlt }]}>
                       <Text style={[s.codeTxt, { color: tienda.color }]} numberOfLines={1}>{r.itemId}</Text>
                     </View>
                     <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} />
@@ -380,8 +380,8 @@ export const MisRegistrosScreen: React.FC<Props> = ({
           renderItem={({ item: sb }) => (
             <View style={[s.sobranteCard, { backgroundColor: tc.card }]}>
               <View style={s.cardTop}>
-                <View style={[s.codeTag, { borderLeftColor: '#B45309' }]}>
-                  <Text style={[s.codeTxt, { color: '#92400E' }]} numberOfLines={1}>{sb.codigo}</Text>
+                <View style={[s.codeTag, { borderLeftColor: '#B45309', backgroundColor: tc.cardAlt }]}>
+                  <Text style={[s.codeTxt, { color: tc.isDark ? '#FCD34D' : '#92400E' }]} numberOfLines={1}>{sb.codigo}</Text>
                 </View>
                 <View style={[s.estadoBadge, sb.estado === 'CONFIRMADO'
                   ? { backgroundColor: '#F0FDF4', borderColor: '#86EFAC' }
