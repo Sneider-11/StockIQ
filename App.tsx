@@ -242,7 +242,7 @@ function AppInner() {
           onVolver={volverATienda}
           onEliminar={esAdminEnTienda ? eliminarRegistro : undefined}
           onEliminarSobrante={esAdminEnTienda ? eliminarSobrante : undefined}
-          onEditarRegistro={esAdminEnTienda ? editarRegistro : undefined}
+          onEditarRegistro={editarRegistro}
         />
       </>
     );
