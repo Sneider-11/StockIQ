@@ -388,7 +388,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                       <View style={[s.legendDot, { backgroundColor: kpi.color }]} />
                       <View style={{ flex: 1 }}>
                         <Text style={[s.legendN, { color: kpi.color }]}>{kpi.n}</Text>
-                        <Text style={s.legendLbl}>{kpi.label}</Text>
+                        <Text style={[s.legendLbl, { color: kpi.color }]}>{kpi.label}</Text>
                       </View>
                       <Ionicons name="chevron-forward" size={14} color={kpi.color} style={{ opacity: 0.5 }} />
                     </TouchableOpacity>
@@ -422,7 +422,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                   <Ionicons name="trending-down" size={18} color="#C2410C" />
                 </View>
                 <View style={{ minWidth: 0, flex: 1 }}>
-                  <Text style={s.econLbl} numberOfLines={1}>Pérdida faltantes</Text>
+                  <Text style={[s.econLbl, { color: tc.muted }]} numberOfLines={1}>Pérdida faltantes</Text>
                   <Text style={[s.econAmt, { color: '#C2410C' }]} numberOfLines={1}>-{fCOP(costoPerd)}</Text>
                 </View>
               </View>
@@ -430,7 +430,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                 <View style={s.econBarBg}>
                   <View style={[s.econBarFill, { width: `${Math.round(costoPerd / maxEcon * 100)}%` as any, backgroundColor: '#F97316' }]} />
                 </View>
-                <Text style={s.econBarPct}>{falt} arts.</Text>
+                <Text style={[s.econBarPct, { color: tc.muted }]}>{falt} arts.</Text>
               </View>
             </View>
 
@@ -440,7 +440,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                   <Ionicons name="trending-up" size={18} color="#15803D" />
                 </View>
                 <View style={{ minWidth: 0, flex: 1 }}>
-                  <Text style={s.econLbl} numberOfLines={1}>Valor sobrantes</Text>
+                  <Text style={[s.econLbl, { color: tc.muted }]} numberOfLines={1}>Valor sobrantes</Text>
                   <Text style={[s.econAmt, { color: '#15803D' }]} numberOfLines={1}>+{fCOP(costoSobr)}</Text>
                 </View>
               </View>
@@ -448,7 +448,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                 <View style={s.econBarBg}>
                   <View style={[s.econBarFill, { width: `${Math.round(costoSobr / maxEcon * 100)}%` as any, backgroundColor: '#22C55E' }]} />
                 </View>
-                <Text style={s.econBarPct}>{sobr} arts.</Text>
+                <Text style={[s.econBarPct, { color: tc.muted }]}>{sobr} arts.</Text>
               </View>
             </View>
 
@@ -459,7 +459,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                     <Ionicons name="warning" size={18} color="#92400E" />
                   </View>
                   <View style={{ minWidth: 0, flex: 1 }}>
-                    <Text style={s.econLbl} numberOfLines={1}>Sobrantes sin stock</Text>
+                    <Text style={[s.econLbl, { color: tc.muted }]} numberOfLines={1}>Sobrantes sin stock</Text>
                     <Text style={[s.econAmt, { color: '#92400E' }]} numberOfLines={1}>+{fCOP(sobTotal)}</Text>
                   </View>
                 </View>
@@ -467,7 +467,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                   <View style={s.econBarBg}>
                     <View style={[s.econBarFill, { width: `${Math.round(sobTotal / maxEcon * 100)}%` as any, backgroundColor: '#F59E0B' }]} />
                   </View>
-                  <Text style={s.econBarPct}>✓{sobConf} ⏳{sobPend}</Text>
+                  <Text style={[s.econBarPct, { color: tc.muted }]}>✓{sobConf} ⏳{sobPend}</Text>
                 </View>
               </View>
             )}
@@ -480,7 +480,7 @@ export const ResultadosScreen: React.FC<Props> = ({
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Ionicons name={costoSobr - costoPerd >= 0 ? 'checkmark-circle' : 'alert-circle'} size={20}
                   color={costoSobr - costoPerd >= 0 ? '#15803D' : '#DC2626'} />
-                <Text style={s.balanceLbl}>Balance general</Text>
+                <Text style={[s.balanceLbl, { color: tc.muted }]}>Balance general</Text>
               </View>
               <Text style={[s.balanceNum, { color: costoSobr - costoPerd >= 0 ? '#15803D' : '#DC2626' }]}>
                 {costoSobr - costoPerd >= 0 ? '+' : ''}{fCOP(costoSobr - costoPerd)}
@@ -501,12 +501,12 @@ export const ResultadosScreen: React.FC<Props> = ({
                 <View style={[s.impactoCard, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}>
                   <Ionicons name="checkmark-circle" size={22} color="#15803D" />
                   <Text style={[s.impactoNum, { color: '#15803D' }]}>{sobConf}</Text>
-                  <Text style={s.impactoLbl}>Confirmados</Text>
+                  <Text style={[s.impactoLbl, { color: '#15803D' }]}>Confirmados</Text>
                 </View>
                 <View style={[s.impactoCard, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
                   <Ionicons name="time" size={22} color="#92400E" />
                   <Text style={[s.impactoNum, { color: '#92400E' }]}>{sobPend}</Text>
-                  <Text style={s.impactoLbl}>Pendientes</Text>
+                  <Text style={[s.impactoLbl, { color: '#92400E' }]}>Pendientes</Text>
                 </View>
               </View>
               <View style={[s.balanceBox, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A', marginTop: 10 }]}>
@@ -723,12 +723,12 @@ export const ResultadosScreen: React.FC<Props> = ({
                 <View style={[s.impactoCard, { backgroundColor: '#EDE9FE', borderColor: '#C4B5FD' }]}>
                   <Ionicons name="people" size={22} color={PRP} />
                   <Text style={[s.impactoNum, { color: PRP }]}>{auditores.length}</Text>
-                  <Text style={s.impactoLbl}>Auditores activos</Text>
+                  <Text style={[s.impactoLbl, { color: PRP }]}>Auditores activos</Text>
                 </View>
                 <View style={[s.impactoCard, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}>
                   <Ionicons name="scan" size={22} color="#15803D" />
                   <Text style={[s.impactoNum, { color: '#15803D' }]}>{regT.length}</Text>
-                  <Text style={s.impactoLbl}>Escaneos totales</Text>
+                  <Text style={[s.impactoLbl, { color: '#15803D' }]}>Escaneos totales</Text>
                 </View>
               </View>
             </View>
@@ -753,10 +753,10 @@ export const ResultadosScreen: React.FC<Props> = ({
                   <View style={[s.detalleHeader, { backgroundColor: est.bg }]}>
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={[s.detalleEstado, { color: est.color }]}>{est.label}</Text>
-                      <Text style={[s.detalleRef, { color: tc.text }]} numberOfLines={1}>{detalleItem.itemId}</Text>
+                      <Text style={[s.detalleRef, { color: est.color }]} numberOfLines={1}>{detalleItem.itemId}</Text>
                     </View>
                     <TouchableOpacity onPress={cerrarDetalle} style={s.detalleClose}>
-                      <Ionicons name="close" size={20} color={tc.text} />
+                      <Ionicons name="close" size={20} color={est.color} />
                     </TouchableOpacity>
                   </View>
 
@@ -770,14 +770,14 @@ export const ResultadosScreen: React.FC<Props> = ({
                     {/* Grid de datos */}
                     <View style={[s.detalleGrid, { backgroundColor: tc.cardAlt, borderColor: tc.border }]}>
                       {[
-                        { l: 'Stock',           v: String(detalleItem.stock),         c: MTD },
+                        { l: 'Stock',           v: String(detalleItem.stock),         c: tc.muted },
                         { l: 'Conteo total',    v: String(detalleItem.conteoTotal),   c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
                         { l: 'Diferencia',      v: (delta > 0 ? '+' : '') + delta,    c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
-                        { l: 'Valor unitario',  v: fCOP(detalleItem.costo),           c: MTD },
+                        { l: 'Valor unitario',  v: fCOP(detalleItem.costo),           c: tc.muted },
                         { l: 'Diferencia mon.', v: (difMon > 0 ? '+' : '') + fCOP(Math.abs(difMon)), c: difMon === 0 ? '#15803D' : difMon > 0 ? '#B45309' : '#DC2626' },
                       ].map(q => (
                         <View key={q.l} style={s.detalleGridBox}>
-                          <Text style={s.detalleGridLbl}>{q.l}</Text>
+                          <Text style={[s.detalleGridLbl, { color: tc.muted }]}>{q.l}</Text>
                           <Text style={[s.detalleGridVal, { color: q.c }]} numberOfLines={1} adjustsFontSizeToFit>{q.v}</Text>
                         </View>
                       ))}

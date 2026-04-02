@@ -491,10 +491,10 @@ export const MisRegistrosScreen: React.FC<Props> = ({
                 <View style={[s.detalleHeader, { backgroundColor: cfgArticulo.bg, borderBottomColor: tc.border }]}>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={[s.detalleEstado, { color: cfgArticulo.color }]}>{cfgArticulo.label}</Text>
-                    <Text style={[s.detalleRef, { color: tc.text }]} numberOfLines={1}>{detalleReg.itemId}</Text>
+                    <Text style={[s.detalleRef, { color: cfgArticulo.color }]} numberOfLines={1}>{detalleReg.itemId}</Text>
                   </View>
                   <TouchableOpacity onPress={cerrarDetalle} style={s.detalleClose}>
-                    <Ionicons name="close" size={20} color={tc.text} />
+                    <Ionicons name="close" size={20} color={cfgArticulo.color} />
                   </TouchableOpacity>
                 </View>
 
@@ -508,16 +508,16 @@ export const MisRegistrosScreen: React.FC<Props> = ({
                   <Text style={s.detalleUbic}>{detalleReg.ubicacion}</Text>
 
                   {/* Grid de datos del artículo (suma de todos los conteos) */}
-                  <View style={s.detalleGrid}>
+                  <View style={[s.detalleGrid, { backgroundColor: tc.cardAlt, borderColor: tc.border }]}>
                     {[
-                      { l: 'Stock sistema',   v: String(detalleReg.stockSistema), c: MTD },
+                      { l: 'Stock sistema',   v: String(detalleReg.stockSistema), c: tc.muted },
                       { l: 'Total contado',   v: String(totalContado),            c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
                       { l: 'Diferencia',      v: (delta > 0 ? '+' : '') + delta,  c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
-                      { l: 'Valor unitario',  v: fCOP(detalleReg.costoUnitario),  c: MTD },
+                      { l: 'Valor unitario',  v: fCOP(detalleReg.costoUnitario),  c: tc.muted },
                       { l: 'Impacto total',   v: delta !== 0 ? (delta > 0 ? '+' : '') + fCOP(Math.abs(delta * detalleReg.costoUnitario)) : '—', c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
                     ].map(q => (
                       <View key={q.l} style={[s.detalleGridBox, { backgroundColor: tc.cardAlt, borderColor: tc.border }]}>
-                        <Text style={s.detalleGridLbl}>{q.l}</Text>
+                        <Text style={[s.detalleGridLbl, { color: tc.muted }]}>{q.l}</Text>
                         <Text style={[s.detalleGridVal, { color: q.c }]} numberOfLines={1} adjustsFontSizeToFit>{q.v}</Text>
                       </View>
                     ))}
