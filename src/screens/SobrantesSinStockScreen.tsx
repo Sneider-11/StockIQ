@@ -13,6 +13,7 @@ import {
 } from '../constants/data';
 import { genId, fCOP, ahora } from '../utils/helpers';
 import { BLK, LGR, BRD, MTD } from '../constants/colors';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 const BROWN  = '#92400E';
 const AMBER  = '#F59E0B';
@@ -33,6 +34,7 @@ interface Props {
 export const SobrantesSinStockScreen: React.FC<Props> = ({
   tienda, usuario, catalogo, sobrantes = [], onGuardar, onEliminar, onEditarEstado, onBack,
 }) => {
+  const tc = useThemeColors();
   const [codigo,     setCodigo]   = useState('');
   const [descripcion,setDesc]     = useState('');
   const [ubicacion,  setUbic]     = useState('');
@@ -157,7 +159,7 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
   const precioNum = parseFloat(precio.replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
 
   return (
-    <View style={{ flex: 1, backgroundColor: LGR }}>
+    <View style={{ flex: 1, backgroundColor: tc.bg }}>
 
       {/* ── Header ── */}
       <View style={s.header}>
@@ -203,17 +205,17 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
           {/* ════════════════════════════════════════
               1. CÓDIGO
           ════════════════════════════════════════ */}
-          <View style={s.card}>
+          <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
             <View style={s.cardHeader}>
               <View style={[s.numBadge, { backgroundColor: BROWN }]}>
                 <Text style={s.numBadgeTxt}>1</Text>
               </View>
-              <Text style={s.cardTitle}>Código del artículo</Text>
+              <Text style={[s.cardTitle, { color: tc.text }]}>Código del artículo</Text>
               <Text style={s.req}> * obligatorio</Text>
             </View>
             <View style={s.codeRow}>
               <TextInput
-                style={[s.input, { flex: 1 }]}
+                style={[s.input, { flex: 1, backgroundColor: tc.inputBg, borderColor: tc.inputBorder, color: tc.text }]}
                 placeholder="Ej: 7701023894531"
                 placeholderTextColor="#A1A1AA"
                 value={codigo}
@@ -240,16 +242,16 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
           {/* ════════════════════════════════════════
               2. DESCRIPCIÓN
           ════════════════════════════════════════ */}
-          <View style={s.card}>
+          <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
             <View style={s.cardHeader}>
               <View style={[s.numBadge, { backgroundColor: BROWN }]}>
                 <Text style={s.numBadgeTxt}>2</Text>
               </View>
-              <Text style={s.cardTitle}>Descripción del artículo</Text>
+              <Text style={[s.cardTitle, { color: tc.text }]}>Descripción del artículo</Text>
               <Text style={s.req}> * obligatorio</Text>
             </View>
             <TextInput
-              style={[s.input, s.inputTall]}
+              style={[s.input, s.inputTall, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder, color: tc.text }]}
               placeholder="Nombre completo del artículo tal como aparece en el empaque..."
               placeholderTextColor="#A1A1AA"
               value={descripcion}
@@ -262,16 +264,16 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
           {/* ════════════════════════════════════════
               3. UBICACIÓN / GRUPO
           ════════════════════════════════════════ */}
-          <View style={s.card}>
+          <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
             <View style={s.cardHeader}>
               <View style={[s.numBadge, { backgroundColor: BROWN }]}>
                 <Text style={s.numBadgeTxt}>3</Text>
               </View>
-              <Text style={s.cardTitle}>Ubicación / Grupo</Text>
+              <Text style={[s.cardTitle, { color: tc.text }]}>Ubicación / Grupo</Text>
               <Text style={s.req}> * obligatorio</Text>
             </View>
             <TextInput
-              style={s.input}
+              style={[s.input, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder, color: tc.text }]}
               placeholder="Ej: MANZANAS, LLANTAS, REPUESTOS..."
               placeholderTextColor="#A1A1AA"
               value={ubicacion}
@@ -283,12 +285,12 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
           {/* ════════════════════════════════════════
               4. FOTO
           ════════════════════════════════════════ */}
-          <View style={s.card}>
+          <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
             <View style={s.cardHeader}>
               <View style={[s.numBadge, { backgroundColor: BROWN }]}>
                 <Text style={s.numBadgeTxt}>4</Text>
               </View>
-              <Text style={s.cardTitle}>Foto del artículo</Text>
+              <Text style={[s.cardTitle, { color: tc.text }]}>Foto del artículo</Text>
               <Text style={s.req}> * obligatorio</Text>
             </View>
 
@@ -314,18 +316,19 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
           {/* ════════════════════════════════════════
               5. ESTADO
           ════════════════════════════════════════ */}
-          <View style={s.card}>
+          <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
             <View style={s.cardHeader}>
               <View style={[s.numBadge, { backgroundColor: BROWN }]}>
                 <Text style={s.numBadgeTxt}>5</Text>
               </View>
-              <Text style={s.cardTitle}>Estado del artículo</Text>
+              <Text style={[s.cardTitle, { color: tc.text }]}>Estado del artículo</Text>
               <Text style={s.req}> * obligatorio</Text>
             </View>
             <View style={s.estadoRow}>
               <TouchableOpacity
                 style={[
                   s.estadoBtn,
+                  { borderColor: tc.border },
                   estado === 'CONFIRMADO' && { backgroundColor: GREEN, borderColor: GREEN },
                 ]}
                 onPress={() => { setEstado('CONFIRMADO'); setError(''); }}
@@ -333,10 +336,10 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
               >
                 <View style={[s.estadoDot, { backgroundColor: estado === 'CONFIRMADO' ? '#fff' : GREEN }]} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.estadoTxt, estado === 'CONFIRMADO' && { color: '#fff', fontWeight: '800' }]}>
+                  <Text style={[s.estadoTxt, { color: tc.text }, estado === 'CONFIRMADO' && { color: '#fff', fontWeight: '800' }]}>
                     CONFIRMADO
                   </Text>
-                  <Text style={[s.estadoSub, estado === 'CONFIRMADO' && { color: 'rgba(255,255,255,0.7)' }]}>
+                  <Text style={[s.estadoSub, { color: tc.muted }, estado === 'CONFIRMADO' && { color: 'rgba(255,255,255,0.7)' }]}>
                     Verificado y listo para ingresar
                   </Text>
                 </View>
@@ -348,6 +351,7 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
               <TouchableOpacity
                 style={[
                   s.estadoBtn,
+                  { borderColor: tc.border },
                   estado === 'PENDIENTE' && { backgroundColor: AMBER, borderColor: AMBER },
                 ]}
                 onPress={() => { setEstado('PENDIENTE'); setError(''); }}
@@ -355,10 +359,10 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
               >
                 <View style={[s.estadoDot, { backgroundColor: estado === 'PENDIENTE' ? '#fff' : AMBER }]} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[s.estadoTxt, estado === 'PENDIENTE' && { color: '#fff', fontWeight: '800' }]}>
+                  <Text style={[s.estadoTxt, { color: tc.text }, estado === 'PENDIENTE' && { color: '#fff', fontWeight: '800' }]}>
                     PENDIENTE
                   </Text>
-                  <Text style={[s.estadoSub, estado === 'PENDIENTE' && { color: 'rgba(255,255,255,0.7)' }]}>
+                  <Text style={[s.estadoSub, { color: tc.muted }, estado === 'PENDIENTE' && { color: 'rgba(255,255,255,0.7)' }]}>
                     Requiere verificación adicional
                   </Text>
                 </View>
@@ -372,20 +376,20 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
           {/* ════════════════════════════════════════
               6. PRECIO
           ════════════════════════════════════════ */}
-          <View style={s.card}>
+          <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
             <View style={s.cardHeader}>
               <View style={[s.numBadge, { backgroundColor: BROWN }]}>
                 <Text style={s.numBadgeTxt}>6</Text>
               </View>
-              <Text style={s.cardTitle}>Precio unitario (COP)</Text>
+              <Text style={[s.cardTitle, { color: tc.text }]}>Precio unitario (COP)</Text>
               <Text style={s.req}> * obligatorio</Text>
             </View>
             <View style={s.precioRow}>
-              <View style={s.precioPrefix}>
-                <Text style={s.precioPrefixTxt}>$</Text>
+              <View style={[s.precioPrefix, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder }]}>
+                <Text style={[s.precioPrefixTxt, { color: tc.muted }]}>$</Text>
               </View>
               <TextInput
-                style={[s.input, s.precioInput]}
+                style={[s.input, s.precioInput, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder, color: tc.text }]}
                 placeholder="0"
                 placeholderTextColor="#A1A1AA"
                 value={precio}
@@ -406,12 +410,12 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
           {/* ════════════════════════════════════════
               7. CANTIDAD
           ════════════════════════════════════════ */}
-          <View style={s.card}>
+          <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
             <View style={s.cardHeader}>
               <View style={[s.numBadge, { backgroundColor: BROWN }]}>
                 <Text style={s.numBadgeTxt}>7</Text>
               </View>
-              <Text style={s.cardTitle}>Cantidad encontrada</Text>
+              <Text style={[s.cardTitle, { color: tc.text }]}>Cantidad encontrada</Text>
               <Text style={s.req}> * obligatorio</Text>
             </View>
             <View style={s.cantRow}>
@@ -422,7 +426,7 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
                 <Ionicons name="remove" size={26} color={RED} />
               </TouchableOpacity>
               <TextInput
-                style={s.cantInput}
+                style={[s.cantInput, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder, color: tc.text }]}
                 value={cantidad}
                 onChangeText={setCantidad}
                 keyboardType="numeric"
@@ -461,7 +465,7 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
               <View style={s.listHeader}>
                 <View style={s.listHeaderLeft}>
                   <Ionicons name="list" size={18} color={BROWN} style={{ marginRight: 8 }} />
-                  <Text style={s.listTitle}>Registrados en esta tienda</Text>
+                  <Text style={[s.listTitle, { color: tc.text }]}>Registrados en esta tienda</Text>
                 </View>
                 <View style={[s.listCountBadge, { backgroundColor: BROWN }]}>
                   <Text style={s.listCountTxt}>{sobrantes.length}</Text>
@@ -469,7 +473,7 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
               </View>
 
               {sobrantes.map(item => (
-                <View key={item.id} style={s.listCard}>
+                <View key={item.id} style={[s.listCard, { backgroundColor: tc.card, borderColor: tc.border }]}>
                   {/* Foto + info */}
                   <View style={s.listCardTop}>
                     {item.fotoUri ? (
@@ -508,8 +512,8 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
                           </TouchableOpacity>
                         )}
                       </View>
-                      <Text style={s.listDesc} numberOfLines={2}>{item.descripcion}</Text>
-                      <Text style={s.listMeta}>
+                      <Text style={[s.listDesc, { color: tc.text }]} numberOfLines={2}>{item.descripcion}</Text>
+                      <Text style={[s.listMeta, { color: tc.muted }]}>
                         {item.ubicacion} · {item.cantidad} ud · {fCOP(item.precio)}
                       </Text>
                       <Text style={s.listAuditor}>{item.usuarioNombre} · {item.registradoEn}</Text>
@@ -522,6 +526,7 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
                       <TouchableOpacity
                         style={[
                           s.listEstadoBtn,
+                          { borderColor: tc.border },
                           item.estado === 'CONFIRMADO' && { backgroundColor: GREEN, borderColor: GREEN },
                         ]}
                         onPress={() => onEditarEstado(item.id, 'CONFIRMADO')}
@@ -532,13 +537,14 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
                           size={15}
                           color={item.estado === 'CONFIRMADO' ? '#fff' : GREEN}
                         />
-                        <Text style={[s.listEstadoTxt, item.estado === 'CONFIRMADO' && { color: '#fff' }]}>
+                        <Text style={[s.listEstadoTxt, { color: tc.text }, item.estado === 'CONFIRMADO' && { color: '#fff' }]}>
                           CONFIRMADO
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[
                           s.listEstadoBtn,
+                          { borderColor: tc.border },
                           item.estado === 'PENDIENTE' && { backgroundColor: AMBER, borderColor: AMBER },
                         ]}
                         onPress={() => onEditarEstado(item.id, 'PENDIENTE')}
@@ -549,7 +555,7 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
                           size={15}
                           color={item.estado === 'PENDIENTE' ? '#fff' : AMBER}
                         />
-                        <Text style={[s.listEstadoTxt, item.estado === 'PENDIENTE' && { color: '#fff' }]}>
+                        <Text style={[s.listEstadoTxt, { color: tc.text }, item.estado === 'PENDIENTE' && { color: '#fff' }]}>
                           PENDIENTE
                         </Text>
                       </TouchableOpacity>

@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Usuario, Registro, Tienda } from '../constants/data';
 import { Avatar, RolBadge, SecHeader } from '../components/common';
 import { PRP, BLK, LGR, BRD, MTD, GRN } from '../constants/colors';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 interface Props {
   usuario:           Usuario;
@@ -23,6 +24,7 @@ interface Props {
 export const PerfilScreen: React.FC<Props> = ({
   usuario, registros, tiendas, onCambiarPass, onActualizarFoto, onEliminarFoto, onLogout, onBack,
 }) => {
+  const tc = useThemeColors();
   const [passActual,    setPassActual]    = useState('');
   const [passNueva,     setPassNueva]     = useState('');
   const [passConfirmar, setPassConfirmar] = useState('');
@@ -94,7 +96,7 @@ export const PerfilScreen: React.FC<Props> = ({
     ]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: LGR }}>
+    <View style={{ flex: 1, backgroundColor: tc.bg }}>
 
       {/* ── Header con avatar ── */}
       <View style={[s.header, { backgroundColor: headerColor }]}>
@@ -133,14 +135,14 @@ export const PerfilScreen: React.FC<Props> = ({
 
           {/* ── Mi información ── */}
           <SecHeader title="Mi información" />
-          <View style={s.card}>
+          <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
             <View style={s.infoRow}>
               <View style={[s.infoIconWrap, { backgroundColor: '#EDE9FE' }]}>
                 <Ionicons name="card-outline" size={16} color={PRP} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.infoLbl}>Número de cédula</Text>
-                <Text style={s.infoVal}>{usuario.cedula}</Text>
+                <Text style={[s.infoLbl, { color: tc.muted }]}>Número de cédula</Text>
+                <Text style={[s.infoVal, { color: tc.text }]}>{usuario.cedula}</Text>
               </View>
             </View>
 
@@ -149,7 +151,7 @@ export const PerfilScreen: React.FC<Props> = ({
                 <Ionicons name="storefront-outline" size={16} color="#92400E" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.infoLbl}>Tiendas asignadas</Text>
+                <Text style={[s.infoLbl, { color: tc.muted }]}>Tiendas asignadas</Text>
                 <View style={s.tiendasWrap}>
                   {misTiendas.map(t => {
                     const rolEnT = usuario.tiendasRoles?.[t.id];
@@ -174,7 +176,7 @@ export const PerfilScreen: React.FC<Props> = ({
 
           {/* ── Cambiar contraseña ── */}
           <SecHeader title="Cambiar contraseña" />
-          <View style={s.card}>
+          <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
 
             {exito && (
               <View style={s.exitoBanner}>
@@ -185,12 +187,12 @@ export const PerfilScreen: React.FC<Props> = ({
 
             {/* Contraseña actual */}
             <Text style={s.fieldLabel}>Contraseña actual</Text>
-            <View style={s.inputWrap}>
-              <Ionicons name="lock-closed-outline" size={16} color={MTD} style={s.inputIcon} />
+            <View style={[s.inputWrap, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder }]}>
+              <Ionicons name="lock-closed-outline" size={16} color={tc.icon} style={s.inputIcon} />
               <TextInput
-                style={s.input}
+                style={[s.input, { color: tc.text, backgroundColor: tc.inputBg }]}
                 placeholder="Tu contraseña actual"
-                placeholderTextColor="#A1A1AA"
+                placeholderTextColor={tc.placeholder}
                 value={passActual}
                 onChangeText={t => { setPassActual(t); setError(''); }}
                 secureTextEntry={!showPass}
@@ -202,12 +204,12 @@ export const PerfilScreen: React.FC<Props> = ({
 
             {/* Nueva contraseña */}
             <Text style={s.fieldLabel}>Nueva contraseña</Text>
-            <View style={s.inputWrap}>
-              <Ionicons name="key-outline" size={16} color={MTD} style={s.inputIcon} />
+            <View style={[s.inputWrap, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder }]}>
+              <Ionicons name="key-outline" size={16} color={tc.icon} style={s.inputIcon} />
               <TextInput
-                style={s.input}
+                style={[s.input, { color: tc.text, backgroundColor: tc.inputBg }]}
                 placeholder="Mínimo 6 caracteres"
-                placeholderTextColor="#A1A1AA"
+                placeholderTextColor={tc.placeholder}
                 value={passNueva}
                 onChangeText={t => { setPassNueva(t); setError(''); }}
                 secureTextEntry={!showPass}
@@ -216,12 +218,12 @@ export const PerfilScreen: React.FC<Props> = ({
 
             {/* Confirmar */}
             <Text style={s.fieldLabel}>Confirmar nueva contraseña</Text>
-            <View style={[s.inputWrap, { marginBottom: 0 }]}>
-              <Ionicons name="key-outline" size={16} color={MTD} style={s.inputIcon} />
+            <View style={[s.inputWrap, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder, marginBottom: 0 }]}>
+              <Ionicons name="key-outline" size={16} color={tc.icon} style={s.inputIcon} />
               <TextInput
-                style={s.input}
+                style={[s.input, { color: tc.text, backgroundColor: tc.inputBg }]}
                 placeholder="Repite la nueva contraseña"
-                placeholderTextColor="#A1A1AA"
+                placeholderTextColor={tc.placeholder}
                 value={passConfirmar}
                 onChangeText={t => { setPassConfirmar(t); setError(''); }}
                 secureTextEntry={!showPass}
@@ -242,7 +244,7 @@ export const PerfilScreen: React.FC<Props> = ({
           </View>
 
           {/* ── Cerrar sesión ── */}
-          <TouchableOpacity style={s.logoutCard} onPress={confirmarLogout} activeOpacity={0.85}>
+          <TouchableOpacity style={[s.logoutCard, { backgroundColor: tc.danger, borderColor: tc.isDark ? '#7F1D1D' : '#FECACA' }]} onPress={confirmarLogout} activeOpacity={0.85}>
             <View style={s.logoutCardIcon}>
               <Ionicons name="log-out-outline" size={20} color="#DC2626" />
             </View>

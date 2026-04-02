@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Usuario, Tienda, IoniconName } from '../constants/data';
 import { Avatar, RolBadge } from '../components/common';
 import { PRP, BLK, DRK, LGR, BRD, MTD, GRN } from '../constants/colors';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 interface Props {
   usuarioActual:  Usuario;
@@ -22,6 +23,7 @@ interface Props {
 export const GestionEquipoScreen: React.FC<Props> = ({
   usuarioActual, usuarios, tiendas, tiendaFiltro, onAgregar, onEditar, onEliminar, onVolver,
 }) => {
+  const tc = useThemeColors();
   const esSuperAdmin = usuarioActual.rol === 'SUPERADMIN';
 
   const [modalVisible,     setModalVisible]     = useState(false);
@@ -199,17 +201,17 @@ export const GestionEquipoScreen: React.FC<Props> = ({
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: LGR }}>
+    <View style={{ flex: 1, backgroundColor: tc.bg }}>
       {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={onVolver} style={s.backBtn} accessibilityLabel="Volver" accessibilityRole="button">
-          <Ionicons name="arrow-back" size={20} color={BLK} />
+      <View style={[s.header, { backgroundColor: tc.headerBg, borderBottomColor: tc.border }]}>
+        <TouchableOpacity onPress={onVolver} style={[s.backBtn, { backgroundColor: tc.btnBg }]} accessibilityLabel="Volver" accessibilityRole="button">
+          <Ionicons name="arrow-back" size={20} color={tc.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.title} numberOfLines={1}>
+          <Text style={[s.title, { color: tc.text }]} numberOfLines={1}>
             {tiendaFiltro ? `Equipo — ${tiendaFiltro.nombre}` : esSuperAdmin ? 'Gestión de equipo' : 'Mi equipo'}
           </Text>
-          <Text style={s.sub} numberOfLines={1}>{listaVisible.length} personas asignadas</Text>
+          <Text style={[s.sub, { color: tc.muted }]} numberOfLines={1}>{listaVisible.length} personas asignadas</Text>
         </View>
         <TouchableOpacity style={s.addBtn} onPress={() => setModalVisible(true)} accessibilityLabel="Agregar usuario" accessibilityRole="button">
           <Ionicons name="person-add" size={18} color="#fff" />
@@ -238,12 +240,12 @@ export const GestionEquipoScreen: React.FC<Props> = ({
           const tiendasU = tiendas.filter(t => u.tiendas.includes(t.id));
           const inactivo = u.activo === false;
           return (
-            <View style={[s.card, inactivo && { opacity: 0.6 }]}>
+            <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }, inactivo && { opacity: 0.6 }]}>
               <View style={s.cardTop}>
                 <Avatar nombre={u.nombre} size={46} bg={inactivo ? '#A1A1AA' : DRK} />
                 <View style={{ flex: 1, marginLeft: 12, minWidth: 0 }}>
-                  <Text style={s.cardNombre} numberOfLines={1}>{u.nombre}</Text>
-                  <Text style={s.cardCed}>CC {u.cedula}</Text>
+                  <Text style={[s.cardNombre, { color: tc.text }]} numberOfLines={1}>{u.nombre}</Text>
+                  <Text style={[s.cardCed, { color: tc.muted }]}>CC {u.cedula}</Text>
                   <View style={{ marginTop: 5, flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                     <RolBadge rol={u.rol} />
                     {inactivo && (
@@ -286,9 +288,9 @@ export const GestionEquipoScreen: React.FC<Props> = ({
                 }
               </View>
 
-              <View style={s.credRow}>
+              <View style={[s.credRow, { backgroundColor: tc.cardAlt }]}>
                 <Ionicons name="key-outline" size={12} color="#A1A1AA" style={{ marginRight: 5 }} />
-                <Text style={s.credTxt} numberOfLines={1}>
+                <Text style={[s.credTxt, { color: tc.muted }]} numberOfLines={1}>
                   Usuario: {u.cedula} · Pass: {'•'.repeat(Math.min(u.pass.length, 8))}
                 </Text>
               </View>
@@ -331,11 +333,11 @@ export const GestionEquipoScreen: React.FC<Props> = ({
       {/* Modal agregar/editar */}
       <Modal visible={modalVisible} animationType="slide" transparent accessibilityViewIsModal={true}>
         <KeyboardAvoidingView style={s.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={s.modalSheet}>
+          <View style={[s.modalSheet, { backgroundColor: tc.card }]}>
             <View style={s.modalHandle} accessibilityElementsHidden={true} />
             <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>{editandoId ? 'Editar usuario' : `Nuevo ${esSuperAdmin ? 'usuario' : 'contador'}`}</Text>
-              <TouchableOpacity onPress={limpiarYCerrar} style={s.modalClose}>
+              <Text style={[s.modalTitle, { color: tc.text }]}>{editandoId ? 'Editar usuario' : `Nuevo ${esSuperAdmin ? 'usuario' : 'contador'}`}</Text>
+              <TouchableOpacity onPress={limpiarYCerrar} style={[s.modalClose, { backgroundColor: tc.btnBg }]}>
                 <Ionicons name="close" size={18} color={MTD} />
               </TouchableOpacity>
             </View>
@@ -352,14 +354,14 @@ export const GestionEquipoScreen: React.FC<Props> = ({
                       {f.optional && <Text style={s.optionalTag}>Opcional</Text>}
                       {bloqueado  && <Text style={s.optionalTag}>No editable</Text>}
                     </View>
-                    <View style={[s.inputWrap, bloqueado && { opacity: 0.5 }]}>
-                      <View style={s.inputIconWrap}>
-                        <Ionicons name={f.icon} size={16} color={MTD} />
+                    <View style={[s.inputWrap, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder }, bloqueado && { opacity: 0.5 }]}>
+                      <View style={[s.inputIconWrap, { borderRightColor: tc.border }]}>
+                        <Ionicons name={f.icon} size={16} color={tc.icon} />
                       </View>
                       <TextInput
-                        style={s.input}
+                        style={[s.input, { color: tc.text, backgroundColor: tc.inputBg }]}
                         placeholder={f.placeholder}
-                        placeholderTextColor="#A1A1AA"
+                        placeholderTextColor={tc.placeholder}
                         value={f.value}
                         onChangeText={f.onChange}
                         autoCapitalize={f.capitalize}

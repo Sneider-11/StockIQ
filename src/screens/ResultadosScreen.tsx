@@ -10,6 +10,7 @@ import { Tienda, Registro, Articulo, SobranteSinStock, CLSF, CATALOGO_BASE, Usua
 import { clasificar, fCOP } from '../utils/helpers';
 import { Avatar } from '../components/common';
 import { PRP, BLK, LGR, BRD, MTD } from '../constants/colors';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 // ─── TIPOS ───────────────────────────────────────────────────────────────────
 interface Props {
@@ -56,6 +57,7 @@ interface DonutSeg { value: number; color: string; }
 const DonutChart: React.FC<{ segments: DonutSeg[]; centerLabel: string; centerSub: string }> = ({
   segments, centerLabel, centerSub,
 }) => {
+  const tc = useThemeColors();
   const r             = (DSIZE - STROKE) / 2;
   const cx            = DSIZE / 2;
   const cy            = DSIZE / 2;
@@ -65,7 +67,7 @@ const DonutChart: React.FC<{ segments: DonutSeg[]; centerLabel: string; centerSu
   return (
     <View style={{ width: DSIZE, height: DSIZE, alignSelf: 'center' }}>
       <Svg width={DSIZE} height={DSIZE}>
-        <Circle cx={cx} cy={cy} r={r} stroke="#E4E4E7" strokeWidth={STROKE} fill="none" />
+        <Circle cx={cx} cy={cy} r={r} stroke={tc.isDark ? '#3F3F46' : '#E4E4E7'} strokeWidth={STROKE} fill="none" />
         {total > 0 && segments.map((seg, i) => {
           if (seg.value === 0) return null;
           const arcLen  = (seg.value / total) * circumference;
@@ -79,8 +81,8 @@ const DonutChart: React.FC<{ segments: DonutSeg[]; centerLabel: string; centerSu
       </Svg>
       <View style={StyleSheet.absoluteFill as object}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 34, fontWeight: '900', color: BLK, lineHeight: 38 }}>{centerLabel}</Text>
-          <Text style={{ fontSize: 12, color: MTD, marginTop: 2 }}>{centerSub}</Text>
+          <Text style={{ fontSize: 34, fontWeight: '900', color: tc.text, lineHeight: 38 }}>{centerLabel}</Text>
+          <Text style={{ fontSize: 12, color: tc.muted, marginTop: 2 }}>{centerSub}</Text>
         </View>
       </View>
     </View>
@@ -92,6 +94,7 @@ export const ResultadosScreen: React.FC<Props> = ({
   registros, tienda, catalogo, sobrantes, usuarios, esAdmin, confirmadosCero,
   onBack, onEliminarRegistro, onEditarRegistro, onConfirmarCero, onDesconfirmarCero,
 }) => {
+  const tc = useThemeColors();
   const [tab,               setTab]               = useState<Tab>('resumen');
   const [filtro,            setFiltro]            = useState<Filtro>('TODOS');
   const [busqueda,          setBusqueda]          = useState('');
@@ -334,24 +337,24 @@ export const ResultadosScreen: React.FC<Props> = ({
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <View style={{ flex: 1, backgroundColor: LGR }}>
+    <View style={{ flex: 1, backgroundColor: tc.bg }}>
 
       {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity style={s.headerBtn} onPress={onBack}>
-          <Ionicons name="arrow-back" size={20} color={BLK} />
+      <View style={[s.header, { backgroundColor: tc.headerBg, borderBottomColor: tc.border }]}>
+        <TouchableOpacity style={[s.headerBtn, { backgroundColor: tc.btnBg }]} onPress={onBack}>
+          <Ionicons name="arrow-back" size={20} color={tc.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 12, minWidth: 0 }}>
-          <Text style={s.headerTitle} numberOfLines={1}>Resultados</Text>
-          <Text style={s.headerSub} numberOfLines={1}>{tienda.nombre} · {contados}/{total} · {pct}%</Text>
+          <Text style={[s.headerTitle, { color: tc.text }]} numberOfLines={1}>Resultados</Text>
+          <Text style={[s.headerSub, { color: tc.muted }]} numberOfLines={1}>{tienda.nombre} · {contados}/{total} · {pct}%</Text>
         </View>
-        <TouchableOpacity style={s.headerBtn} onPress={compartir}>
-          <Ionicons name="share-outline" size={20} color={BLK} />
+        <TouchableOpacity style={[s.headerBtn, { backgroundColor: tc.btnBg }]} onPress={compartir}>
+          <Ionicons name="share-outline" size={20} color={tc.text} />
         </TouchableOpacity>
       </View>
 
       {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabsBar}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[s.tabsBar, { backgroundColor: tc.headerBg, borderBottomColor: tc.border }]}
         contentContainerStyle={{ paddingHorizontal: 12 }}>
         {TABS.map(t => (
           <TouchableOpacity key={t.k} style={[s.tab, tab === t.k && { borderBottomColor: tienda.color }]}
@@ -368,8 +371,8 @@ export const ResultadosScreen: React.FC<Props> = ({
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
 
           {/* Donut + leyenda interactiva */}
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Distribución del inventario</Text>
+          <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
+            <Text style={[s.cardTitle, { color: tc.text }]}>Distribución del inventario</Text>
             {regT.length === 0 && sobrantes.length === 0 ? (
               <View style={{ alignItems: 'center', padding: 32, gap: 10 }}>
                 <Ionicons name="cube-outline" size={48} color={BRD} />
@@ -396,22 +399,22 @@ export const ResultadosScreen: React.FC<Props> = ({
           </View>
 
           {/* Progreso del catálogo */}
-          <View style={s.card}>
+          <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-              <Text style={s.cardTitle}>Progreso del inventario</Text>
+              <Text style={[s.cardTitle, { color: tc.text }]}>Progreso del inventario</Text>
               <Text style={[s.cardTitle, { color: tienda.color }]}>{pct}%</Text>
             </View>
             <View style={s.progBg}>
               <View style={[s.progFill, { width: `${pct}%` as any, backgroundColor: tienda.color }]} />
             </View>
-            <Text style={{ fontSize: 12, color: MTD, marginTop: 8 }}>
+            <Text style={{ fontSize: 12, color: tc.muted, marginTop: 8 }}>
               {contados} de {total} artículos contados · {regT.length} escaneos registrados
             </Text>
           </View>
 
           {/* ── Impacto económico ── */}
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Impacto económico del inventario</Text>
+          <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
+            <Text style={[s.cardTitle, { color: tc.text }]}>Impacto económico del inventario</Text>
 
             <View style={s.econRow}>
               <View style={s.econLeft}>
@@ -487,9 +490,9 @@ export const ResultadosScreen: React.FC<Props> = ({
 
           {/* Sobrantes sin stock desglose */}
           {sobrantes.length > 0 && (
-            <View style={s.card}>
+            <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                <Text style={s.cardTitle}>Sobrantes sin stock</Text>
+                <Text style={[s.cardTitle, { color: tc.text }]}>Sobrantes sin stock</Text>
                 <TouchableOpacity onPress={() => irDetalle('SIN_STOCK')}>
                   <Text style={{ fontSize: 12, color: tienda.color, fontWeight: '700' }}>Ver todos →</Text>
                 </TouchableOpacity>
@@ -521,12 +524,12 @@ export const ResultadosScreen: React.FC<Props> = ({
       {tab === 'articulos' && (
         <View style={{ flex: 1 }}>
           {/* Barra de búsqueda */}
-          <View style={s.searchBar}>
-            <Ionicons name="search-outline" size={16} color={MTD} style={{ marginLeft: 12 }} />
+          <View style={[s.searchBar, { backgroundColor: tc.headerBg, borderBottomColor: tc.border }]}>
+            <Ionicons name="search-outline" size={16} color={tc.muted} style={{ marginLeft: 12 }} />
             <TextInput
-              style={s.searchInput}
+              style={[s.searchInput, { color: tc.text, backgroundColor: tc.headerBg }]}
               placeholder="Buscar por código, descripción o ubicación..."
-              placeholderTextColor="#A1A1AA"
+              placeholderTextColor={tc.placeholder}
               value={busqueda}
               onChangeText={setBusqueda}
               returnKeyType="search"
@@ -539,7 +542,7 @@ export const ResultadosScreen: React.FC<Props> = ({
           </View>
 
           {/* Chips de filtro */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterBar}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[s.filterBar, { backgroundColor: tc.headerBg, borderBottomColor: tc.border }]}
             contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 10, gap: 8 }}>
             {FILTROS.map(f => (
               <TouchableOpacity key={f.k}
@@ -573,11 +576,11 @@ export const ResultadosScreen: React.FC<Props> = ({
                   const delta = art.conteoTotal - art.stock;
                   const sinConteo = art.registros.length === 0;
                   return (
-                    <TouchableOpacity style={[s.artCard, sinConteo && { opacity: 0.75 }]}
+                    <TouchableOpacity style={[s.artCard, { backgroundColor: tc.card, borderColor: tc.border }, sinConteo && { opacity: 0.75 }]}
                       onPress={esAdmin ? () => abrirDetalle(art) : undefined}
                       activeOpacity={esAdmin ? 0.8 : 1}>
                       <View style={s.artCardTop}>
-                        <View style={s.codeTag}>
+                        <View style={[s.codeTag, { backgroundColor: tc.cardAlt }]}>
                           <Text style={[s.codeTxt, { color: tienda.color }]} numberOfLines={1}>{art.itemId}</Text>
                         </View>
                         <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
@@ -593,25 +596,25 @@ export const ResultadosScreen: React.FC<Props> = ({
                           </View>
                         </View>
                       </View>
-                      <Text style={s.artDesc} numberOfLines={2}>{art.descripcion}</Text>
-                      <Text style={s.artUbic} numberOfLines={1}>{art.ubicacion}</Text>
-                      <View style={s.qtyRow}>
+                      <Text style={[s.artDesc, { color: tc.text }]} numberOfLines={2}>{art.descripcion}</Text>
+                      <Text style={[s.artUbic, { color: tc.muted }]} numberOfLines={1}>{art.ubicacion}</Text>
+                      <View style={[s.qtyRow, { backgroundColor: tc.cardAlt }]}>
                         {[
-                          { l: 'Stock',     v: String(art.stock),       c: MTD },
+                          { l: 'Stock',     v: String(art.stock),       c: tc.muted },
                           { l: 'Contado',   v: String(art.conteoTotal), c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
                           { l: 'Diferencia',v: (delta > 0 ? '+' : '') + delta, c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
-                          { l: 'Impacto',   v: delta !== 0 ? fCOP(Math.abs(art.costo * delta)) : '—', c: MTD },
+                          { l: 'Impacto',   v: delta !== 0 ? fCOP(Math.abs(art.costo * delta)) : '—', c: tc.muted },
                         ].map(q => (
                           <View key={q.l} style={s.qtyBox}>
-                            <Text style={s.qtyLbl}>{q.l}</Text>
+                            <Text style={[s.qtyLbl, { color: tc.muted }]}>{q.l}</Text>
                             <Text style={[s.qtyVal, { color: q.c }]} numberOfLines={1} adjustsFontSizeToFit>{q.v}</Text>
                           </View>
                         ))}
                       </View>
                       {esAdmin && (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 8, borderTopWidth: 1, borderTopColor: LGR }}>
-                          <Ionicons name="eye-outline" size={12} color={MTD} style={{ marginRight: 5 }} />
-                          <Text style={{ fontSize: 11, color: MTD }}>{art.registros.length} conteo{art.registros.length !== 1 ? 's' : ''} · Toca para ver detalle</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 8, borderTopWidth: 1, borderTopColor: tc.borderLight }}>
+                          <Ionicons name="eye-outline" size={12} color={tc.muted} style={{ marginRight: 5 }} />
+                          <Text style={{ fontSize: 11, color: tc.muted }}>{art.registros.length} conteo{art.registros.length !== 1 ? 's' : ''} · Toca para ver detalle</Text>
                         </View>
                       )}
                     </TouchableOpacity>
@@ -621,7 +624,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                 // ── Sobrante sin stock ──
                 const ss = item.data as SobranteSinStock;
                 return (
-                  <View style={s.artCard}>
+                  <View style={[s.artCard, { backgroundColor: tc.card, borderColor: tc.border }]}>
                     <View style={{ flexDirection: 'row', gap: 12, marginBottom: 10 }}>
                       {ss.fotoUri ? (
                         <TouchableOpacity onPress={() => setFotoModal(ss.fotoUri)} style={s.thumbWrap}>
@@ -648,25 +651,25 @@ export const ResultadosScreen: React.FC<Props> = ({
                           </View>
                         </View>
                         <Text style={[s.codeTxt, { color: '#92400E', marginBottom: 4 }]} numberOfLines={1}>{ss.codigo}</Text>
-                        <Text style={s.artDesc} numberOfLines={2}>{ss.descripcion}</Text>
-                        <Text style={s.artUbic} numberOfLines={1}>{ss.ubicacion}</Text>
+                        <Text style={[s.artDesc, { color: tc.text }]} numberOfLines={2}>{ss.descripcion}</Text>
+                        <Text style={[s.artUbic, { color: tc.muted }]} numberOfLines={1}>{ss.ubicacion}</Text>
                       </View>
                     </View>
-                    <View style={s.qtyRow}>
+                    <View style={[s.qtyRow, { backgroundColor: tc.cardAlt }]}>
                       {[
                         { l: 'Cantidad',    v: String(ss.cantidad)           },
                         { l: 'Precio unit.',v: fCOP(ss.precio)               },
                         { l: 'Total',       v: fCOP(ss.precio * ss.cantidad) },
                       ].map(q => (
                         <View key={q.l} style={s.qtyBox}>
-                          <Text style={s.qtyLbl}>{q.l}</Text>
+                          <Text style={[s.qtyLbl, { color: tc.muted }]}>{q.l}</Text>
                           <Text style={[s.qtyVal, { color: '#92400E' }]} numberOfLines={1} adjustsFontSizeToFit>{q.v}</Text>
                         </View>
                       ))}
                     </View>
-                    <View style={s.metaRow}>
+                    <View style={[s.metaRow, { borderTopColor: tc.borderLight }]}>
                       <Avatar nombre={ss.usuarioNombre} size={16} bg="#27272A" />
-                      <Text style={s.metaTxt} numberOfLines={1}> {ss.usuarioNombre} · {ss.registradoEn}</Text>
+                      <Text style={[s.metaTxt, { color: tc.muted }]} numberOfLines={1}> {ss.usuarioNombre} · {ss.registradoEn}</Text>
                     </View>
                   </View>
                 );
@@ -681,8 +684,8 @@ export const ResultadosScreen: React.FC<Props> = ({
       ══════════════════════════════════════════════════════════════════ */}
       {tab === 'equipo' && (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Rendimiento por auditor</Text>
+          <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
+            <Text style={[s.cardTitle, { color: tc.text }]}>Rendimiento por auditor</Text>
             {auditores.length === 0 ? (
               <Text style={{ color: '#A1A1AA', textAlign: 'center', padding: 28 }}>Sin registros aún</Text>
             ) : auditores.map((a, i) => {
@@ -700,8 +703,8 @@ export const ResultadosScreen: React.FC<Props> = ({
                   <Avatar nombre={a.nombre} size={42} bg="#27272A" fotoUri={aud?.fotoUri} />
                   <View style={{ flex: 1, marginLeft: 12, minWidth: 0 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <Text style={s.audNombre} numberOfLines={1}>{a.nombre}</Text>
-                      <Text style={s.audMeta} numberOfLines={1}>{a.n} escaneos</Text>
+                      <Text style={[s.audNombre, { color: tc.text }]} numberOfLines={1}>{a.nombre}</Text>
+                      <Text style={[s.audMeta, { color: tc.muted }]} numberOfLines={1}>{a.n} escaneos</Text>
                     </View>
                     <View style={s.audBarBg}>
                       <View style={[s.audBarFill, { width: `${barPct}%` as any, backgroundColor: barColors[i % barColors.length] }]} />
@@ -714,8 +717,8 @@ export const ResultadosScreen: React.FC<Props> = ({
           </View>
 
           {auditores.length > 1 && (
-            <View style={s.card}>
-              <Text style={s.cardTitle}>Totales del equipo</Text>
+            <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
+              <Text style={[s.cardTitle, { color: tc.text }]}>Totales del equipo</Text>
               <View style={s.impactoGrid}>
                 <View style={[s.impactoCard, { backgroundColor: '#EDE9FE', borderColor: '#C4B5FD' }]}>
                   <Ionicons name="people" size={22} color={PRP} />
@@ -738,7 +741,7 @@ export const ResultadosScreen: React.FC<Props> = ({
       ══════════════════════════════════════════════════════════════════ */}
       <Modal visible={!!detalleItem} animationType="none" transparent onRequestClose={() => { if (miniReg) setMiniReg(null); else cerrarDetalle(); }}>
         <Animated.View style={[s.detalleModalBg, { opacity: bgOpacity }]}>
-          <Animated.View style={[s.detalleSheet, { transform: [{ translateY: sheetY }] }]}>
+          <Animated.View style={[s.detalleSheet, { backgroundColor: tc.card, transform: [{ translateY: sheetY }] }]}>
             <View style={s.modalHandle} />
             {detalleItem && (() => {
               const est     = getEstadoLabel(detalleItem.clasificacion);
@@ -750,10 +753,10 @@ export const ResultadosScreen: React.FC<Props> = ({
                   <View style={[s.detalleHeader, { backgroundColor: est.bg }]}>
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={[s.detalleEstado, { color: est.color }]}>{est.label}</Text>
-                      <Text style={s.detalleRef} numberOfLines={1}>{detalleItem.itemId}</Text>
+                      <Text style={[s.detalleRef, { color: tc.text }]} numberOfLines={1}>{detalleItem.itemId}</Text>
                     </View>
                     <TouchableOpacity onPress={cerrarDetalle} style={s.detalleClose}>
-                      <Ionicons name="close" size={20} color={BLK} />
+                      <Ionicons name="close" size={20} color={tc.text} />
                     </TouchableOpacity>
                   </View>
 
@@ -761,11 +764,11 @@ export const ResultadosScreen: React.FC<Props> = ({
                     showsVerticalScrollIndicator={false}>
 
                     {/* Descripción */}
-                    <Text style={s.detalleDesc}>{detalleItem.descripcion}</Text>
-                    <Text style={s.detalleUbic}>{detalleItem.ubicacion}</Text>
+                    <Text style={[s.detalleDesc, { color: tc.text }]}>{detalleItem.descripcion}</Text>
+                    <Text style={[s.detalleUbic, { color: tc.muted }]}>{detalleItem.ubicacion}</Text>
 
                     {/* Grid de datos */}
-                    <View style={s.detalleGrid}>
+                    <View style={[s.detalleGrid, { backgroundColor: tc.cardAlt, borderColor: tc.border }]}>
                       {[
                         { l: 'Stock',           v: String(detalleItem.stock),         c: MTD },
                         { l: 'Conteo total',    v: String(detalleItem.conteoTotal),   c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
@@ -807,17 +810,17 @@ export const ResultadosScreen: React.FC<Props> = ({
                     )}
 
                     {/* Registros individuales */}
-                    <Text style={[s.cardTitle, { marginTop: 16, marginBottom: 10 }]}>
+                    <Text style={[s.cardTitle, { marginTop: 16, marginBottom: 10, color: tc.text }]}>
                       Registros ({detalleItem.registros.length})
                     </Text>
 
                     {detalleItem.registros.length === 0 ? (
-                      <View style={{ alignItems: 'center', padding: 20, backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: BRD }}>
+                      <View style={{ alignItems: 'center', padding: 20, backgroundColor: tc.card, borderRadius: 14, borderWidth: 1, borderColor: tc.border }}>
                         <Ionicons name="cube-outline" size={32} color="#A1A1AA" />
-                        <Text style={{ color: '#A1A1AA', fontSize: 13, marginTop: 8 }}>Sin conteos registrados</Text>
+                        <Text style={{ color: tc.muted, fontSize: 13, marginTop: 8 }}>Sin conteos registrados</Text>
                       </View>
                     ) : detalleItem.registros.map((reg, idx) => (
-                      <View key={reg.id} style={s.regRow}>
+                      <View key={reg.id} style={[s.regRow, { backgroundColor: tc.row, borderColor: tc.border }]}>
                         <TouchableOpacity
                           style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
                           onPress={() => setMiniReg(reg)}
@@ -828,10 +831,10 @@ export const ResultadosScreen: React.FC<Props> = ({
                           </View>
                           <View style={{ flex: 1, minWidth: 0 }}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <Text style={s.regUsuario} numberOfLines={1}>{reg.usuarioNombre}</Text>
+                              <Text style={[s.regUsuario, { color: tc.text }]} numberOfLines={1}>{reg.usuarioNombre}</Text>
                               <Text style={[s.regCantidad, { color: tienda.color }]}>{reg.cantidad} und.</Text>
                             </View>
-                            <Text style={s.regFecha} numberOfLines={1}>{reg.escaneadoEn}</Text>
+                            <Text style={[s.regFecha, { color: tc.muted }]} numberOfLines={1}>{reg.escaneadoEn}</Text>
                             {reg.nota ? <Text style={s.regNota} numberOfLines={1}>"{reg.nota}"</Text> : null}
                           </View>
                           <Ionicons name="chevron-forward" size={14} color="#A1A1AA" style={{ marginLeft: 4 }} />
@@ -860,9 +863,9 @@ export const ResultadosScreen: React.FC<Props> = ({
               activeOpacity={1}
               onPress={() => setMiniReg(null)}
             >
-              <View style={s.miniModalCard} onStartShouldSetResponder={() => true}>
+              <View style={[s.miniModalCard, { backgroundColor: tc.card }]} onStartShouldSetResponder={() => true}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <Text style={s.miniTitle}>Detalle del conteo</Text>
+                  <Text style={[s.miniTitle, { color: tc.text }]}>Detalle del conteo</Text>
                   <TouchableOpacity onPress={() => setMiniReg(null)}>
                     <Ionicons name="close-circle" size={22} color={MTD} />
                   </TouchableOpacity>
@@ -875,8 +878,8 @@ export const ResultadosScreen: React.FC<Props> = ({
                   <View key={row.lbl} style={s.miniRow}>
                     <Ionicons name={row.icon} size={16} color={tienda.color} style={{ marginRight: 10, marginTop: 2 }} />
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={s.miniLbl}>{row.lbl}</Text>
-                      <Text style={s.miniVal} numberOfLines={2}>{row.val}</Text>
+                      <Text style={[s.miniLbl, { color: tc.muted }]}>{row.lbl}</Text>
+                      <Text style={[s.miniVal, { color: tc.text }]} numberOfLines={2}>{row.val}</Text>
                     </View>
                   </View>
                 ))}
@@ -884,23 +887,23 @@ export const ResultadosScreen: React.FC<Props> = ({
                   <View style={s.miniRow}>
                     <Ionicons name="chatbubble-outline" size={16} color={tienda.color} style={{ marginRight: 10, marginTop: 2 }} />
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={s.miniLbl}>Nota</Text>
-                      <Text style={s.miniVal}>{miniReg.nota}</Text>
+                      <Text style={[s.miniLbl, { color: tc.muted }]}>Nota</Text>
+                      <Text style={[s.miniVal, { color: tc.text }]}>{miniReg.nota}</Text>
                     </View>
                   </View>
                 ) : null}
                 {miniReg.fotoUri ? (
                   <TouchableOpacity style={{ marginTop: 10 }} onPress={() => { setMiniReg(null); setFotoModal(miniReg.fotoUri); }}>
                     <Image source={{ uri: miniReg.fotoUri }} style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: 12 }} resizeMode="cover" />
-                    <Text style={{ fontSize: 11, color: MTD, textAlign: 'center', marginTop: 6 }}>Toca la foto para ampliar</Text>
+                    <Text style={{ fontSize: 11, color: tc.muted, textAlign: 'center', marginTop: 6 }}>Toca la foto para ampliar</Text>
                   </TouchableOpacity>
                 ) : (
                   <View style={s.miniRow}>
                     <Ionicons name="image-outline" size={16} color="#A1A1AA" style={{ marginRight: 10 }} />
-                    <Text style={[s.miniVal, { color: '#A1A1AA' }]}>Sin foto en este conteo</Text>
+                    <Text style={[s.miniVal, { color: tc.muted }]}>Sin foto en este conteo</Text>
                   </View>
                 )}
-                <Text style={{ fontSize: 11, color: '#A1A1AA', textAlign: 'center', marginTop: 14 }}>
+                <Text style={{ fontSize: 11, color: tc.muted, textAlign: 'center', marginTop: 14 }}>
                   Toca fuera para cerrar
                 </Text>
               </View>
@@ -911,20 +914,20 @@ export const ResultadosScreen: React.FC<Props> = ({
           {/* ── Overlay editar cantidad: hermano de detalleSheet → sin Modal anidado ── */}
           {editRegId && (
             <Animated.View style={[StyleSheet.absoluteFillObject, s.overlayBg, { opacity: editOpacity }]}>
-              <View style={[s.miniModalCard, { width: '85%' }]} onStartShouldSetResponder={() => true}>
-                <Text style={s.miniTitle}>Editar cantidad</Text>
+              <View style={[s.miniModalCard, { width: '85%', backgroundColor: tc.card }]} onStartShouldSetResponder={() => true}>
+                <Text style={[s.miniTitle, { color: tc.text }]}>Editar cantidad</Text>
                 <TextInput
-                  style={s.editInput}
+                  style={[s.editInput, { color: tc.text, backgroundColor: tc.inputBg, borderColor: tc.inputBorder }]}
                   value={editCantidad}
                   onChangeText={setEditCantidad}
                   keyboardType="numeric"
                   placeholder="Nueva cantidad"
-                  placeholderTextColor="#A1A1AA"
+                  placeholderTextColor={tc.placeholder}
                   autoFocus
                 />
                 <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-                  <TouchableOpacity style={[s.editAction, { backgroundColor: LGR, flex: 1 }]} onPress={() => setEditRegId(null)}>
-                    <Text style={{ color: BLK, fontWeight: '700', fontSize: 14 }}>Cancelar</Text>
+                  <TouchableOpacity style={[s.editAction, { backgroundColor: tc.btnBg, flex: 1 }]} onPress={() => setEditRegId(null)}>
+                    <Text style={{ color: tc.text, fontWeight: '700', fontSize: 14 }}>Cancelar</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[s.editAction, { backgroundColor: PRP, flex: 1 }]} onPress={guardarEdicion}>
                     <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Guardar</Text>
@@ -941,7 +944,7 @@ export const ResultadosScreen: React.FC<Props> = ({
       ══════════════════════════════════════════════════════════════════ */}
       <Modal visible={!!auditorDetalle} animationType="none" transparent onRequestClose={cerrarAuditor}>
         <Animated.View style={[s.detalleModalBg, { opacity: audBgOpacity }]}>
-          <Animated.View style={[s.detalleSheet, { transform: [{ translateY: audSheetY }] }]}>
+          <Animated.View style={[s.detalleSheet, { backgroundColor: tc.card, transform: [{ translateY: audSheetY }] }]}>
             <View style={s.modalHandle} />
             {auditorDetalle && (() => {
               const regsAud   = regT.filter(r => r.usuarioNombre === auditorDetalle);
@@ -954,14 +957,14 @@ export const ResultadosScreen: React.FC<Props> = ({
               ];
               return (
                 <>
-                  <View style={[s.detalleHeader, { backgroundColor: LGR }]}>
+                  <View style={[s.detalleHeader, { backgroundColor: tc.cardAlt, borderBottomColor: tc.border }]}>
                     <Avatar nombre={auditorDetalle} size={42} bg="#27272A" fotoUri={aud?.fotoUri} />
                     <View style={{ flex: 1, marginLeft: 12, minWidth: 0 }}>
-                      <Text style={[s.detalleEstado, { color: BLK }]} numberOfLines={1}>{auditorDetalle}</Text>
-                      <Text style={{ fontSize: 12, color: MTD }}>{regsAud.length} escaneos registrados</Text>
+                      <Text style={[s.detalleEstado, { color: tc.text }]} numberOfLines={1}>{auditorDetalle}</Text>
+                      <Text style={{ fontSize: 12, color: tc.muted }}>{regsAud.length} escaneos registrados</Text>
                     </View>
                     <TouchableOpacity onPress={cerrarAuditor} style={s.detalleClose}>
-                      <Ionicons name="close" size={20} color={BLK} />
+                      <Ionicons name="close" size={20} color={tc.text} />
                     </TouchableOpacity>
                   </View>
                   <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
@@ -976,14 +979,14 @@ export const ResultadosScreen: React.FC<Props> = ({
                         {g.items.map(reg => {
                           const delta = reg.cantidad - reg.stockSistema;
                           return (
-                            <View key={reg.id} style={[s.regRow, { marginBottom: 8 }]}>
+                            <View key={reg.id} style={[s.regRow, { marginBottom: 8, backgroundColor: tc.card, borderColor: tc.border }]}>
                               <View style={{ flex: 1, minWidth: 0 }}>
                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
                                   <Text style={[s.codeTxt, { color: tienda.color, fontSize: 12 }]} numberOfLines={1}>{reg.itemId}</Text>
                                   <Text style={[s.regCantidad, { color: g.color }]}>{reg.cantidad} und.</Text>
                                 </View>
-                                <Text style={{ fontSize: 13, fontWeight: '600', color: BLK, marginBottom: 2 }} numberOfLines={1}>{reg.descripcion}</Text>
-                                <Text style={{ fontSize: 10, color: MTD }}>
+                                <Text style={{ fontSize: 13, fontWeight: '600', color: tc.text, marginBottom: 2 }} numberOfLines={1}>{reg.descripcion}</Text>
+                                <Text style={{ fontSize: 10, color: tc.muted }}>
                                   Sistema: {reg.stockSistema} · Dif: {delta > 0 ? '+' : ''}{delta} · {reg.escaneadoEn}
                                 </Text>
                                 {reg.nota ? <Text style={s.regNota} numberOfLines={1}>"{reg.nota}"</Text> : null}

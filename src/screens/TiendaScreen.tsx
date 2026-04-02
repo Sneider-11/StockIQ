@@ -310,7 +310,7 @@ export const TiendaScreen: React.FC<Props> = ({
           <>
             <SecHeader title="Zona de peligro" />
             <TouchableOpacity
-              style={s.dangerCard}
+              style={[s.dangerCard, { backgroundColor: tc.danger, borderColor: tc.isDark ? '#7F1D1D' : '#FECACA' }]}
               activeOpacity={0.85}
               onPress={() =>
                 Alert.alert(

@@ -10,6 +10,7 @@ import { Tienda, Usuario, Registro, Articulo, CLSF, CATALOGO_BASE } from '../con
 import { clasificar, fCOP, genId, ahora } from '../utils/helpers';
 import { Badge } from '../components/common';
 import { PRP, BLK, LGR, BRD, MTD } from '../constants/colors';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 interface Props {
   usuario: Usuario;
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, catalogo, onGuardar, onBack }) => {
+  const tc = useThemeColors();
   const CAT = catalogo.length > 0 ? catalogo : CATALOGO_BASE;
   const [perm, askPerm]          = useCameraPermissions();
   const [pausado, setPausado]    = useState(false);
@@ -166,15 +168,15 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
       {/* ── Modal: artículo detectado ── */}
       <Modal visible={modal} animationType="slide" transparent accessibilityViewIsModal={true}>
         <View style={m.bg}>
-          <View style={m.sheet}>
-            <View style={m.handle} accessibilityElementsHidden={true} />
+          <View style={[m.sheet, { backgroundColor: tc.card }]}>
+            <View style={[m.handle, { backgroundColor: tc.border }]} accessibilityElementsHidden={true} />
             <View style={m.header}>
               <View>
                 <Text style={m.headerLbl}>Artículo detectado</Text>
                 {item && <Text style={[m.headerCode, { color: tienda.color }]}>{item.itemId}</Text>}
               </View>
-              <TouchableOpacity onPress={cerrar} style={m.closeBtn}>
-                <Ionicons name="close" size={18} color={MTD} />
+              <TouchableOpacity onPress={cerrar} style={[m.closeBtn, { backgroundColor: tc.btnBg }]}>
+                <Ionicons name="close" size={18} color={tc.muted} />
               </TouchableOpacity>
             </View>
 
@@ -186,27 +188,27 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
               return (
                 <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                   {/* Info card */}
-                  <View style={m.infoCard}>
+                  <View style={[m.infoCard, { backgroundColor: tc.cardAlt, borderColor: tc.border }]}>
                     <View style={m.infoRow}>
                       <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} />
                       <Text style={m.infoUbic}>{item.ubicacion}</Text>
                     </View>
-                    <Text style={m.infoDesc}>{item.descripcion}</Text>
+                    <Text style={[m.infoDesc, { color: tc.text }]}>{item.descripcion}</Text>
                     <View style={m.infoStats}>
-                      <View style={m.infoStat}><Text style={m.infoStatLbl}>Stock sistema</Text><Text style={m.infoStatVal}>{item.stock}</Text></View>
-                      <View style={m.infoStatDiv} />
-                      <View style={m.infoStat}><Text style={m.infoStatLbl}>Costo unitario</Text><Text style={m.infoStatVal}>{fCOP(item.costo)}</Text></View>
+                      <View style={m.infoStat}><Text style={m.infoStatLbl}>Stock sistema</Text><Text style={[m.infoStatVal, { color: tc.text }]}>{item.stock}</Text></View>
+                      <View style={[m.infoStatDiv, { backgroundColor: tc.border }]} />
+                      <View style={m.infoStat}><Text style={m.infoStatLbl}>Costo unitario</Text><Text style={[m.infoStatVal, { color: tc.text }]}>{fCOP(item.costo)}</Text></View>
                     </View>
                   </View>
 
                   {/* Cantidad */}
-                  <Text style={m.fieldLbl}>Cantidad contada</Text>
+                  <Text style={[m.fieldLbl, { color: tc.muted }]}>Cantidad contada</Text>
                   <View style={m.cantWrap}>
                     <TouchableOpacity style={m.cantMinus} onPress={() => setCantidad(String(Math.max(0, (parseInt(cantidad, 10) || 0) - 1)))}>
                       <Ionicons name="remove" size={24} color="#DC2626" />
                     </TouchableOpacity>
                     <TextInput
-                      style={m.cantInput}
+                      style={[m.cantInput, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder, color: tc.text }]}
                       value={cantidad}
                       onChangeText={setCantidad}
                       keyboardType="numeric"
@@ -218,7 +220,7 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
                   </View>
 
                   {/* Delta */}
-                  <View style={[m.deltaBox, { backgroundColor: delta === 0 ? LGR : cfg.bg, borderColor: delta === 0 ? BRD : cfg.color + '50' }]}>
+                  <View style={[m.deltaBox, { backgroundColor: delta === 0 ? tc.cardAlt : cfg.bg, borderColor: delta === 0 ? tc.border : cfg.color + '50' }]}>
                     <Ionicons
                       name={delta > 0 ? 'trending-up' : delta < 0 ? 'trending-down' : 'checkmark-circle'}
                       size={16}
@@ -233,7 +235,7 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
                   </View>
 
                   {/* Foto */}
-                  <Text style={[m.fieldLbl, { marginTop: 14 }]}>Foto (opcional)</Text>
+                  <Text style={[m.fieldLbl, { marginTop: 14, color: tc.muted }]}>Foto (opcional)</Text>
                   {foto ? (
                     <TouchableOpacity style={m.fotoPreviewWrap} onPress={tomarFoto} activeOpacity={0.88}>
                       <Image source={{ uri: foto }} style={m.fotoPreview} resizeMode="cover" />
@@ -243,9 +245,9 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
                       </View>
                     </TouchableOpacity>
                   ) : (
-                    <TouchableOpacity style={m.fotoBtn} onPress={tomarFoto} activeOpacity={0.85}>
-                      <Ionicons name="camera-outline" size={18} color={MTD} style={{ marginRight: 8 }} />
-                      <Text style={m.fotoBtnTxt}>Tomar fotografía del artículo</Text>
+                    <TouchableOpacity style={[m.fotoBtn, { backgroundColor: tc.cardAlt, borderColor: tc.border }]} onPress={tomarFoto} activeOpacity={0.85}>
+                      <Ionicons name="camera-outline" size={18} color={tc.muted} style={{ marginRight: 8 }} />
+                      <Text style={[m.fotoBtnTxt, { color: tc.muted }]}>Tomar fotografía del artículo</Text>
                     </TouchableOpacity>
                   )}
 
@@ -257,9 +259,9 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
                     </Text>
                   </View>
                   <TextInput
-                    style={m.notaInput}
+                    style={[m.notaInput, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder, color: tc.text }]}
                     placeholder="Ej: Encontradas en bodega secundaria..."
-                    placeholderTextColor="#A1A1AA"
+                    placeholderTextColor={tc.placeholder}
                     value={nota}
                     onChangeText={t => setNota(t.slice(0, 200))}
                     maxLength={200}
@@ -280,20 +282,20 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
       {/* ── Modal: búsqueda manual ── */}
       <Modal visible={modalSearch} animationType="slide" transparent>
         <KeyboardAvoidingView style={m.bg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={[m.sheet, { maxHeight: '88%' }]}>
-            <View style={m.handle} />
+          <View style={[m.sheet, { maxHeight: '88%', backgroundColor: tc.card }]}>
+            <View style={[m.handle, { backgroundColor: tc.border }]} />
             <View style={m.header}>
               <Text style={m.headerLbl}>Buscar artículo</Text>
-              <TouchableOpacity onPress={cerrarB} style={m.closeBtn}>
-                <Ionicons name="close" size={18} color={MTD} />
+              <TouchableOpacity onPress={cerrarB} style={[m.closeBtn, { backgroundColor: tc.btnBg }]}>
+                <Ionicons name="close" size={18} color={tc.muted} />
               </TouchableOpacity>
             </View>
-            <View style={m.searchRow}>
-              <Ionicons name="search" size={16} color="#A1A1AA" style={{ marginRight: 8 }} />
+            <View style={[m.searchRow, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder }]}>
+              <Ionicons name="search" size={16} color={tc.icon} style={{ marginRight: 8 }} />
               <TextInput
-                style={{ flex: 1, fontSize: 15, color: BLK }}
+                style={{ flex: 1, fontSize: 15, color: tc.text, backgroundColor: tc.inputBg }}
                 placeholder="Últimos 6 dígitos o descripción..."
-                placeholderTextColor="#A1A1AA"
+                placeholderTextColor={tc.placeholder}
                 value={busq}
                 onChangeText={setBusq}
                 autoFocus
@@ -304,20 +306,20 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
                 </TouchableOpacity>
               ) : null}
             </View>
-            <Text style={m.searchHint}>Si la etiqueta está dañada, escribe los últimos 6 dígitos del código</Text>
+            <Text style={[m.searchHint, { color: tc.muted }]}>Si la etiqueta está dañada, escribe los últimos 6 dígitos del código</Text>
             <FlatList
               data={resultados}
               keyExtractor={i => i.itemId}
               keyboardShouldPersistTaps="handled"
               renderItem={({ item: it }) => (
-                <TouchableOpacity style={m.searchItem} onPress={() => { setSearch(false); setBusq(''); abrirItem(it); }}>
+                <TouchableOpacity style={[m.searchItem, { borderBottomColor: tc.border }]} onPress={() => { setSearch(false); setBusq(''); abrirItem(it); }}>
                   <View style={[m.searchDot, { backgroundColor: tienda.color }]} />
                   <View style={{ flex: 1 }}>
                     <Text style={[m.searchCode, { color: tienda.color }]}>{it.itemId}</Text>
-                    <Text style={m.searchDesc}>{it.descripcion}</Text>
-                    <Text style={m.searchMeta}>{it.ubicacion} · Stock: {it.stock} · {fCOP(it.costo)}</Text>
+                    <Text style={[m.searchDesc, { color: tc.text }]}>{it.descripcion}</Text>
+                    <Text style={[m.searchMeta, { color: tc.muted }]}>{it.ubicacion} · Stock: {it.stock} · {fCOP(it.costo)}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={BRD} />
+                  <Ionicons name="chevron-forward" size={16} color={tc.border} />
                 </TouchableOpacity>
               )}
               ListEmptyComponent={

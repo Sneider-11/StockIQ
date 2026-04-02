@@ -8,6 +8,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as XLSX from 'xlsx';
 import { Tienda, Articulo } from '../constants/data';
 import { PRP, BLK, LGR, BRD, MTD } from '../constants/colors';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 interface Props {
   tienda:          Tienda;
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export const ImportarScreen: React.FC<Props> = ({ tienda, catalogoActual = [], onImportar, onBack }) => {
+  const tc = useThemeColors();
   const [loading,  setLoading]  = useState(false);
   const [preview,  setPreview]  = useState<Articulo[]>([]);
   const [fileName, setFileName] = useState('');
@@ -62,15 +64,15 @@ export const ImportarScreen: React.FC<Props> = ({ tienda, catalogoActual = [], o
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: LGR }}>
+    <View style={{ flex: 1, backgroundColor: tc.bg }}>
       {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={onBack} style={s.backBtn}>
-          <Ionicons name="arrow-back" size={20} color={BLK} />
+      <View style={[s.header, { backgroundColor: tc.headerBg, borderBottomColor: tc.border }]}>
+        <TouchableOpacity onPress={onBack} style={[s.backBtn, { backgroundColor: tc.btnBg }]}>
+          <Ionicons name="arrow-back" size={20} color={tc.text} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={s.title}>Cargar inventario</Text>
-          <Text style={s.sub}>{tienda.nombre}</Text>
+          <Text style={[s.title, { color: tc.text }]}>Cargar inventario</Text>
+          <Text style={[s.sub, { color: tc.muted }]}>{tienda.nombre}</Text>
         </View>
       </View>
 
@@ -88,20 +90,20 @@ export const ImportarScreen: React.FC<Props> = ({ tienda, catalogoActual = [], o
         )}
 
         {/* Info */}
-        <View style={s.infoBox}>
+        <View style={[s.infoBox, { backgroundColor: tc.card, borderColor: tc.border }]}>
           <View style={[s.infoIcon, { backgroundColor: tienda.color }]}>
             <Ionicons name="information" size={16} color="#fff" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={s.infoTitle}>Formato esperado del Excel</Text>
-            <Text style={s.infoTxt}>
+            <Text style={[s.infoTitle, { color: tc.text }]}>Formato esperado del Excel</Text>
+            <Text style={[s.infoTxt, { color: tc.muted }]}>
               Sin encabezados · Col A: Item ID · B: Descripción · C: Ubicación · G: Stock · H: Costo Unitario
             </Text>
           </View>
         </View>
 
         {/* Zona de carga */}
-        <TouchableOpacity style={s.uploadZone} onPress={seleccionar} disabled={loading} activeOpacity={0.85}>
+        <TouchableOpacity style={[s.uploadZone, { backgroundColor: tc.card, borderColor: tc.border }]} onPress={seleccionar} disabled={loading} activeOpacity={0.85}>
           {loading ? (
             <>
               <ActivityIndicator color={PRP} size="large" />
@@ -113,15 +115,15 @@ export const ImportarScreen: React.FC<Props> = ({ tienda, catalogoActual = [], o
                 <Ionicons name="document-text" size={28} color="#15803D" />
               </View>
               <Text style={[s.uploadTxt, { color: '#15803D' }]}>{fileName}</Text>
-              <Text style={s.uploadSub}>Toca para cambiar el archivo</Text>
+              <Text style={[s.uploadSub, { color: tc.muted }]}>Toca para cambiar el archivo</Text>
             </>
           ) : (
             <>
-              <View style={s.uploadIconWrap}>
-                <Ionicons name="cloud-upload-outline" size={28} color="#A1A1AA" />
+              <View style={[s.uploadIconWrap, { backgroundColor: tc.cardAlt, borderColor: tc.border }]}>
+                <Ionicons name="cloud-upload-outline" size={28} color={tc.icon} />
               </View>
-              <Text style={s.uploadTxt}>Toca para seleccionar el archivo</Text>
-              <Text style={s.uploadSub}>.xlsx · Excel moderno</Text>
+              <Text style={[s.uploadTxt, { color: tc.muted }]}>Toca para seleccionar el archivo</Text>
+              <Text style={[s.uploadSub, { color: tc.muted }]}>.xlsx · Excel moderno</Text>
             </>
           )}
         </TouchableOpacity>
@@ -137,18 +139,18 @@ export const ImportarScreen: React.FC<Props> = ({ tienda, catalogoActual = [], o
         {preview.length > 0 && (
           <>
             <View style={s.prevHeader}>
-              <Text style={s.prevTitle}>{preview.length} artículos detectados</Text>
-              <Text style={s.prevSub}>Vista previa de las primeras 5 filas</Text>
+              <Text style={[s.prevTitle, { color: tc.text }]}>{preview.length} artículos detectados</Text>
+              <Text style={[s.prevSub, { color: tc.muted }]}>Vista previa de las primeras 5 filas</Text>
             </View>
 
             {preview.slice(0, 5).map((it, i) => (
-              <View key={i} style={s.prevRow}>
+              <View key={i} style={[s.prevRow, { backgroundColor: tc.card, borderColor: tc.border }]}>
                 <View style={[s.prevCode, { backgroundColor: '#EDE9FE' }]}>
                   <Text style={[s.prevCodeTxt, { color: PRP }]}>{it.itemId}</Text>
                 </View>
                 <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={s.prevDesc} numberOfLines={1}>{it.descripcion}</Text>
-                  <Text style={s.prevMeta}>{it.ubicacion} · Stock: {it.stock} · ${it.costo.toLocaleString('es-CO')}</Text>
+                  <Text style={[s.prevDesc, { color: tc.text }]} numberOfLines={1}>{it.descripcion}</Text>
+                  <Text style={[s.prevMeta, { color: tc.muted }]}>{it.ubicacion} · Stock: {it.stock} · ${it.costo.toLocaleString('es-CO')}</Text>
                 </View>
               </View>
             ))}

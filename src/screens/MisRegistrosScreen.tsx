@@ -29,6 +29,7 @@ export const MisRegistrosScreen: React.FC<Props> = ({
   usuario, tienda, registros, sobrantes, esAdmin, forzarSoloMios = false,
   onVolver, onEliminar, onEliminarSobrante, onEditarRegistro,
 }) => {
+  const tc = useThemeColors();
   // ── Filtros de la lista ────────────────────────────────────────────────────
   const [filtro,    setFiltro]    = useState('TODOS');
   const [busqueda,  setBusqueda]  = useState('');
@@ -170,43 +171,43 @@ export const MisRegistrosScreen: React.FC<Props> = ({
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <View style={{ flex: 1, backgroundColor: LGR }}>
+    <View style={{ flex: 1, backgroundColor: tc.bg }}>
 
       {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={onVolver} style={s.backBtn}>
-          <Ionicons name="arrow-back" size={20} color={BLK} />
+      <View style={[s.header, { backgroundColor: tc.headerBg, borderBottomColor: tc.border }]}>
+        <TouchableOpacity onPress={onVolver} style={[s.backBtn, { backgroundColor: tc.btnBg }]}>
+          <Ionicons name="arrow-back" size={20} color={tc.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.title} numberOfLines={1}>
+          <Text style={[s.title, { color: tc.text }]} numberOfLines={1}>
             {forzarSoloMios ? 'Mis registros' : esAdmin ? 'Todos los registros' : 'Mis registros'}
           </Text>
-          <Text style={s.sub} numberOfLines={1}>
+          <Text style={[s.sub, { color: tc.muted }]} numberOfLines={1}>
             {tienda.nombre} · {mis.length} escaneos · {misSobrantes.length} sobrantes
           </Text>
         </View>
       </View>
 
       {/* Búsqueda */}
-      <View style={s.searchBar}>
-        <Ionicons name="search-outline" size={16} color={MTD} style={{ marginLeft: 12 }} />
+      <View style={[s.searchBar, { backgroundColor: tc.headerBg, borderBottomColor: tc.border }]}>
+        <Ionicons name="search-outline" size={16} color={tc.muted} style={{ marginLeft: 12 }} />
         <TextInput
-          style={s.searchInput}
+          style={[s.searchInput, { color: tc.text, backgroundColor: tc.headerBg }]}
           placeholder="Buscar por código, descripción o usuario..."
-          placeholderTextColor="#A1A1AA"
+          placeholderTextColor={tc.placeholder}
           value={busqueda}
           onChangeText={setBusqueda}
           returnKeyType="search"
         />
         {busqueda !== '' && (
           <TouchableOpacity onPress={() => setBusqueda('')} style={{ paddingHorizontal: 12 }}>
-            <Ionicons name="close-circle" size={16} color={MTD} />
+            <Ionicons name="close-circle" size={16} color={tc.muted} />
           </TouchableOpacity>
         )}
       </View>
 
       {/* Tabs: Escaneos / Sobrantes */}
-      <View style={s.tabs}>
+      <View style={[s.tabs, { backgroundColor: tc.headerBg, borderBottomColor: tc.border }]}>
         <TouchableOpacity
           style={[s.tab, tabActiva === 'escaneos' && s.tabActiva]}
           onPress={() => setTabActiva('escaneos')}
@@ -234,7 +235,7 @@ export const MisRegistrosScreen: React.FC<Props> = ({
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={s.filterBar}
+            style={[s.filterBar, { backgroundColor: tc.headerBg, borderBottomColor: tc.border }]}
             contentContainerStyle={{ paddingHorizontal: 12, gap: 8, paddingVertical: 10 }}
           >
             {FILTROS.map(f => {
@@ -276,7 +277,7 @@ export const MisRegistrosScreen: React.FC<Props> = ({
               return (
                 /* ── Cada card abre el detalle del artículo ── */
                 <TouchableOpacity
-                  style={s.card}
+                  style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}
                   onPress={() => setDetalleReg(r)}
                   activeOpacity={0.88}
                 >
@@ -296,18 +297,18 @@ export const MisRegistrosScreen: React.FC<Props> = ({
                     )}
                   </View>
 
-                  <Text style={s.descTxt} numberOfLines={2}>{r.descripcion}</Text>
-                  <Text style={s.ubicTxt} numberOfLines={1}>{r.ubicacion}</Text>
+                  <Text style={[s.descTxt, { color: tc.text }]} numberOfLines={2}>{r.descripcion}</Text>
+                  <Text style={[s.ubicTxt, { color: tc.muted }]} numberOfLines={1}>{r.ubicacion}</Text>
 
-                  <View style={s.qtyRow}>
+                  <View style={[s.qtyRow, { backgroundColor: tc.cardAlt }]}>
                     {[
-                      { l: 'Sistema',    v: String(r.stockSistema), c: MTD },
+                      { l: 'Sistema',    v: String(r.stockSistema), c: tc.muted },
                       { l: 'Contado',    v: String(r.cantidad),     c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
                       { l: 'Diferencia', v: (delta > 0 ? '+' : '') + delta, c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
-                      { l: 'Impacto',    v: delta !== 0 ? fCOP(Math.abs(r.costoUnitario * delta)) : '—', c: MTD },
+                      { l: 'Impacto',    v: delta !== 0 ? fCOP(Math.abs(r.costoUnitario * delta)) : '—', c: tc.muted },
                     ].map(q => (
                       <View key={q.l} style={s.qtyBox}>
-                        <Text style={s.qtyLbl}>{q.l}</Text>
+                        <Text style={[s.qtyLbl, { color: tc.muted }]}>{q.l}</Text>
                         <Text style={[s.qtyVal, { color: q.c }]} numberOfLines={1}>{q.v}</Text>
                       </View>
                     ))}
@@ -377,7 +378,7 @@ export const MisRegistrosScreen: React.FC<Props> = ({
             </View>
           }
           renderItem={({ item: sb }) => (
-            <View style={s.sobranteCard}>
+            <View style={[s.sobranteCard, { backgroundColor: tc.card }]}>
               <View style={s.cardTop}>
                 <View style={[s.codeTag, { borderLeftColor: '#B45309' }]}>
                   <Text style={[s.codeTxt, { color: '#92400E' }]} numberOfLines={1}>{sb.codigo}</Text>
@@ -402,17 +403,17 @@ export const MisRegistrosScreen: React.FC<Props> = ({
                 )}
               </View>
 
-              <Text style={s.descTxt} numberOfLines={2}>{sb.descripcion}</Text>
-              <Text style={s.ubicTxt} numberOfLines={1}>{sb.ubicacion}</Text>
+              <Text style={[s.descTxt, { color: tc.text }]} numberOfLines={2}>{sb.descripcion}</Text>
+              <Text style={[s.ubicTxt, { color: tc.muted }]} numberOfLines={1}>{sb.ubicacion}</Text>
 
-              <View style={s.qtyRow}>
+              <View style={[s.qtyRow, { backgroundColor: tc.cardAlt }]}>
                 {[
-                  { l: 'Precio unit.', v: fCOP(sb.precio),              c: BLK },
-                  { l: 'Cantidad',     v: String(sb.cantidad),           c: BLK },
+                  { l: 'Precio unit.', v: fCOP(sb.precio),              c: tc.text },
+                  { l: 'Cantidad',     v: String(sb.cantidad),           c: tc.text },
                   { l: 'Total',        v: fCOP(sb.precio * sb.cantidad), c: '#15803D' },
                 ].map(q => (
                   <View key={q.l} style={s.qtyBox}>
-                    <Text style={s.qtyLbl}>{q.l}</Text>
+                    <Text style={[s.qtyLbl, { color: tc.muted }]}>{q.l}</Text>
                     <Text style={[s.qtyVal, { color: q.c }]} numberOfLines={1}>{q.v}</Text>
                   </View>
                 ))}
@@ -478,7 +479,7 @@ export const MisRegistrosScreen: React.FC<Props> = ({
             onPress={cerrarDetalle}
           />
 
-          <Animated.View style={[s.detalleSheet, { transform: [{ translateY: sheetY }, { translateY: panDy }] }]}>
+          <Animated.View style={[s.detalleSheet, { backgroundColor: tc.card, transform: [{ translateY: sheetY }, { translateY: panDy }] }]}>
             {/* Handle — área de agarre para deslizar hacia abajo */}
             <View {...panResponder.panHandlers} style={s.handleArea}>
               <View style={s.modalHandle} />
@@ -487,13 +488,13 @@ export const MisRegistrosScreen: React.FC<Props> = ({
             {detalleReg && (
               <>
                 {/* Header con color del artículo */}
-                <View style={[s.detalleHeader, { backgroundColor: cfgArticulo.bg }]}>
+                <View style={[s.detalleHeader, { backgroundColor: cfgArticulo.bg, borderBottomColor: tc.border }]}>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={[s.detalleEstado, { color: cfgArticulo.color }]}>{cfgArticulo.label}</Text>
-                    <Text style={s.detalleRef} numberOfLines={1}>{detalleReg.itemId}</Text>
+                    <Text style={[s.detalleRef, { color: tc.text }]} numberOfLines={1}>{detalleReg.itemId}</Text>
                   </View>
                   <TouchableOpacity onPress={cerrarDetalle} style={s.detalleClose}>
-                    <Ionicons name="close" size={20} color={BLK} />
+                    <Ionicons name="close" size={20} color={tc.text} />
                   </TouchableOpacity>
                 </View>
 
@@ -503,7 +504,7 @@ export const MisRegistrosScreen: React.FC<Props> = ({
                   showsVerticalScrollIndicator={false}
                 >
                   {/* Descripción y ubicación */}
-                  <Text style={s.detalleDesc}>{detalleReg.descripcion}</Text>
+                  <Text style={[s.detalleDesc, { color: tc.text }]}>{detalleReg.descripcion}</Text>
                   <Text style={s.detalleUbic}>{detalleReg.ubicacion}</Text>
 
                   {/* Grid de datos del artículo (suma de todos los conteos) */}
@@ -515,7 +516,7 @@ export const MisRegistrosScreen: React.FC<Props> = ({
                       { l: 'Valor unitario',  v: fCOP(detalleReg.costoUnitario),  c: MTD },
                       { l: 'Impacto total',   v: delta !== 0 ? (delta > 0 ? '+' : '') + fCOP(Math.abs(delta * detalleReg.costoUnitario)) : '—', c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
                     ].map(q => (
-                      <View key={q.l} style={s.detalleGridBox}>
+                      <View key={q.l} style={[s.detalleGridBox, { backgroundColor: tc.cardAlt, borderColor: tc.border }]}>
                         <Text style={s.detalleGridLbl}>{q.l}</Text>
                         <Text style={[s.detalleGridVal, { color: q.c }]} numberOfLines={1} adjustsFontSizeToFit>{q.v}</Text>
                       </View>
@@ -523,31 +524,31 @@ export const MisRegistrosScreen: React.FC<Props> = ({
                   </View>
 
                   {/* ── Lista de TODOS los conteos de este artículo ── */}
-                  <Text style={[s.secTitle, { marginTop: 16, marginBottom: 10 }]}>
+                  <Text style={[s.secTitle, { marginTop: 16, marginBottom: 10, color: tc.text }]}>
                     Conteos de este artículo ({hermanos.length})
                   </Text>
 
                   {hermanos.length === 0 ? (
-                    <View style={{ padding: 20, backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: BRD, alignItems: 'center' }}>
+                    <View style={{ padding: 20, backgroundColor: tc.card, borderRadius: 14, borderWidth: 1, borderColor: tc.border, alignItems: 'center' }}>
                       <Ionicons name="cube-outline" size={28} color="#A1A1AA" />
-                      <Text style={{ color: '#A1A1AA', fontSize: 13, marginTop: 8 }}>Sin conteos registrados</Text>
+                      <Text style={{ color: tc.muted, fontSize: 13, marginTop: 8 }}>Sin conteos registrados</Text>
                     </View>
                   ) : hermanos.map((reg, idx) => {
                     const esPropio  = reg.usuarioNombre === usuario.nombre;
                     const puedEdit  = puedeEditar(reg);
                     const cfgReg    = CLSF[reg.clasificacion];
                     return (
-                      <View key={reg.id} style={[s.regRow, esPropio && { borderLeftColor: tienda.color, borderLeftWidth: 3 }]}>
+                      <View key={reg.id} style={[s.regRow, { backgroundColor: tc.card, borderColor: tc.border }, esPropio && { borderLeftColor: tienda.color, borderLeftWidth: 3 }]}>
                         <View style={{ flex: 1 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                               <Avatar nombre={reg.usuarioNombre} size={26} bg={esPropio ? tienda.color : '#27272A'} />
                               <View>
-                                <Text style={s.regUsuario} numberOfLines={1}>
+                                <Text style={[s.regUsuario, { color: tc.text }]} numberOfLines={1}>
                                   {reg.usuarioNombre}
                                   {esPropio && <Text style={{ color: tienda.color }}> (tú)</Text>}
                                 </Text>
-                                <Text style={s.regFecha} numberOfLines={1}>{reg.escaneadoEn}</Text>
+                                <Text style={[s.regFecha, { color: tc.muted }]} numberOfLines={1}>{reg.escaneadoEn}</Text>
                               </View>
                             </View>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -586,26 +587,26 @@ export const MisRegistrosScreen: React.FC<Props> = ({
             {/* ── Overlay: editar cantidad ── */}
             {editRegId && (
               <Animated.View style={[StyleSheet.absoluteFillObject, s.editOverlayBg, { opacity: editOpacity }]}>
-                <View style={s.editCard} onStartShouldSetResponder={() => true}>
-                  <Text style={s.editTitle}>Editar cantidad</Text>
-                  <Text style={s.editSub}>
+                <View style={[s.editCard, { backgroundColor: tc.card }]} onStartShouldSetResponder={() => true}>
+                  <Text style={[s.editTitle, { color: tc.text }]}>Editar cantidad</Text>
+                  <Text style={[s.editSub, { color: tc.muted }]}>
                     {hermanos.find(r => r.id === editRegId)?.descripcion ?? ''}
                   </Text>
                   <TextInput
-                    style={s.editInput}
+                    style={[s.editInput, { color: tc.text, borderColor: PRP, backgroundColor: tc.inputBg }]}
                     value={editCantidad}
                     onChangeText={setEditCantidad}
                     keyboardType="numeric"
                     placeholder="Nueva cantidad"
-                    placeholderTextColor="#A1A1AA"
+                    placeholderTextColor={tc.placeholder}
                     autoFocus
                   />
                   <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
                     <TouchableOpacity
-                      style={[s.editAction, { backgroundColor: LGR, flex: 1 }]}
+                      style={[s.editAction, { backgroundColor: tc.btnBg, flex: 1 }]}
                       onPress={() => setEditRegId(null)}
                     >
-                      <Text style={{ color: BLK, fontWeight: '700', fontSize: 14 }}>Cancelar</Text>
+                      <Text style={{ color: tc.text, fontWeight: '700', fontSize: 14 }}>Cancelar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[s.editAction, { backgroundColor: PRP, flex: 1 }]}

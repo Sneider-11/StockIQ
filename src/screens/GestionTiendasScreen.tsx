@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tienda, IoniconName, PALETA_COLORES } from '../constants/data';
 import { genId } from '../utils/helpers';
 import { PRP, BLK, LGR, BRD, MTD } from '../constants/colors';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 interface Props {
   tiendas:     Tienda[];
@@ -22,6 +23,7 @@ const COLOR_DEFAULT = '#09090B';
 export const GestionTiendasScreen: React.FC<Props> = ({
   tiendas, onAgregar, onEditar, onEliminar, onVolver,
 }) => {
+  const tc = useThemeColors();
   const [modalVisible, setModalVisible] = useState(false);
   const [editandoId,   setEditandoId]   = useState<string | null>(null);
   const [nombre,  setNombre]  = useState('');
@@ -86,15 +88,15 @@ export const GestionTiendasScreen: React.FC<Props> = ({
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: LGR }}>
+    <View style={{ flex: 1, backgroundColor: tc.bg }}>
       {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={onVolver} style={s.backBtn}>
-          <Ionicons name="arrow-back" size={20} color={BLK} />
+      <View style={[s.header, { backgroundColor: tc.headerBg, borderBottomColor: tc.border }]}>
+        <TouchableOpacity onPress={onVolver} style={[s.backBtn, { backgroundColor: tc.btnBg }]}>
+          <Ionicons name="arrow-back" size={20} color={tc.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={s.title}>Gestión de tiendas</Text>
-          <Text style={s.sub}>{tiendas.length} tiendas registradas</Text>
+          <Text style={[s.title, { color: tc.text }]}>Gestión de tiendas</Text>
+          <Text style={[s.sub, { color: tc.muted }]}>{tiendas.length} tiendas registradas</Text>
         </View>
         <TouchableOpacity style={s.addBtn} onPress={abrirNueva}>
           <Ionicons name="add" size={20} color="#fff" />
@@ -120,16 +122,16 @@ export const GestionTiendasScreen: React.FC<Props> = ({
           </View>
         }
         renderItem={({ item: t }) => (
-          <View style={s.card}>
+          <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
             <View style={[s.colorDot, { backgroundColor: t.color }]}>
               <Ionicons name={t.icono} size={22} color="#fff" />
             </View>
             <View style={{ flex: 1, minWidth: 0, marginLeft: 14 }}>
-              <Text style={s.cardNombre} numberOfLines={1}>{t.nombre}</Text>
+              <Text style={[s.cardNombre, { color: tc.text }]} numberOfLines={1}>{t.nombre}</Text>
               {t.nit ? (
-                <Text style={s.cardNit} numberOfLines={1}>NIT: {t.nit}</Text>
+                <Text style={[s.cardNit, { color: tc.muted }]} numberOfLines={1}>NIT: {t.nit}</Text>
               ) : (
-                <Text style={s.cardNit}>Sin NIT registrado</Text>
+                <Text style={[s.cardNit, { color: tc.muted }]}>Sin NIT registrado</Text>
               )}
             </View>
             <View style={{ flexDirection: 'row', gap: 8, flexShrink: 0 }}>
@@ -147,23 +149,23 @@ export const GestionTiendasScreen: React.FC<Props> = ({
       {/* Modal Agregar / Editar */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <KeyboardAvoidingView style={s.modalBg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={s.modalSheet}>
+          <View style={[s.modalSheet, { backgroundColor: tc.card }]}>
             <View style={s.modalHandle} />
             <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>{editandoId ? 'Editar tienda' : 'Nueva tienda'}</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={s.modalClose}>
+              <Text style={[s.modalTitle, { color: tc.text }]}>{editandoId ? 'Editar tienda' : 'Nueva tienda'}</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={[s.modalClose, { backgroundColor: tc.btnBg }]}>
                 <Ionicons name="close" size={18} color={MTD} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {/* Preview */}
-              <View style={s.previewRow}>
+              <View style={[s.previewRow, { backgroundColor: tc.cardAlt }]}>
                 <View style={[s.previewIcon, { backgroundColor: color }]}>
                   <Ionicons name={ICONO_DEFAULT} size={28} color="#fff" />
                 </View>
                 <View style={{ flex: 1, minWidth: 0, marginLeft: 14 }}>
-                  <Text style={s.previewNombre} numberOfLines={1}>
+                  <Text style={[s.previewNombre, { color: tc.text }]} numberOfLines={1}>
                     {nombre.trim() || 'Nombre de tienda'}
                   </Text>
                   {nit.trim() ? (
@@ -176,14 +178,14 @@ export const GestionTiendasScreen: React.FC<Props> = ({
 
               {/* Campo nombre */}
               <Text style={s.fieldLabel}>Nombre de la tienda</Text>
-              <View style={s.inputWrap}>
-                <View style={s.inputIconWrap}>
-                  <Ionicons name="storefront-outline" size={16} color={MTD} />
+              <View style={[s.inputWrap, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder }]}>
+                <View style={[s.inputIconWrap, { borderRightColor: tc.border }]}>
+                  <Ionicons name="storefront-outline" size={16} color={tc.icon} />
                 </View>
                 <TextInput
-                  style={s.input}
+                  style={[s.input, { color: tc.text, backgroundColor: tc.inputBg }]}
                   placeholder="Ej: Tienda Norte"
-                  placeholderTextColor="#A1A1AA"
+                  placeholderTextColor={tc.placeholder}
                   value={nombre}
                   onChangeText={t => { setNombre(t); setError(''); }}
                   autoCapitalize="words"
@@ -194,14 +196,14 @@ export const GestionTiendasScreen: React.FC<Props> = ({
               <Text style={[s.fieldLabel, { marginTop: 14 }]}>
                 NIT  <Text style={s.optionalTag}>Opcional</Text>
               </Text>
-              <View style={s.inputWrap}>
-                <View style={s.inputIconWrap}>
-                  <Ionicons name="card-outline" size={16} color={MTD} />
+              <View style={[s.inputWrap, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder }]}>
+                <View style={[s.inputIconWrap, { borderRightColor: tc.border }]}>
+                  <Ionicons name="card-outline" size={16} color={tc.icon} />
                 </View>
                 <TextInput
-                  style={s.input}
+                  style={[s.input, { color: tc.text, backgroundColor: tc.inputBg }]}
                   placeholder="Ej: 900.123.456-7"
-                  placeholderTextColor="#A1A1AA"
+                  placeholderTextColor={tc.placeholder}
                   value={nit}
                   onChangeText={t => { setNit(t); setError(''); }}
                   keyboardType="default"
