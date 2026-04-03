@@ -21,7 +21,7 @@ export const ScreenTransition: React.FC<Props> = ({
   const translateY = useRef(new Animated.Value(slideOffset)).current;
 
   useEffect(() => {
-    Animated.parallel([
+    const anim = Animated.parallel([
       Animated.timing(opacity, {
         toValue:        1,
         duration,
@@ -33,7 +33,10 @@ export const ScreenTransition: React.FC<Props> = ({
         friction:       13,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]);
+    anim.start();
+    return () => anim.stop();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

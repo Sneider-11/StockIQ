@@ -25,7 +25,6 @@ import {
   BottomNavBar,
   PageLoader,
 } from './src/components/common';
-import type { NavTab } from './src/components/common';
 
 export default function App() {
   return (
@@ -39,7 +38,7 @@ export default function App() {
 const NAV_H = Platform.OS === 'ios' ? 82 : 64;
 
 // ── Pestañas para Admin / SuperAdmin (dentro de tienda) ──────────────────────
-const ADMIN_TABS: NavTab[] = [
+const ADMIN_TABS = [
   { key: 'tienda',        label: 'Inicio',     icon: 'home-outline',          iconActive: 'home' },
   { key: 'scanner',       label: 'Escanear',   icon: 'scan-outline',          iconActive: 'scan' },
   { key: 'resultados',    label: 'Resultados', icon: 'bar-chart-outline',     iconActive: 'bar-chart' },
@@ -48,7 +47,7 @@ const ADMIN_TABS: NavTab[] = [
 ];
 
 // ── Pestañas para Contador (dentro de tienda) ────────────────────────────────
-const CONTADOR_TABS: NavTab[] = [
+const CONTADOR_TABS = [
   { key: 'tienda',    label: 'Inicio',    icon: 'home-outline', iconActive: 'home' },
   { key: 'scanner',   label: 'Escanear',  icon: 'scan-outline', iconActive: 'scan' },
   { key: 'registros', label: 'Registros', icon: 'list-outline', iconActive: 'list' },

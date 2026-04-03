@@ -6,7 +6,7 @@
 import React, { useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Animated, Dimensions, Platform,
+  Animated, Platform, useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '../../hooks/useThemeColors';
@@ -25,34 +25,28 @@ interface Props {
   onSelect:  (key: string) => void;
 }
 
-const W = Dimensions.get('window').width;
+const PILL_W = 48;
 
 export const BottomNavBar: React.FC<Props> = ({ tabs, activeKey, onSelect }) => {
-  const tc     = useThemeColors();
-  const tabW   = W / tabs.length;
-  const PILL_W = 48;
+  const tc          = useThemeColors();
+  const { width: W } = useWindowDimensions();  // safe — always computed inside component
+  const tabW        = tabs.length > 0 ? W / tabs.length : W;
 
   const pillX  = useRef(new Animated.Value(0)).current;
   const scales = useRef(tabs.map(() => new Animated.Value(1))).current;
 
-  // Initialize pill position on first render
+  // Set pill to correct position whenever activeKey or dimensions change
   useEffect(() => {
     const idx = Math.max(0, tabs.findIndex(t => t.key === activeKey));
-    pillX.setValue(idx * tabW + tabW / 2 - PILL_W / 2);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Animate pill when activeKey changes
-  useEffect(() => {
-    const idx = tabs.findIndex(t => t.key === activeKey);
-    if (idx < 0) return;
+    const targetX = idx * tabW + tabW / 2 - PILL_W / 2;
     Animated.spring(pillX, {
-      toValue:         idx * tabW + tabW / 2 - PILL_W / 2,
+      toValue:         targetX,
       tension:         80,
       friction:        12,
       useNativeDriver: true,
     }).start();
-  }, [activeKey, tabs, tabW, pillX]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeKey, tabW]);
 
   const handlePress = (key: string, idx: number) => {
     if (key === activeKey) return;
@@ -111,38 +105,38 @@ export const BottomNavBar: React.FC<Props> = ({ tabs, activeKey, onSelect }) => 
 
 const s = StyleSheet.create({
   container: {
-    position:      'absolute',
-    bottom:        0,
-    left:          0,
-    right:         0,
-    flexDirection: 'row',
-    height:        Platform.OS === 'ios' ? 82 : 64,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 4,
+    position:       'absolute',
+    bottom:         0,
+    left:           0,
+    right:          0,
+    flexDirection:  'row',
+    height:         Platform.OS === 'ios' ? 82 : 64,
+    paddingBottom:  Platform.OS === 'ios' ? 20 : 4,
     borderTopWidth: StyleSheet.hairlineWidth,
-    shadowColor:   '#000',
-    shadowOffset:  { width: 0, height: -4 },
-    shadowOpacity: 0.10,
-    shadowRadius:  12,
-    elevation:     16,
+    shadowColor:    '#000',
+    shadowOffset:   { width: 0, height: -4 },
+    shadowOpacity:  0.10,
+    shadowRadius:   12,
+    elevation:      16,
   },
   pill: {
     position:        'absolute',
     top:             8,
-    width:           48,
+    width:           PILL_W,
     height:          40,
     borderRadius:    12,
     backgroundColor: PRP + '1E',  // ~12% opacity purple
   },
   tab: {
-    flex:            1,
-    alignItems:      'center',
-    justifyContent:  'center',
-    paddingTop:      6,
+    flex:           1,
+    alignItems:     'center',
+    justifyContent: 'center',
+    paddingTop:     6,
   },
   label: {
-    fontSize:    10,
-    fontWeight:  '600',
-    marginTop:   3,
+    fontSize:      10,
+    fontWeight:    '600',
+    marginTop:     3,
     letterSpacing: 0.1,
   },
 });

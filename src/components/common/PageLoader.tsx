@@ -11,56 +11,79 @@ import { PRP } from '../../constants/colors';
 export const PageLoader: React.FC = () => {
   const logoScale   = useRef(new Animated.Value(0.6)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
-  const ring1Scale  = useRef(new Animated.Value(0.5)).current;
-  const ring2Scale  = useRef(new Animated.Value(0.5)).current;
-  const ring3Scale  = useRef(new Animated.Value(0.5)).current;
-  const ring1Opacity = useRef(new Animated.Value(0.5)).current;
-  const ring2Opacity = useRef(new Animated.Value(0.5)).current;
-  const ring3Opacity = useRef(new Animated.Value(0.5)).current;
+  // One value per ring (0 = invisible/small, 1 = expanded/transparent)
+  const ring1 = useRef(new Animated.Value(0)).current;
+  const ring2 = useRef(new Animated.Value(0)).current;
+  const ring3 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Logo entrance
-    Animated.parallel([
+    // ── Logo entrance ────────────────────────────────────────────────────────
+    const logoAnim = Animated.parallel([
       Animated.spring(logoScale, {
         toValue: 1, tension: 70, friction: 9, useNativeDriver: true,
       }),
       Animated.timing(logoOpacity, {
         toValue: 1, duration: 400, useNativeDriver: true,
       }),
-    ]).start();
+    ]);
 
-    // Pulse rings — staggered
-    const pulse = (scale: Animated.Value, opacity: Animated.Value, delay: number) =>
-      Animated.loop(
+    // ── Pulse ring — single timing from 0→1 each iteration ──────────────────
+    // Animated.loop resets the value to the initial fromValue (0) on each restart.
+    const makePulse = (anim: Animated.Value, delay: number) => {
+      anim.setValue(0); // explicit reset so the first frame is correct
+      return Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
-          Animated.parallel([
-            Animated.timing(scale,   { toValue: 1.8, duration: 1000, useNativeDriver: true }),
-            Animated.timing(opacity, { toValue: 0,   duration: 1000, useNativeDriver: true }),
-          ]),
-          Animated.parallel([
-            Animated.timing(scale,   { toValue: 0.5, duration: 0,    useNativeDriver: true }),
-            Animated.timing(opacity, { toValue: 0.5, duration: 0,    useNativeDriver: true }),
-          ]),
+          Animated.timing(anim, {
+            toValue: 1, duration: 1400, useNativeDriver: true,
+          }),
         ]),
       );
+    };
 
-    pulse(ring1Scale, ring1Opacity, 0).start();
-    pulse(ring2Scale, ring2Opacity, 350).start();
-    pulse(ring3Scale, ring3Opacity, 700).start();
+    logoAnim.start();
+    const r1 = makePulse(ring1, 0);
+    const r2 = makePulse(ring2, 470);
+    const r3 = makePulse(ring3, 940);
+    r1.start();
+    r2.start();
+    r3.start();
+
+    // Stop all animations when component unmounts (prevents memory leaks)
+    return () => {
+      logoAnim.stop();
+      r1.stop();
+      r2.stop();
+      r3.stop();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Interpolations driven by the 0→1 value
+  const ringStyle = (anim: Animated.Value) => ({
+    transform: [{
+      scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1.9] }),
+    }],
+    opacity: anim.interpolate({
+      inputRange: [0, 0.4, 1],
+      outputRange: [0.7, 0.35, 0],
+    }),
+  });
 
   return (
     <View style={s.container}>
       <StatusBar style="light" />
 
       {/* Pulse rings */}
-      <Animated.View style={[s.ring, { transform: [{ scale: ring1Scale }], opacity: ring1Opacity }]} />
-      <Animated.View style={[s.ring, { transform: [{ scale: ring2Scale }], opacity: ring2Opacity }]} />
-      <Animated.View style={[s.ring, { transform: [{ scale: ring3Scale }], opacity: ring3Opacity }]} />
+      <Animated.View style={[s.ring, ringStyle(ring1)]} />
+      <Animated.View style={[s.ring, ringStyle(ring2)]} />
+      <Animated.View style={[s.ring, ringStyle(ring3)]} />
 
       {/* Logo box */}
-      <Animated.View style={[s.logoBox, { transform: [{ scale: logoScale }], opacity: logoOpacity }]}>
+      <Animated.View style={[
+        s.logoBox,
+        { transform: [{ scale: logoScale }], opacity: logoOpacity },
+      ]}>
         <Text style={s.logoLetter}>S</Text>
       </Animated.View>
 
@@ -98,11 +121,6 @@ const s = StyleSheet.create({
     alignItems:      'center',
     justifyContent:  'center',
     marginBottom:    18,
-    shadowColor:     PRP,
-    shadowOffset:    { width: 0, height: 8 },
-    shadowOpacity:   0.45,
-    shadowRadius:    20,
-    elevation:       12,
   },
   logoLetter: {
     fontSize:   38,
@@ -117,9 +135,9 @@ const s = StyleSheet.create({
     marginBottom:  6,
   },
   tagline: {
-    fontSize:   13,
-    fontWeight: '500',
-    color:      'rgba(255,255,255,0.35)',
+    fontSize:      13,
+    fontWeight:    '500',
+    color:         'rgba(255,255,255,0.35)',
     letterSpacing: 1,
   },
 });
