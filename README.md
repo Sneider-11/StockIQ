@@ -189,4 +189,4 @@ npx expo start --web      # Versión web (funcionalidad limitada)
 
 ## Licencia
 
-Proyecto privado · Grupo Comercial AudiMeyer  
+Proyecto privado · Grupo Comercial Orvion Tech
