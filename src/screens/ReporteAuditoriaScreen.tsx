@@ -115,7 +115,10 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
   const ceroPct    = Math.round(cero   / total * 100);
   const sinDifPct  = Math.round(sinDif / total * 100);
 
-  const { nivel: nivelR, color: colorR, bg: bgR, icon: iconR } = nivelRiesgo(pct, faltPct);
+  const { nivel: nivelR, color: colorR, bg: bgRLight, icon: iconR } = nivelRiesgo(pct, faltPct);
+  const bgR = tc.isDark
+    ? (nivelR === 'BAJO' ? '#0D2818' : nivelR === 'MEDIO' ? '#292014' : '#2D0A0A')
+    : bgRLight;
 
   const costoPerd  = artVista.filter(a => a.clsf === 'FALTANTE')
     .reduce((s, a) => s + a.costo * Math.abs(a.ct - a.stock), 0);
@@ -656,8 +659,12 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
   const renderEconomico = () => (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
       <View style={[s.balanceCard, {
-        backgroundColor: balance >= 0 ? '#F0FDF4' : '#FEF2F2',
-        borderColor:     balance >= 0 ? '#BBF7D0' : '#FECACA',
+        backgroundColor: balance >= 0
+          ? (tc.isDark ? '#0D2818' : '#F0FDF4')
+          : (tc.isDark ? '#2D0A0A' : '#FEF2F2'),
+        borderColor: balance >= 0
+          ? (tc.isDark ? '#166534' : '#BBF7D0')
+          : (tc.isDark ? '#7F1D1D' : '#FECACA'),
       }]}>
         <Text style={[s.balanceLbl, { color: balance >= 0 ? '#15803D' : '#DC2626' }]}>BALANCE GENERAL</Text>
         <Text style={[s.balanceNum, { color: balance >= 0 ? '#15803D' : '#DC2626' }]}>
@@ -706,7 +713,10 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
 
   const renderConclusiones = () => {
     const colNivel: Record<NivelObs, string> = { 'CRÍTICO': '#DC2626', ALERTA: '#B45309', OK: '#15803D', INFO: '#0369A1' };
-    const bgNivel:  Record<NivelObs, string> = { 'CRÍTICO': '#FEF2F2', ALERTA: '#FFFBEB', OK: '#F0FDF4', INFO: '#EFF6FF' };
+    const bgNivel:  Record<NivelObs, string> = tc.isDark
+      ? { 'CRÍTICO': '#2D0A0A', ALERTA: '#292014', OK: '#0D2818', INFO: '#0C1E2E' }
+      : { 'CRÍTICO': '#FEF2F2', ALERTA: '#FFFBEB', OK: '#F0FDF4', INFO: '#EFF6FF' };
+    const txtNivel = tc.isDark ? tc.text : '#1C1C1E';
     return (
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
         <View style={[s.card, { backgroundColor: tc.card, borderColor: tc.border }]}>
@@ -723,7 +733,7 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
                 style={{ marginRight: 10, marginTop: 2, flexShrink: 0 }} />
               <View style={{ flex: 1 }}>
                 <Text style={[s.obsNivel, { color: colNivel[o.nivel] }]}>{o.nivel}</Text>
-                <Text style={[s.obsTxt, { color: tc.text }]}>{o.texto}</Text>
+                <Text style={[s.obsTxt, { color: txtNivel }]}>{o.texto}</Text>
               </View>
             </View>
           ))}
@@ -742,7 +752,7 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
         </View>
 
         <View style={[s.card, { backgroundColor: tc.isDark ? '#1A1033' : '#F8F7FF', borderColor: PRP + '30' }]}>
-          <Text style={[s.cardTitle, { color: PRP }]}>Certificación del auditor</Text>
+          <Text style={[s.cardTitle, { color: tc.isDark ? '#E9D5FF' : PRP }]}>Certificación del auditor</Text>
           <Text style={{ fontSize: 12, color: tc.muted, lineHeight: 19 }}>
             Este informe ha sido preparado siguiendo los estándares internacionales de auditoría interna (IPPF) y las mejores prácticas para auditorías de inventario físico en el sector comercial.{'\n\n'}
             El sistema StockIQ certifica que los procedimientos de conteo fueron aplicados de acuerdo con los controles registrados y que los resultados reflejan fielmente la situación del inventario de <Text style={{ fontWeight: '700', color: tc.text }}>Orvion Tech</Text> a la fecha indicada.
