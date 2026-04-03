@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   Modal, Alert, FlatList, ScrollView, Vibration, KeyboardAvoidingView, Platform, Image,
+  Animated, Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -34,7 +35,19 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
   const [nota, setNota]          = useState('');
   const [foto, setFoto]          = useState<string | null>(null);
   const [flash, setFlash]        = useState(false);
-  const last = useRef<string | null>(null);
+  const last    = useRef<string | null>(null);
+  const scanAnim = useRef(new Animated.Value(-90)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanAnim, { toValue: 90, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(scanAnim, { toValue: -90, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
+    ).start();
+    return () => scanAnim.stopAnimation();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const abrirItem = (it: Articulo) => { setItem(it); setCantidad('1'); setNota(''); setFoto(null); setModal(true); setPausado(true); };
   const cerrar    = () => { setModal(false); setFoto(null); setTimeout(() => { last.current = null; setPausado(false); }, 250); };
@@ -146,9 +159,10 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
         <View style={s.frame}>
           <View style={[s.corner, s.tl]} /><View style={[s.corner, s.tr]} />
           <View style={[s.corner, s.bl]} /><View style={[s.corner, s.br]} />
-          <View style={s.frameCenter}>
-            <View style={[s.frameLine, { backgroundColor: tienda.color + 'CC' }]} />
-          </View>
+          <Animated.View style={[s.frameCenter, { transform: [{ translateY: scanAnim }] }]}>
+            <View style={[s.frameLine, { backgroundColor: tienda.color }]} />
+            <View style={[s.frameLineGlow, { backgroundColor: tienda.color }]} />
+          </Animated.View>
         </View>
         <Text style={s.frameHint}>Apunta al código QR o de barras</Text>
       </View>
@@ -359,8 +373,9 @@ const s = StyleSheet.create({
   tr: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 6 },
   bl: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 6 },
   br: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 6 },
-  frameCenter: { position: 'absolute', top: '50%', left: 0, right: 0, alignItems: 'center' },
-  frameLine:   { width: '80%', height: 2, borderRadius: 1 },
+  frameCenter:    { position: 'absolute', top: '50%', left: 0, right: 0, alignItems: 'center' },
+  frameLine:      { width: '80%', height: 2, borderRadius: 1 },
+  frameLineGlow:  { width: '80%', height: 8, borderRadius: 4, opacity: 0.25, marginTop: -4 },
   frameHint:   { color: 'rgba(255,255,255,0.65)', fontSize: 13, marginTop: 18 },
 
   bottom:      { backgroundColor: 'rgba(0,0,0,0.75)', paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 36, alignItems: 'center', gap: 12 },

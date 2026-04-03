@@ -8,7 +8,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { Tienda, Registro, Articulo, SobranteSinStock, CLSF, CATALOGO_BASE, Usuario } from '../constants/data';
 import { clasificar, fCOP } from '../utils/helpers';
-import { Avatar } from '../components/common';
+import { Avatar, AnimatedCounter } from '../components/common';
 import { PRP, BLK, LGR, BRD, MTD } from '../constants/colors';
 import { useThemeColors } from '../hooks/useThemeColors';
 
@@ -387,7 +387,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                       onPress={() => irDetalle(kpi.k as Filtro)} activeOpacity={0.82}>
                       <View style={[s.legendDot, { backgroundColor: kpi.color }]} />
                       <View style={{ flex: 1 }}>
-                        <Text style={[s.legendN, { color: kpi.color }]}>{kpi.n}</Text>
+                        <AnimatedCounter value={kpi.n} style={[s.legendN, { color: kpi.color }]} />
                         <Text style={[s.legendLbl, { color: kpi.color }]}>{kpi.label}</Text>
                       </View>
                       <Ionicons name="chevron-forward" size={14} color={kpi.color} style={{ opacity: 0.5 }} />

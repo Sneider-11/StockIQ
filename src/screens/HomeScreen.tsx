@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Usuario, Registro, Tienda } from '../constants/data';
 import { Avatar, SecHeader, RolBadge } from '../components/common';
@@ -26,6 +26,15 @@ export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
   const equipo     = usuarios.filter(u => u.rol !== 'SUPERADMIN');
   const admins     = equipo.filter(u => u.rol === 'ADMIN');
   const contadores = equipo.filter(u => u.rol === 'CONTADOR');
+
+  // Stagger entrance for tienda cards
+  const cardAnims = useRef(tiendas.map(() => new Animated.Value(0))).current;
+  useEffect(() => {
+    Animated.stagger(65, cardAnims.map(a =>
+      Animated.spring(a, { toValue: 1, tension: 80, friction: 12, useNativeDriver: true })
+    )).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <ScrollView
@@ -58,25 +67,31 @@ export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
       <View style={s.body}>
         <SecHeader title="Espacios de inventario" />
 
-        {tiendas.map(t => {
+        {tiendas.map((t, idx) => {
           const asignados = equipo.filter(u => u.tiendas.includes(t.id));
+          const anim = cardAnims[idx] ?? new Animated.Value(1);
           return (
-            <TouchableOpacity key={t.id} style={[s.tiendaCard, { backgroundColor: tc.card, borderColor: tc.border }]} onPress={() => onNavTienda(t)} activeOpacity={0.88}>
-              <View style={[s.tiendaIcon, { backgroundColor: t.color }]}>
-                <Ionicons name={t.icono} size={20} color="#fff" />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={[s.tiendaNombre, { color: tc.text }]} numberOfLines={1}>{t.nombre}</Text>
-                <Text style={[s.tiendaSub, { color: tc.muted }]} numberOfLines={1}>
-                  {asignados.length === 0
-                    ? 'Sin personal asignado'
-                    : asignados.map(u => u.nombre.split(' ')[0]).join(', ')}
-                </Text>
-              </View>
-              <View style={[s.chevronWrap, { backgroundColor: tc.btnBg }]}>
-                <Ionicons name="chevron-forward" size={16} color={tc.chevron} />
-              </View>
-            </TouchableOpacity>
+            <Animated.View key={t.id} style={{
+              opacity: anim,
+              transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+            }}>
+              <TouchableOpacity style={[s.tiendaCard, { backgroundColor: tc.card, borderColor: tc.border }]} onPress={() => onNavTienda(t)} activeOpacity={0.88}>
+                <View style={[s.tiendaIcon, { backgroundColor: t.color }]}>
+                  <Ionicons name={t.icono} size={20} color="#fff" />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={[s.tiendaNombre, { color: tc.text }]} numberOfLines={1}>{t.nombre}</Text>
+                  <Text style={[s.tiendaSub, { color: tc.muted }]} numberOfLines={1}>
+                    {asignados.length === 0
+                      ? 'Sin personal asignado'
+                      : asignados.map(u => u.nombre.split(' ')[0]).join(', ')}
+                  </Text>
+                </View>
+                <View style={[s.chevronWrap, { backgroundColor: tc.btnBg }]}>
+                  <Ionicons name="chevron-forward" size={16} color={tc.chevron} />
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
           );
         })}
 
@@ -152,6 +167,13 @@ export const HomeAdminScreen: React.FC<AdminProps> = ({
 }) => {
   const tc = useThemeColors();
   const misTiendas    = tiendas.filter(t => usuario.tiendas.includes(t.id));
+  const adminCardAnims = useRef(misTiendas.map(() => new Animated.Value(0))).current;
+  useEffect(() => {
+    Animated.stagger(65, adminCardAnims.map(a =>
+      Animated.spring(a, { toValue: 1, tension: 80, friction: 12, useNativeDriver: true })
+    )).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const misContadores = usuarios.filter(u =>
     u.rol === 'CONTADOR' &&
     u.tiendas.some(tid => usuario.tiendas.includes(tid))
@@ -186,22 +208,30 @@ export const HomeAdminScreen: React.FC<AdminProps> = ({
 
       <View style={s.body}>
         <SecHeader title="Mis tiendas" />
-        {misTiendas.map(t => (
-          <TouchableOpacity key={t.id} style={[s.tiendaCard, { backgroundColor: tc.card, borderColor: tc.border }]} onPress={() => onNavTienda(t)} activeOpacity={0.88}>
-            <View style={[s.tiendaIcon, { backgroundColor: t.color }]}>
-              <Ionicons name={t.icono} size={20} color="#fff" />
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={[s.tiendaNombre, { color: tc.text }]} numberOfLines={1}>{t.nombre}</Text>
-              <Text style={[s.tiendaSub, { color: tc.muted }]} numberOfLines={1}>
-                Toca para gestionar y escanear
-              </Text>
-            </View>
-            <View style={[s.chevronWrap, { backgroundColor: tc.btnBg }]}>
-              <Ionicons name="chevron-forward" size={16} color={tc.chevron} />
-            </View>
-          </TouchableOpacity>
-        ))}
+        {misTiendas.map((t, idx) => {
+          const anim = adminCardAnims[idx] ?? new Animated.Value(1);
+          return (
+            <Animated.View key={t.id} style={{
+              opacity: anim,
+              transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+            }}>
+              <TouchableOpacity style={[s.tiendaCard, { backgroundColor: tc.card, borderColor: tc.border }]} onPress={() => onNavTienda(t)} activeOpacity={0.88}>
+                <View style={[s.tiendaIcon, { backgroundColor: t.color }]}>
+                  <Ionicons name={t.icono} size={20} color="#fff" />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={[s.tiendaNombre, { color: tc.text }]} numberOfLines={1}>{t.nombre}</Text>
+                  <Text style={[s.tiendaSub, { color: tc.muted }]} numberOfLines={1}>
+                    Toca para gestionar y escanear
+                  </Text>
+                </View>
+                <View style={[s.chevronWrap, { backgroundColor: tc.btnBg }]}>
+                  <Ionicons name="chevron-forward" size={16} color={tc.chevron} />
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
+          );
+        })}
 
         {misContadores.length > 0 && (
           <>
@@ -242,6 +272,13 @@ export const HomeContadorScreen: React.FC<ContadorProps> = ({
 }) => {
   const tc = useThemeColors();
   const misTiendas = tiendas.filter(t => usuario.tiendas.includes(t.id));
+  const contCardAnims = useRef(misTiendas.map(() => new Animated.Value(0))).current;
+  useEffect(() => {
+    Animated.stagger(65, contCardAnims.map(a =>
+      Animated.spring(a, { toValue: 1, tension: 80, friction: 12, useNativeDriver: true })
+    )).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <ScrollView
@@ -280,22 +317,30 @@ export const HomeContadorScreen: React.FC<ContadorProps> = ({
             </Text>
           </View>
         )}
-        {misTiendas.map(t => (
-          <TouchableOpacity key={t.id} style={[s.tiendaCard, { backgroundColor: tc.card, borderColor: tc.border }]} onPress={() => onNavTienda(t)} activeOpacity={0.88}>
-            <View style={[s.tiendaIcon, { backgroundColor: t.color }]}>
-              <Ionicons name={t.icono} size={20} color="#fff" />
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={[s.tiendaNombre, { color: tc.text }]} numberOfLines={1}>{t.nombre}</Text>
-              <Text style={[s.tiendaSub, { color: tc.muted }]} numberOfLines={1}>
-                Toca para escanear artículos
-              </Text>
-            </View>
-            <View style={[s.chevronWrap, { backgroundColor: tc.btnBg }]}>
-              <Ionicons name="chevron-forward" size={16} color={tc.chevron} />
-            </View>
-          </TouchableOpacity>
-        ))}
+        {misTiendas.map((t, idx) => {
+          const anim = contCardAnims[idx] ?? new Animated.Value(1);
+          return (
+            <Animated.View key={t.id} style={{
+              opacity: anim,
+              transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }],
+            }}>
+              <TouchableOpacity style={[s.tiendaCard, { backgroundColor: tc.card, borderColor: tc.border }]} onPress={() => onNavTienda(t)} activeOpacity={0.88}>
+                <View style={[s.tiendaIcon, { backgroundColor: t.color }]}>
+                  <Ionicons name={t.icono} size={20} color="#fff" />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={[s.tiendaNombre, { color: tc.text }]} numberOfLines={1}>{t.nombre}</Text>
+                  <Text style={[s.tiendaSub, { color: tc.muted }]} numberOfLines={1}>
+                    Toca para escanear artículos
+                  </Text>
+                </View>
+                <View style={[s.chevronWrap, { backgroundColor: tc.btnBg }]}>
+                  <Ionicons name="chevron-forward" size={16} color={tc.chevron} />
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
+          );
+        })}
       </View>
     </ScrollView>
   );
