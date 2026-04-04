@@ -225,7 +225,7 @@ export const GestionEquipoScreen: React.FC<Props> = ({
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         ListEmptyComponent={
           <View style={s.emptyWrap}>
-            <View style={s.emptyIconWrap}>
+            <View style={[s.emptyIconWrap, { backgroundColor: tc.card, borderColor: tc.border }]}>
               <Ionicons name="people-outline" size={36} color="#A1A1AA" />
             </View>
             <Text style={s.emptyTitle}>Sin usuarios aún</Text>
@@ -382,7 +382,10 @@ export const GestionEquipoScreen: React.FC<Props> = ({
               {/* Activo/Inactivo (solo al editar) */}
               {editandoId && (
                 <TouchableOpacity
-                  style={[s.activoRow, activoSel ? s.activoRowOn : s.activoRowOff]}
+                  style={[s.activoRow, activoSel
+                    ? { backgroundColor: tc.isDark ? '#0D2818' : '#F0FDF4', borderColor: tc.isDark ? '#166534' : '#86EFAC' }
+                    : { backgroundColor: tc.isDark ? '#2D0A0A' : '#FEF2F2', borderColor: tc.isDark ? '#7F1D1D' : '#FECACA' }
+                  ]}
                   onPress={() => setActivoSel(!activoSel)}
                   activeOpacity={0.85}
                 >
@@ -428,23 +431,23 @@ export const GestionEquipoScreen: React.FC<Props> = ({
 
                     {/* Selector de rol inline (solo si está seleccionada y es SUPERADMIN) */}
                     {seleccionada && esSuperAdmin && (
-                      <View style={s.rolInlineRow}>
+                      <View style={[s.rolInlineRow, { backgroundColor: tc.cardAlt, borderColor: tc.border }]}>
                         <Ionicons name="shield-outline" size={13} color="#A1A1AA" style={{ marginRight: 6 }} />
                         <Text style={s.rolInlineLbl}>Cargo en {t.nombre.replace('Inventario ', '')}:</Text>
                         <View style={s.rolInlineBtns}>
                           <TouchableOpacity
-                            style={[s.rolPill, rolActual === 'ADMIN' && s.rolPillAdminSel]}
+                            style={[s.rolPill, { backgroundColor: tc.cardAlt, borderColor: tc.border }, rolActual === 'ADMIN' && s.rolPillAdminSel]}
                             onPress={() => setRolTienda(t.id, 'ADMIN')}
                           >
-                            <Text style={[s.rolPillTxt, rolActual === 'ADMIN' && { color: '#0369A1', fontWeight: '800' }]}>
+                            <Text style={[s.rolPillTxt, { color: tc.muted }, rolActual === 'ADMIN' && { color: '#0369A1', fontWeight: '800' }]}>
                               Admin
                             </Text>
                           </TouchableOpacity>
                           <TouchableOpacity
-                            style={[s.rolPill, rolActual === 'CONTADOR' && s.rolPillContSel]}
+                            style={[s.rolPill, { backgroundColor: tc.cardAlt, borderColor: tc.border }, rolActual === 'CONTADOR' && s.rolPillContSel]}
                             onPress={() => setRolTienda(t.id, 'CONTADOR')}
                           >
-                            <Text style={[s.rolPillTxt, rolActual === 'CONTADOR' && { color: '#374151', fontWeight: '800' }]}>
+                            <Text style={[s.rolPillTxt, { color: tc.muted }, rolActual === 'CONTADOR' && { color: '#374151', fontWeight: '800' }]}>
                               Contador
                             </Text>
                           </TouchableOpacity>

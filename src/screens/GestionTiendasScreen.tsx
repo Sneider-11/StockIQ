@@ -110,7 +110,7 @@ export const GestionTiendasScreen: React.FC<Props> = ({
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         ListEmptyComponent={
           <View style={s.emptyWrap}>
-            <View style={s.emptyIconWrap}>
+            <View style={[s.emptyIconWrap, { backgroundColor: tc.card, borderColor: tc.border }]}>
               <Ionicons name="storefront-outline" size={36} color="#A1A1AA" />
             </View>
             <Text style={s.emptyTitle}>Sin tiendas registradas</Text>

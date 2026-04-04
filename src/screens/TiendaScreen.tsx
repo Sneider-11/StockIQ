@@ -157,22 +157,47 @@ export const TiendaScreen: React.FC<Props> = ({
           <Text style={s.progSub} numberOfLines={1}>{contados} de {total} artículos · {regTienda.length} escaneos</Text>
         </View>
 
-        {/* Estadísticas — glassmorphism sobre el fondo coloreado del header */}
+        {/* Estadísticas — glassmorphism — 2 filas explícitas para alineación perfecta */}
         <View style={s.statsGrid}>
-          {(['SIN_DIF', 'FALTANTE', 'SOBRANTE', 'CERO'] as const).map((k, idx) => {
-            const cfg = CLSF[k];
-            const n   = regTienda.filter(r => r.clasificacion === k).length;
-            return (
-              <GlassStatCard
-                key={k}
-                anim={cardAnims[idx]}
-              >
-                <View style={[s.statAccent, { backgroundColor: cfg.dot }]} />
-                <Text style={[s.statN, { color: '#fff' }]} numberOfLines={1} adjustsFontSizeToFit>{n}</Text>
-                <Text style={s.statLbl} numberOfLines={1}>{cfg.label}</Text>
-              </GlassStatCard>
-            );
-          })}
+          {/* Fila 1: SIN_DIF + FALTANTE */}
+          <View style={s.statsRow}>
+            {(['SIN_DIF', 'FALTANTE'] as const).map((k, idx) => {
+              const cfg = CLSF[k];
+              const n   = regTienda.filter(r => r.clasificacion === k).length;
+              return (
+                <GlassStatCard
+                  key={k}
+                  anim={cardAnims[idx]}
+                  onPress={esAdmin ? () => onNavResultados(tienda) : undefined}
+                >
+                  <View style={[s.statAccent, { backgroundColor: cfg.dot }]} />
+                  <Text style={[s.statN, { color: '#fff' }]} numberOfLines={1} adjustsFontSizeToFit>{n}</Text>
+                  <Text style={s.statLbl} numberOfLines={1}>{cfg.label}</Text>
+                  {esAdmin && <Text style={s.statHint}>Ver →</Text>}
+                </GlassStatCard>
+              );
+            })}
+          </View>
+          {/* Fila 2: SOBRANTE + CERO */}
+          <View style={s.statsRow}>
+            {(['SOBRANTE', 'CERO'] as const).map((k, idx) => {
+              const cfg = CLSF[k];
+              const n   = regTienda.filter(r => r.clasificacion === k).length;
+              return (
+                <GlassStatCard
+                  key={k}
+                  anim={cardAnims[idx + 2]}
+                  onPress={esAdmin ? () => onNavResultados(tienda) : undefined}
+                >
+                  <View style={[s.statAccent, { backgroundColor: cfg.dot }]} />
+                  <Text style={[s.statN, { color: '#fff' }]} numberOfLines={1} adjustsFontSizeToFit>{n}</Text>
+                  <Text style={s.statLbl} numberOfLines={1}>{cfg.label}</Text>
+                  {esAdmin && <Text style={s.statHint}>Ver →</Text>}
+                </GlassStatCard>
+              );
+            })}
+          </View>
+          {/* Fila 3: Sobrantes sin stock (ancho completo, solo admin) */}
           {esAdmin && (
             <GlassStatCard
               anim={cardAnims[4]}
@@ -348,9 +373,10 @@ const s = StyleSheet.create({
   progFill:    { height: '100%', backgroundColor: '#fff', borderRadius: 4 },
   progSub:     { fontSize: 12, color: 'rgba(255,255,255,0.6)' },
 
-  statsGrid:     { flexDirection: 'row', flexWrap: 'wrap', paddingTop: 14, paddingBottom: 22, gap: 10 },
-  statCard:      { width: '47%', borderRadius: 18, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 14, elevation: 4 },
-  statCardWide:  { width: '100%', borderRadius: 18, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 14, elevation: 4 },
+  statsGrid:     { paddingTop: 14, paddingBottom: 22, gap: 10 },
+  statsRow:      { flexDirection: 'row', gap: 10 },
+  statCard:      { flex: 1, borderRadius: 18, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 14, elevation: 4 },
+  statCardWide:  { borderRadius: 18, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 14, elevation: 4 },
   statCardInner: { padding: 16, alignItems: 'center', position: 'relative' },
   statAccent:    { position: 'absolute', top: 0, left: 0, right: 0, height: 3, borderTopLeftRadius: 18, borderTopRightRadius: 18 },
   statN:         { fontSize: 28, fontWeight: '900', marginBottom: 3, marginTop: 4 },

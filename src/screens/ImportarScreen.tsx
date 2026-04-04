@@ -79,9 +79,9 @@ export const ImportarScreen: React.FC<Props> = ({ tienda, catalogoActual = [], o
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {/* Advertencia catálogo existente */}
         {catalogoActual.length > 0 && (
-          <View style={s.warnBox}>
-            <Ionicons name="warning" size={16} color="#92400E" style={{ marginRight: 10, marginTop: 1 }} />
-            <Text style={s.warnTxt}>
+          <View style={[s.warnBox, tc.isDark && { backgroundColor: '#292014', borderColor: '#78350F' }]}>
+            <Ionicons name="warning" size={16} color={tc.isDark ? '#FCD34D' : '#92400E'} style={{ marginRight: 10, marginTop: 1 }} />
+            <Text style={[s.warnTxt, tc.isDark && { color: '#FCD34D' }]}>
               Esta tienda ya tiene{' '}
               <Text style={{ fontWeight: '800' }}>{catalogoActual.length} artículos</Text>{' '}
               cargados. Al confirmar, el inventario será reemplazado completamente.
@@ -111,7 +111,7 @@ export const ImportarScreen: React.FC<Props> = ({ tienda, catalogoActual = [], o
             </>
           ) : fileName ? (
             <>
-              <View style={[s.uploadIconWrap, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}>
+              <View style={[s.uploadIconWrap, { backgroundColor: tc.isDark ? '#0D2818' : '#F0FDF4', borderColor: tc.isDark ? '#166534' : '#BBF7D0' }]}>
                 <Ionicons name="document-text" size={28} color="#15803D" />
               </View>
               <Text style={[s.uploadTxt, { color: '#15803D' }]}>{fileName}</Text>
@@ -129,8 +129,8 @@ export const ImportarScreen: React.FC<Props> = ({ tienda, catalogoActual = [], o
         </TouchableOpacity>
 
         {error ? (
-          <View style={s.errBox}>
-            <Ionicons name="warning" size={16} color="#DC2626" style={{ marginRight: 8 }} />
+          <View style={[s.errBox, tc.isDark && { backgroundColor: '#2D0A0A', borderLeftColor: '#F87171' }]}>
+            <Ionicons name="warning" size={16} color={tc.isDark ? '#F87171' : '#DC2626'} style={{ marginRight: 8 }} />
             <Text style={s.errTxt}>{error}</Text>
           </View>
         ) : null}
@@ -145,7 +145,7 @@ export const ImportarScreen: React.FC<Props> = ({ tienda, catalogoActual = [], o
 
             {preview.slice(0, 5).map((it, i) => (
               <View key={i} style={[s.prevRow, { backgroundColor: tc.card, borderColor: tc.border }]}>
-                <View style={[s.prevCode, { backgroundColor: '#EDE9FE' }]}>
+                <View style={[s.prevCode, { backgroundColor: tc.isDark ? '#2E1065' : '#EDE9FE' }]}>
                   <Text style={[s.prevCodeTxt, { color: PRP }]}>{it.itemId}</Text>
                 </View>
                 <View style={{ flex: 1, marginLeft: 10 }}>
