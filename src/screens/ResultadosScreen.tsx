@@ -5,6 +5,7 @@ import {
   Animated, Easing,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 import { Ionicons } from '@expo/vector-icons';
 import { Tienda, Registro, Articulo, SobranteSinStock, CLSF, CATALOGO_BASE, Usuario } from '../constants/data';
 import { clasificar, fCOP } from '../utils/helpers';
@@ -57,32 +58,84 @@ interface DonutSeg { value: number; color: string; }
 const DonutChart: React.FC<{ segments: DonutSeg[]; centerLabel: string; centerSub: string }> = ({
   segments, centerLabel, centerSub,
 }) => {
-  const tc = useThemeColors();
+  const tc            = useThemeColors();
   const r             = (DSIZE - STROKE) / 2;
   const cx            = DSIZE / 2;
   const cy            = DSIZE / 2;
   const circumference = 2 * Math.PI * r;
+  const circ          = circumference.toFixed(2);
   const total         = segments.reduce((a, s) => a + s.value, 0);
-  let   cumLen        = 0;
+
+  // One Animated.Value per segment (0 → 1 drives the draw animation)
+  const drawAnims = useRef(segments.map(() => new Animated.Value(0))).current;
+  const centerScale = useRef(new Animated.Value(0.7)).current;
+  const centerOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    drawAnims.forEach(a => a.setValue(0));
+    centerScale.setValue(0.7);
+    centerOpacity.setValue(0);
+
+    // Stagger draw: each segment draws in after the previous
+    const drawSeq = Animated.stagger(90, drawAnims.map(a =>
+      Animated.timing(a, {
+        toValue:         1,
+        duration:        650,
+        easing:          Easing.out(Easing.cubic),
+        useNativeDriver: false,   // SVG props can't use native driver
+      }),
+    ));
+    // Center label pops in after all segments start drawing
+    const centerAnim = Animated.parallel([
+      Animated.spring(centerScale,   { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }),
+      Animated.timing(centerOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+    ]);
+
+    drawSeq.start();
+    setTimeout(() => centerAnim.start(), 200);
+
+    return () => { drawSeq.stop(); centerAnim.stop(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  let cumLen = 0;
   return (
     <View style={{ width: DSIZE, height: DSIZE, alignSelf: 'center' }}>
       <Svg width={DSIZE} height={DSIZE}>
+        {/* Track ring */}
         <Circle cx={cx} cy={cy} r={r} stroke={tc.isDark ? '#3F3F46' : '#E4E4E7'} strokeWidth={STROKE} fill="none" />
+        {/* Animated segments */}
         {total > 0 && segments.map((seg, i) => {
           if (seg.value === 0) return null;
           const arcLen  = (seg.value / total) * circumference;
           const dashOff = circumference * 0.25 - cumLen;
           cumLen += arcLen;
+          const arcFixed = arcLen.toFixed(2);
+
+          const animDash = drawAnims[i].interpolate({
+            inputRange:  [0, 1],
+            outputRange: [`0 ${circ}`, `${arcFixed} ${circ}`],
+          });
           return (
-            <Circle key={i} cx={cx} cy={cy} r={r} stroke={seg.color} strokeWidth={STROKE} fill="none"
-              strokeDasharray={`${arcLen} ${circumference}`} strokeDashoffset={dashOff} />
+            <AnimatedCircle
+              key={i}
+              cx={cx} cy={cy} r={r}
+              stroke={seg.color}
+              strokeWidth={STROKE}
+              fill="none"
+              strokeDasharray={animDash as any}
+              strokeDashoffset={dashOff}
+            />
           );
         })}
       </Svg>
+      {/* Animated center label */}
       <View style={StyleSheet.absoluteFill as object}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ fontSize: 34, fontWeight: '900', color: tc.text, lineHeight: 38 }}>{centerLabel}</Text>
-          <Text style={{ fontSize: 12, color: tc.muted, marginTop: 2 }}>{centerSub}</Text>
+          <Animated.View style={{ transform: [{ scale: centerScale }], opacity: centerOpacity, alignItems: 'center' }}>
+            <Text style={{ fontSize: 34, fontWeight: '900', color: tc.text, lineHeight: 38 }}>{centerLabel}</Text>
+            <Text style={{ fontSize: 12, color: tc.muted, marginTop: 2 }}>{centerSub}</Text>
+          </Animated.View>
         </View>
       </View>
     </View>
