@@ -66,8 +66,9 @@ const DonutChart: React.FC<{ segments: DonutSeg[]; centerLabel: string; centerSu
   const circ          = circumference.toFixed(2);
   const total         = segments.reduce((a, s) => a + s.value, 0);
 
-  // One Animated.Value per segment (0 → 1 drives the draw animation)
-  const drawAnims = useRef(segments.map(() => new Animated.Value(0))).current;
+  // Un Animated.Value fijo por slot (4 = máximo de clasificaciones posibles)
+  // No se inicializa desde segments.length para evitar desajuste si el array cambia.
+  const drawAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
   const centerScale = useRef(new Animated.Value(0.7)).current;
   const centerOpacity = useRef(new Animated.Value(0)).current;
 

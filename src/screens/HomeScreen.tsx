@@ -106,7 +106,7 @@ export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
         <SecHeader title="Espacios de inventario" />
         {tiendas.map((t, idx) => {
           const asignados = equipo.filter(u => u.tiendas.includes(t.id));
-          const anim      = cardAnims[idx] ?? new Animated.Value(1);
+          const anim      = cardAnims[idx] ?? cardAnims[cardAnims.length - 1];
           return (
             <Animated.View key={t.id} style={{
               opacity:   anim,
@@ -259,7 +259,7 @@ export const HomeAdminScreen: React.FC<AdminProps> = ({
       <View style={s.body}>
         <SecHeader title="Mis tiendas" />
         {misTiendas.map((t, idx) => {
-          const anim = cardAnims[idx] ?? new Animated.Value(1);
+          const anim = cardAnims[idx] ?? cardAnims[cardAnims.length - 1];
           return (
             <Animated.View key={t.id} style={{
               opacity:   anim,
@@ -376,7 +376,7 @@ export const HomeContadorScreen: React.FC<ContadorProps> = ({
           </View>
         )}
         {misTiendas.map((t, idx) => {
-          const anim = cardAnims[idx] ?? new Animated.Value(1);
+          const anim = cardAnims[idx] ?? cardAnims[cardAnims.length - 1];
           return (
             <Animated.View key={t.id} style={{
               opacity:   anim,

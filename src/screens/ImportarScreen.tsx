@@ -39,14 +39,16 @@ export const ImportarScreen: React.FC<Props> = ({ tienda, catalogoActual = [], o
       const workbook    = XLSX.read(arrayBuffer, { type: 'array', cellText: true });
       const sheet       = workbook.Sheets[workbook.SheetNames[0]];
       const rows        = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false }) as any[][];
+      // Sanitización: limita longitud de campos para evitar datos malformados
+      const sanitize  = (v: string, max: number) => v.slice(0, max);
       const parsed: Articulo[] = rows
         .filter(r => r[0] && String(r[0]).trim())
         .map(r => ({
-          itemId:      String(r[0]).trim(),
-          descripcion: String(r[1] || '').trim(),
-          ubicacion:   String(r[2] || '').trim(),
-          stock:       parseInt(String(r[6] || '0').replace(/[^0-9]/g, ''), 10) || 0,
-          costo:       parseFloat(String(r[7] || '0').replace(/[^0-9.,]/g, '').replace(',', '.')) || 0,
+          itemId:      sanitize(String(r[0]).trim(), 60),
+          descripcion: sanitize(String(r[1] || '').trim(), 200),
+          ubicacion:   sanitize(String(r[2] || '').trim(), 100),
+          stock:       Math.max(0, parseInt(String(r[6] || '0').replace(/[^0-9]/g, ''), 10) || 0),
+          costo:       Math.max(0, parseFloat(String(r[7] || '0').replace(/[^0-9.,]/g, '').replace(',', '.')) || 0),
         }))
         .filter(r => r.itemId);
 

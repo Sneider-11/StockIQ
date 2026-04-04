@@ -277,7 +277,14 @@ export const TiendaScreen: React.FC<Props> = ({
           <>
             <SecHeader title="Control de acceso" />
             <TouchableOpacity
-              style={[s.actionCard, { backgroundColor: tc.card, borderColor: tc.border }, modoOffline && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}
+              style={[
+                s.actionCard,
+                { backgroundColor: tc.card, borderColor: tc.border },
+                modoOffline && {
+                  backgroundColor: tc.isDark ? '#2D0A0A' : '#FEF2F2',
+                  borderColor:     tc.isDark ? '#7F1D1D' : '#FECACA',
+                },
+              ]}
               activeOpacity={0.88}
               onPress={() => {
                 if (modoOffline) {
@@ -305,17 +312,17 @@ export const TiendaScreen: React.FC<Props> = ({
                 <Ionicons name={modoOffline ? 'lock-closed' : 'lock-open'} size={22} color="#fff" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[s.actionTitle, { color: tc.text }, modoOffline && { color: '#DC2626' }]} numberOfLines={1}>
+                <Text style={[s.actionTitle, { color: tc.text }, modoOffline && { color: tc.isDark ? '#F87171' : '#DC2626' }]} numberOfLines={1}>
                   Inventario {modoOffline ? 'OFFLINE' : 'ONLINE'}
                 </Text>
-                <Text style={[s.actionSub, { color: tc.muted }, modoOffline && { color: '#F87171' }]} numberOfLines={1}>
+                <Text style={[s.actionSub, { color: tc.muted }, modoOffline && { color: tc.isDark ? '#FCA5A5' : '#F87171' }]} numberOfLines={1}>
                   {modoOffline
                     ? `Cerrado por ${tienda.cerradoPor ?? 'administrador'} — toca para reactivar`
                     : 'Toca para cerrar el acceso de auditores'}
                 </Text>
               </View>
-              <View style={[s.actionArrow, { backgroundColor: tc.btnBg }, modoOffline && { backgroundColor: '#FEE2E2' }]}>
-                <Ionicons name="chevron-forward" size={16} color={modoOffline ? '#DC2626' : tc.chevron} />
+              <View style={[s.actionArrow, { backgroundColor: tc.btnBg }, modoOffline && { backgroundColor: tc.isDark ? '#4C1010' : '#FEE2E2' }]}>
+                <Ionicons name="chevron-forward" size={16} color={modoOffline ? (tc.isDark ? '#F87171' : '#DC2626') : tc.chevron} />
               </View>
             </TouchableOpacity>
           </>

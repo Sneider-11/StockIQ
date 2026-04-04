@@ -140,6 +140,9 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }
     demoName:      isDark ? '#FFFFFF'                        : BLK,
     demoCed:       isDark ? 'rgba(255,255,255,0.40)'         : MTD,
     verColor:      isDark ? 'rgba(255,255,255,0.18)'         : 'rgba(0,0,0,0.22)',
+    errBg:         isDark ? '#2D0A0A'                        : '#FEF2F2',
+    errBorder:     isDark ? '#F87171'                        : '#DC2626',
+    errTxt:        isDark ? '#F87171'                        : '#DC2626',
   };
 
   return (
@@ -195,9 +198,9 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }
           <Text style={[s.cardSub,   { color: t.sub   }]}>Ingresa con tu cédula y contraseña</Text>
 
           {mensajeExtra ? (
-            <View style={s.errBox}>
-              <Ionicons name="alert-circle" size={15} color="#DC2626" />
-              <Text style={s.errTxt}>{mensajeExtra}</Text>
+            <View style={[s.errBox, { backgroundColor: t.errBg, borderLeftColor: t.errBorder }]}>
+              <Ionicons name="alert-circle" size={15} color={t.errTxt} />
+              <Text style={[s.errTxt, { color: t.errTxt }]}>{mensajeExtra}</Text>
             </View>
           ) : null}
 
@@ -256,9 +259,9 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }
           </View>
 
           {error ? (
-            <View style={s.errBox} accessibilityLiveRegion="assertive">
-              <Ionicons name="alert-circle" size={15} color="#DC2626" />
-              <Text style={s.errTxt}>{error}</Text>
+            <View style={[s.errBox, { backgroundColor: t.errBg, borderLeftColor: t.errBorder }]} accessibilityLiveRegion="assertive">
+              <Ionicons name="alert-circle" size={15} color={t.errTxt} />
+              <Text style={[s.errTxt, { color: t.errTxt }]}>{error}</Text>
             </View>
           ) : null}
 

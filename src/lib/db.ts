@@ -57,7 +57,10 @@ function migrateRol(rol: string): Usuario['rol'] {
 
 export async function dbGetUsuarios(): Promise<Usuario[]> {
   if (!SUPABASE_LISTO) return [];
-  const { data, error } = await supabase.from('usuarios').select('*');
+  // Selecciona solo los campos necesarios — excluye 'pass' para no exponer contraseñas
+  const { data, error } = await supabase
+    .from('usuarios')
+    .select('id,cedula,nombre,rol,tiendas,tiendas_roles,telefono,activo,creado_por');
   if (error || !data) return [];
   return data.map(r => ({
     id:           r.id,
@@ -66,7 +69,7 @@ export async function dbGetUsuarios(): Promise<Usuario[]> {
     rol:          migrateRol(r.rol),
     tiendas:      r.tiendas ?? [],
     tiendasRoles: r.tiendas_roles ?? {},
-    pass:         r.pass,
+    pass:         '',  // Las contraseñas se gestionan localmente (SecureStore)
     telefono:     r.telefono ?? undefined,
     activo:       r.activo ?? true,
     creadoPor:    r.creado_por ?? undefined,
@@ -75,6 +78,7 @@ export async function dbGetUsuarios(): Promise<Usuario[]> {
 
 export async function dbInsertUsuario(u: Usuario): Promise<void> {
   if (!SUPABASE_LISTO) return;
+  // Nota: 'pass' se omite intencionalmente — las contraseñas son locales (SecureStore)
   await supabase.from('usuarios').upsert(
     {
       id:            u.id,
@@ -83,7 +87,6 @@ export async function dbInsertUsuario(u: Usuario): Promise<void> {
       rol:           u.rol,
       tiendas:       u.tiendas,
       tiendas_roles: u.tiendasRoles ?? {},
-      pass:          u.pass,
       telefono:      u.telefono ?? null,
       activo:        u.activo ?? true,
       creado_por:    u.creadoPor ?? null,

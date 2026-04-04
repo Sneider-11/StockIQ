@@ -30,13 +30,18 @@ async function loadPasswords(): Promise<PassMap> {
   try {
     const raw = await SecureStore.getItemAsync(KEYS.PASSWORDS);
     return raw ? (JSON.parse(raw) as PassMap) : {};
-  } catch { return {}; }
+  } catch (err) {
+    if (__DEV__) console.warn('[useAppState] loadPasswords error:', err);
+    return {};
+  }
 }
 
 async function savePasswords(map: PassMap): Promise<void> {
   try {
     await SecureStore.setItemAsync(KEYS.PASSWORDS, JSON.stringify(map));
-  } catch {}
+  } catch (err) {
+    if (__DEV__) console.warn('[useAppState] savePasswords error:', err);
+  }
 }
 
 // Migrar rol legacy 'AUDITOR' → 'ADMIN'
@@ -143,8 +148,9 @@ export function useAppState() {
         if (rawCatalogos)   setCatalogos(JSON.parse(rawCatalogos));
         if (rawSobrantes)   setSobrantes(JSON.parse(rawSobrantes));
         if (rawConfirmados) setConfirmadosCero(JSON.parse(rawConfirmados));
-      } catch {
+      } catch (err) {
         // Si algo falla, la app sigue con los datos iniciales
+        if (__DEV__) console.warn('[useAppState] Error al cargar datos locales:', err);
       } finally {
         setCargando(false);
       }
@@ -157,13 +163,19 @@ export function useAppState() {
     if (cargando || !SUPABASE_LISTO || sincronizado) return;
     const sincronizar = async () => {
       try {
-        const [sbTiendas, sbUsuarios, sbRegistros, sbCatalogos, sbSobrantes] = await Promise.all([
-          dbGetTiendas(),
-          dbGetUsuarios(),
-          dbGetRegistros(),
-          dbGetAllCatalogos(),
-          dbGetSobrantes(),
-        ]);
+        // Timeout de 10 s para no quedar bloqueado si Supabase no responde
+        const withTimeout = <T,>(p: Promise<T>, ms = 10000): Promise<T> =>
+          Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+
+        const [sbTiendas, sbUsuarios, sbRegistros, sbCatalogos, sbSobrantes] = await withTimeout(
+          Promise.all([
+            dbGetTiendas(),
+            dbGetUsuarios(),
+            dbGetRegistros(),
+            dbGetAllCatalogos(),
+            dbGetSobrantes(),
+          ]),
+        );
 
         // Tiendas: Supabase como base, locales tienen prioridad
         if (sbTiendas.length > 0) {
@@ -214,8 +226,9 @@ export function useAppState() {
         }
 
         setSincronizado(true);
-      } catch {
-        // Sin conexión — seguimos con datos locales
+      } catch (err) {
+        // Sin conexión o timeout — seguimos con datos locales
+        if (__DEV__) console.warn('[useAppState] Supabase sync falló:', err);
       }
     };
     sincronizar();

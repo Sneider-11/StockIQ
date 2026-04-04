@@ -181,18 +181,7 @@ export const PALETA_COLORES: string[] = [
   '#3F6212', '#4D7C0F', '#365314', '#14532D',
 ];
 
-// ─── COLORES DE LA APP ────────────────────────────────────────────────────────
-export const COLORS = {
-  primary:   '#7C3AED',
-  primaryDk: '#5B21B6',
-  primaryLt: '#8B5CF6',
-  accent:    '#EDE9FE',
-  dark:      '#09090B',
-  surface:   '#18181B',
-  muted:     '#71717A',
-  gray:      '#A1A1AA',
-  lightGray: '#F4F4F5',
-  border:    '#E4E4E7',
-  white:     '#FFFFFF',
-  green:     '#25D366',
-};
+// ─── COLORES DE LA APP ───────────────────────────────────────────────────────
+// Importa COLORS desde src/constants/colors.ts (definición canónica).
+// Este re-export existe solo por retrocompatibilidad.
+export { COLORS } from './colors';

@@ -105,6 +105,9 @@ export const BottomNavBar: React.FC<Props> = ({ tabs, activeKey, onSelect }) => 
               style={s.tab}
               onPress={() => handlePress(tab.key, idx)}
               activeOpacity={1}
+              accessibilityLabel={tab.label}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
             >
               <Animated.View
                 style={[s.tabInner, { transform: [{ scale: scales[idx] }] }]}
