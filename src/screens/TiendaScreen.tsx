@@ -105,20 +105,12 @@ export const TiendaScreen: React.FC<Props> = ({
   // CONTADOR: solo escanear + registros
   // ADMIN: + resultados + sobrantes
   // SUPERADMIN: + importar + limpiar
-  const misEscaneos = regTienda.filter(r => r.usuarioNombre === usuario.nombre).length;
-
+  // Solo incluye acciones que NO están en el BottomNavBar
+  // (Escanear, Mis Reg., Resultados y Equipo ya están en el menú inferior)
   const acciones: { icon: IoniconName; bg: string; title: string; sub: string; fn: () => void; badge?: string }[] = [
-    { icon: 'scan',        bg: tienda.color, title: 'Escanear artículo',    sub: 'Abrir cámara para contar',                                   fn: () => onNavScanner(tienda) },
-    { icon: 'list',        bg: '#27272A',    title: 'Registros de conteo',  sub: `${regTienda.length} escaneos totales en la tienda`,          fn: () => onNavRegistros(tienda) },
-    ...(esAdmin && onNavMisRegistros ? [
-      { icon: 'person-circle' as IoniconName, bg: '#6D28D9', title: 'Mis registros', sub: misEscaneos > 0 ? `${misEscaneos} escaneos propios` : 'Ver y editar mis propios conteos', fn: () => onNavMisRegistros(tienda) },
-    ] : []),
     ...(esAdmin ? [
+      { icon: 'list' as IoniconName, bg: '#27272A', title: 'Registros de conteo', sub: `${regTienda.length} escaneos totales en la tienda`, fn: () => onNavRegistros(tienda) },
       { icon: 'add-circle' as IoniconName, bg: '#92400E', title: 'Sobrantes sin Stock', sub: sobrantesTienda > 0 ? `${sobrantesTienda} registrados` : 'Artículos sin existencia en sistema', fn: () => onNavSobrantes(tienda), badge: sobrantesTienda > 0 ? String(sobrantesTienda) : undefined },
-    ] : []),
-    ...(esAdmin ? [
-      { icon: 'pie-chart'    as IoniconName, bg: '#4C1D95', title: 'Resultados',             sub: 'Análisis, artículos y resumen económico',   fn: () => onNavResultados(tienda) },
-      { icon: 'people'       as IoniconName, bg: '#0369A1', title: 'Gestionar equipo',        sub: `${equipoTienda.length} persona${equipoTienda.length !== 1 ? 's' : ''} asignada${equipoTienda.length !== 1 ? 's' : ''}`, fn: () => onNavEquipo?.() },
     ] : []),
     ...(esSuperAdmin
       ? [{ icon: 'cloud-upload' as IoniconName, bg: '#09090B', title: 'Cargar inventario Excel', sub: CAT.length > 0 ? `${CAT.length} artículos cargados` : 'Sin inventario cargado', fn: () => onNavImportar(tienda) }]
@@ -174,12 +166,10 @@ export const TiendaScreen: React.FC<Props> = ({
               <GlassStatCard
                 key={k}
                 anim={cardAnims[idx]}
-                onPress={esAdmin ? () => onNavResultados(tienda) : undefined}
               >
                 <View style={[s.statAccent, { backgroundColor: cfg.dot }]} />
                 <Text style={[s.statN, { color: '#fff' }]} numberOfLines={1} adjustsFontSizeToFit>{n}</Text>
                 <Text style={s.statLbl} numberOfLines={1}>{cfg.label}</Text>
-                {esAdmin && <Text style={s.statHint}>Ver →</Text>}
               </GlassStatCard>
             );
           })}
@@ -203,7 +193,7 @@ export const TiendaScreen: React.FC<Props> = ({
       </View>
 
       <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
-        <SecHeader title="Acciones" />
+        {acciones.length > 0 && <SecHeader title="Acciones" />}
         {acciones.map(ac => (
           <TouchableOpacity key={ac.title} style={[s.actionCard, { backgroundColor: tc.card, borderColor: tc.border }]} onPress={ac.fn} activeOpacity={0.88}>
             <View style={[s.actionIcon, { backgroundColor: ac.bg }]}>
