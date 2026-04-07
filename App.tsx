@@ -107,7 +107,7 @@ function AppInner() {
     <View style={{ flex: 1 }}>
       <StatusBar style={statusStyle} />
       <View style={{ flex: 1, paddingBottom: showBottomNav ? NAV_H : 0 }}>
-        <ScreenTransition key={pantalla}>
+        <ScreenTransition screenKey={pantalla}>
           {content}
         </ScreenTransition>
       </View>
@@ -168,7 +168,7 @@ function AppInner() {
     return (
       <>
         <StatusBar style="light" />
-        <ScreenTransition key="perfil">
+        <ScreenTransition screenKey="perfil">
           <PerfilScreen
             usuario={usuario}
             registros={registros}
@@ -189,7 +189,7 @@ function AppInner() {
     return (
       <>
         <StatusBar style="dark" />
-        <ScreenTransition key="tiendas">
+        <ScreenTransition screenKey="tiendas">
           <GestionTiendasScreen
             tiendas={tiendas}
             onAgregar={agregarTienda}
@@ -223,7 +223,7 @@ function AppInner() {
     return (
       <>
         <StatusBar style="dark" />
-        <ScreenTransition key="equipo">
+        <ScreenTransition screenKey="equipo">
           {equipoScreen}
         </ScreenTransition>
       </>
@@ -235,7 +235,7 @@ function AppInner() {
     return (
       <>
         <StatusBar style="dark" />
-        <ScreenTransition key="reporte">
+        <ScreenTransition screenKey="reporte">
           <ReporteAuditoriaScreen
             tienda={tiendaActiva}
             registros={registros}
@@ -255,7 +255,7 @@ function AppInner() {
     return (
       <>
         <StatusBar style="dark" />
-        <ScreenTransition key="importar">
+        <ScreenTransition screenKey="importar">
           <ImportarScreen
             tienda={tiendaActiva}
             catalogoActual={catalogos[tiendaActiva.id] ?? []}
@@ -400,7 +400,7 @@ function AppInner() {
     return (
       <>
         <StatusBar style="light" />
-        <ScreenTransition key="home-superadmin">
+        <ScreenTransition screenKey="home-superadmin">
           <HomeSuperAdminScreen
             usuario={usuario}
             usuarios={usuarios}
@@ -421,7 +421,7 @@ function AppInner() {
     return (
       <>
         <StatusBar style="light" />
-        <ScreenTransition key="home-admin">
+        <ScreenTransition screenKey="home-admin">
           <HomeAdminScreen
             usuario={usuario}
             usuarios={usuarios}
@@ -440,7 +440,7 @@ function AppInner() {
   return (
     <>
       <StatusBar style="light" />
-      <ScreenTransition key="home-contador">
+      <ScreenTransition screenKey="home-contador">
         <HomeContadorScreen
           usuario={usuario}
           tiendas={tiendas}
