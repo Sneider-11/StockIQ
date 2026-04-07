@@ -471,12 +471,12 @@ const s = StyleSheet.create({
 
   // Tarjeta glassmorphism
   card: {
-    borderRadius: 28, padding: 24, marginBottom: 16, borderWidth: 1,
+    borderRadius: 28, padding: 24, marginBottom: 16, borderWidth: StyleSheet.hairlineWidth,
     shadowColor: '#000', shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.20, shadowRadius: 36, elevation: 18, overflow: 'hidden',
   },
   glassHighlight: {
-    position: 'absolute', top: 0, left: 32, right: 32, height: 1,
+    position: 'absolute', top: 0, left: 0, right: 0, height: StyleSheet.hairlineWidth,
   },
   cardTitle: { fontSize: 22, fontWeight: '800', marginBottom: 4, letterSpacing: -0.3 },
   cardSub:   { fontSize: 13, marginBottom: 24 },

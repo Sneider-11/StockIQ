@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react
 import { StatusBar } from 'expo-status-bar';
 import { useAppState } from './src/hooks/useAppState';
 import { getRolEnTienda } from './src/utils/helpers';
-import { ThemeProvider } from './src/context/ThemeContext';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import {
   LoginScreen,
   HomeSuperAdminScreen,
@@ -26,10 +26,21 @@ import {
   PageLoader,
 } from './src/components/common';
 
+function AppBackground({ children }: { children: React.ReactNode }) {
+  const { isDark } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: isDark ? '#030305' : '#F4F4F5' }}>
+      {children}
+    </View>
+  );
+}
+
 export default function App() {
   return (
     <ThemeProvider>
-      <AppInner />
+      <AppBackground>
+        <AppInner />
+      </AppBackground>
     </ThemeProvider>
   );
 }
