@@ -17,6 +17,7 @@
     "expo-camera": "~17.0.10",
     "expo-document-picker": "~14.0.8",
     "expo-image-picker": "~17.0.10",
+    "expo-linear-gradient": "~15.0.8",
     "expo-print": "~15.0.8",
     "expo-secure-store": "~15.0.8",
     "expo-sharing": "~14.0.8",

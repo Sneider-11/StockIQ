@@ -1,18 +1,15 @@
 /**
- * LiquidGlass.tsx
- * Efecto "Liquid Glass" inspirado en el diseño Apple 2026.
- * Capas apiladas de rgba, highlight especular en el borde superior
- * y sombra difusa dan la ilusión de vidrio líquido traslúcido.
- *
- * Uso:
- *   <LiquidGlass>...</LiquidGlass>
- *   <LiquidGlass tint="purple" intensity="strong">...</LiquidGlass>
- *   <LiquidGlass tint="dark" radius={28}>...</LiquidGlass>
+ * LiquidGlass.tsx — Dark Space Edition 2026
+ * Tres capas apiladas para profundidad máxima:
+ *   1. Fill traslúcido (el "cuerpo" del vidrio)
+ *   2. Inner glow (brillo de acento desde abajo)
+ *   3. Specular highlight (reflejo especular en borde superior)
+ * Sombra exterior doble: oscura + acento de color.
  */
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 
-type Tint      = 'light' | 'dark' | 'purple' | 'rose' | 'teal';
+type Tint      = 'light' | 'dark' | 'purple' | 'rose' | 'teal' | 'indigo' | 'amber';
 type Intensity = 'subtle' | 'medium' | 'strong';
 
 interface Props {
@@ -24,28 +21,70 @@ interface Props {
   padding?:   number;
 }
 
-// ── Tokens de vidrio por tinte ────────────────────────────────────────────────
-const GLASS: Record<Tint, { fill: string; rim: string; shine: string; shadow: string }> = {
-  light:  { fill: 'rgba(255,255,255,0.10)', rim: 'rgba(255,255,255,0.28)', shine: 'rgba(255,255,255,0.22)', shadow: 'rgba(0,0,0,0.22)' },
-  dark:   { fill: 'rgba(12,12,14,0.55)',   rim: 'rgba(255,255,255,0.14)', shine: 'rgba(255,255,255,0.07)', shadow: 'rgba(0,0,0,0.45)' },
-  purple: { fill: 'rgba(109,40,217,0.22)', rim: 'rgba(192,168,255,0.35)', shine: 'rgba(192,168,255,0.15)', shadow: 'rgba(109,40,217,0.35)' },
-  rose:   { fill: 'rgba(190,18,60,0.18)',  rim: 'rgba(253,164,175,0.35)', shine: 'rgba(253,164,175,0.12)', shadow: 'rgba(190,18,60,0.30)' },
-  teal:   { fill: 'rgba(15,118,110,0.20)', rim: 'rgba(94,234,212,0.35)', shine: 'rgba(94,234,212,0.12)',  shadow: 'rgba(15,118,110,0.30)' },
-};
-
-const BLUR_OPACITY: Record<Intensity, number> = {
-  subtle: 0.7,
-  medium: 1.0,
-  strong: 1.0,
+const GLASS: Record<Tint, {
+  fill:    string;
+  rim:     string;
+  shine:   string;
+  shadow:  string;
+  glow:    string;
+}> = {
+  light:  {
+    fill:   'rgba(255,255,255,0.09)',
+    rim:    'rgba(255,255,255,0.30)',
+    shine:  'rgba(255,255,255,0.22)',
+    shadow: 'rgba(0,0,0,0.30)',
+    glow:   'rgba(255,255,255,0.04)',
+  },
+  dark:   {
+    fill:   'rgba(10,10,14,0.65)',
+    rim:    'rgba(255,255,255,0.12)',
+    shine:  'rgba(255,255,255,0.07)',
+    shadow: 'rgba(0,0,0,0.55)',
+    glow:   'rgba(124,58,237,0.06)',
+  },
+  purple: {
+    fill:   'rgba(88,28,200,0.20)',
+    rim:    'rgba(192,168,255,0.38)',
+    shine:  'rgba(192,168,255,0.18)',
+    shadow: 'rgba(88,28,200,0.45)',
+    glow:   'rgba(167,139,250,0.12)',
+  },
+  indigo: {
+    fill:   'rgba(67,56,202,0.20)',
+    rim:    'rgba(165,180,252,0.38)',
+    shine:  'rgba(165,180,252,0.16)',
+    shadow: 'rgba(67,56,202,0.40)',
+    glow:   'rgba(129,140,248,0.12)',
+  },
+  rose:   {
+    fill:   'rgba(190,18,60,0.18)',
+    rim:    'rgba(253,164,175,0.38)',
+    shine:  'rgba(253,164,175,0.14)',
+    shadow: 'rgba(190,18,60,0.35)',
+    glow:   'rgba(251,113,133,0.10)',
+  },
+  teal:   {
+    fill:   'rgba(13,148,136,0.18)',
+    rim:    'rgba(94,234,212,0.38)',
+    shine:  'rgba(94,234,212,0.14)',
+    shadow: 'rgba(13,148,136,0.35)',
+    glow:   'rgba(45,212,191,0.10)',
+  },
+  amber:  {
+    fill:   'rgba(180,83,9,0.18)',
+    rim:    'rgba(252,211,77,0.38)',
+    shine:  'rgba(252,211,77,0.14)',
+    shadow: 'rgba(180,83,9,0.35)',
+    glow:   'rgba(251,191,36,0.10)',
+  },
 };
 
 const FILL_BOOST: Record<Intensity, number> = {
-  subtle: 0.5,
+  subtle: 0.55,
   medium: 1.0,
-  strong: 1.6,
+  strong: 1.7,
 };
 
-// ── Componente ────────────────────────────────────────────────────────────────
 export const LiquidGlass: React.FC<Props> = ({
   children,
   tint      = 'light',
@@ -54,46 +93,55 @@ export const LiquidGlass: React.FC<Props> = ({
   style,
   padding   = 16,
 }) => {
-  const g      = GLASS[tint];
-  const boost  = FILL_BOOST[intensity];
-  const opaque = BLUR_OPACITY[intensity];
+  const g     = GLASS[tint];
+  const boost = FILL_BOOST[intensity];
 
   return (
     <View
       style={[
         s.outer,
         {
-          borderRadius:    radius,
-          borderColor:     g.rim,
-          shadowColor:     g.shadow,
-          opacity:         opaque,
+          borderRadius: radius,
+          borderColor:  g.rim,
+          shadowColor:  g.shadow,
         },
         style,
       ]}
     >
-      {/* Capa de relleno traslúcido */}
+      {/* Capa 1 — Fill traslúcido */}
       <View
-        style={[
-          StyleSheet.absoluteFill,
-          { borderRadius: radius, backgroundColor: g.fill },
-        ]}
+        style={[StyleSheet.absoluteFill, { borderRadius: radius, backgroundColor: g.fill }]}
         pointerEvents="none"
       />
 
-      {/* Specular highlight — borde superior brillante */}
+      {/* Capa 2 — Inner glow desde abajo (acento de color) */}
       <View
         style={[
-          s.shine,
+          StyleSheet.absoluteFill,
           {
-            borderRadius:    radius,
-            borderTopColor:  g.shine,
-            borderLeftColor: `rgba(255,255,255,${0.06 * boost})`,
+            borderRadius: radius,
+            backgroundColor: 'transparent',
+            borderBottomColor: g.glow,
+            borderBottomWidth: 60,
+            opacity: boost * 0.8,
           },
         ]}
         pointerEvents="none"
       />
 
-      {/* Contenido */}
+      {/* Capa 3 — Specular highlight borde superior + izquierdo */}
+      <View
+        style={[
+          s.shine,
+          {
+            borderRadius: radius,
+            borderTopColor:  g.shine,
+            borderLeftColor: `rgba(255,255,255,${0.05 * boost})`,
+          },
+        ]}
+        pointerEvents="none"
+      />
+
       <View style={{ padding }}>
         {children}
       </View>
@@ -101,7 +149,6 @@ export const LiquidGlass: React.FC<Props> = ({
   );
 };
 
-// ── Variante plana (sin padding — para usar en listas) ────────────────────────
 export const LiquidGlassFlat: React.FC<Omit<Props, 'padding'>> = (props) => (
   <LiquidGlass {...props} padding={0} />
 );
@@ -110,16 +157,17 @@ const s = StyleSheet.create({
   outer: {
     borderWidth:   1,
     overflow:      'hidden',
-    shadowOffset:  { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius:  24,
-    elevation:     10,
+    // Sombra doble: exterior fuerte + difusa amplia
+    shadowOffset:  { width: 0, height: 12 },
+    shadowOpacity: 0.40,
+    shadowRadius:  32,
+    elevation:     14,
   },
   shine: {
     ...StyleSheet.absoluteFillObject,
-    borderWidth:        1.5,
-    borderColor:        'transparent',
-    borderBottomColor:  'transparent',
-    borderRightColor:   'transparent',
+    borderWidth:       1.5,
+    borderColor:       'transparent',
+    borderBottomColor: 'transparent',
+    borderRightColor:  'transparent',
   },
 });

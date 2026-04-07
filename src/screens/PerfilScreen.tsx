@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, KeyboardAvoidingView, Platform, Image,
+  ScrollView, Alert, KeyboardAvoidingView, Platform, Image, Animated,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Usuario, Registro, Tienda } from '../constants/data';
 import { Avatar, RolBadge, SecHeader } from '../components/common';
-import { PRP, BLK, LGR, BRD, MTD, GRN } from '../constants/colors';
+import { PRP, IND, BLK, LGR, BRD, MTD } from '../constants/colors';
 import { useThemeColors } from '../hooks/useThemeColors';
 
 interface Props {
@@ -69,10 +70,35 @@ export const PerfilScreen: React.FC<Props> = ({
       abrirGaleria();
     }
   };
-  const headerColor  =
-    usuario.rol === 'SUPERADMIN' ? BLK :
-    usuario.rol === 'ADMIN'      ? '#0369A1' :
-    '#047857';
+  // Gradiente de header según rol
+  const headerGradient: [string, string, string] =
+    usuario.rol === 'SUPERADMIN' ? ['#10071E', '#080510', '#030305'] :
+    usuario.rol === 'ADMIN'      ? ['#040D1C', '#050A14', '#030305'] :
+                                   ['#041210', '#030D0A', '#030305'];
+  const headerGradientLight: [string, string, string] =
+    usuario.rol === 'SUPERADMIN' ? ['#EDE9FE', '#F4F0FF', '#F8F6FF'] :
+    usuario.rol === 'ADMIN'      ? ['#DBEAFE', '#EFF6FF', '#F8FAFF'] :
+                                   ['#D1FAE5', '#ECFDF5', '#F4FFF9'];
+  const gradColors = tc.isDark ? headerGradient : headerGradientLight;
+
+  // Anillo pulsante alrededor del avatar
+  const ringScale   = useRef(new Animated.Value(1.0)).current;
+  const ringOpacity = useRef(new Animated.Value(0.55)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(ringScale,   { toValue: 1.18, duration: 1600, useNativeDriver: true }),
+          Animated.timing(ringOpacity, { toValue: 0.0,  duration: 1600, useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(ringScale,   { toValue: 1.0,  duration: 0, useNativeDriver: true }),
+          Animated.timing(ringOpacity, { toValue: 0.55, duration: 0, useNativeDriver: true }),
+        ]),
+      ])
+    ).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const guardarPass = () => {
     setError('');
@@ -98,23 +124,33 @@ export const PerfilScreen: React.FC<Props> = ({
   return (
     <View style={{ flex: 1, backgroundColor: tc.bg }}>
 
-      {/* ── Header con avatar ── */}
-      <View style={[s.header, { backgroundColor: headerColor }]}>
+      {/* ── Header con gradiente y avatar con anillo pulsante ── */}
+      <LinearGradient colors={gradColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={onBack}>
           <Ionicons name="arrow-back" size={20} color="rgba(255,255,255,0.9)" />
         </TouchableOpacity>
 
         <View style={s.heroWrap}>
-          <TouchableOpacity onPress={elegirFoto} style={s.avatarWrap} activeOpacity={0.85}>
-            {usuario.fotoUri ? (
-              <Image source={{ uri: usuario.fotoUri }} style={s.avatarImg} />
-            ) : (
-              <Avatar nombre={usuario.nombre} size={72} bg="rgba(255,255,255,0.18)" />
-            )}
-            <View style={s.cameraOverlay}>
-              <Ionicons name="camera" size={14} color="#fff" />
-            </View>
-          </TouchableOpacity>
+          <View style={s.avatarWrap}>
+            {/* Anillo pulsante */}
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                s.avatarRing,
+                { opacity: ringOpacity, transform: [{ scale: ringScale }] },
+              ]}
+            />
+            <TouchableOpacity onPress={elegirFoto} activeOpacity={0.85}>
+              {usuario.fotoUri ? (
+                <Image source={{ uri: usuario.fotoUri }} style={s.avatarImg} />
+              ) : (
+                <Avatar nombre={usuario.nombre} size={72} bg="rgba(255,255,255,0.18)" />
+              )}
+              <View style={s.cameraOverlay}>
+                <Ionicons name="camera" size={14} color="#fff" />
+              </View>
+            </TouchableOpacity>
+          </View>
           <Text style={s.heroNombre}>{usuario.nombre}</Text>
           <View style={{ marginTop: 6, alignItems: 'center' }}>
             <RolBadge rol={usuario.rol} />
@@ -124,7 +160,7 @@ export const PerfilScreen: React.FC<Props> = ({
         <TouchableOpacity style={s.logoutIconBtn} onPress={confirmarLogout}>
           <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.65)" />
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
@@ -238,6 +274,12 @@ export const PerfilScreen: React.FC<Props> = ({
             ) : null}
 
             <TouchableOpacity style={s.saveBtn} onPress={guardarPass} activeOpacity={0.88}>
+              <LinearGradient
+                colors={[PRP, IND]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
               <Ionicons name="shield-checkmark" size={18} color="#fff" style={{ marginRight: 8 }} />
               <Text style={s.saveTxt}>Actualizar contraseña</Text>
             </TouchableOpacity>
@@ -264,7 +306,8 @@ const s = StyleSheet.create({
   logoutIconBtn:  { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', position: 'absolute', top: 54, right: 20 },
   heroWrap:       { alignItems: 'center', marginTop: -4, marginBottom: 4 },
   heroNombre:     { fontSize: 20, fontWeight: '900', color: '#fff', marginTop: 12, textAlign: 'center' },
-  avatarWrap:     { width: 72, height: 72, borderRadius: 36, position: 'relative' },
+  avatarWrap:     { width: 88, height: 88, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  avatarRing:     { position: 'absolute', width: 84, height: 84, borderRadius: 42, borderWidth: 2, borderColor: 'rgba(167,139,250,0.65)' },
   avatarImg:      { width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)' },
   cameraOverlay:  { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
 
@@ -293,7 +336,7 @@ const s = StyleSheet.create({
   errorBox:       { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF2F2', borderRadius: 10, padding: 10, marginTop: 10, borderLeftWidth: 3, borderLeftColor: '#DC2626' },
   errorTxt:       { fontSize: 12, color: '#DC2626', fontWeight: '600', flex: 1 },
 
-  saveBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: PRP, borderRadius: 14, height: 52, marginTop: 16 },
+  saveBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: PRP, borderRadius: 14, height: 52, marginTop: 16, overflow: 'hidden' },
   saveTxt:        { color: '#fff', fontWeight: '800', fontSize: 15 },
 
   logoutCard:     { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF2F2', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#FECACA', marginTop: 4 },

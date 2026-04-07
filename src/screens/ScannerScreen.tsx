@@ -10,7 +10,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { Tienda, Usuario, Registro, Articulo, CLSF, CATALOGO_BASE } from '../constants/data';
 import { clasificar, fCOP, genId, ahora } from '../utils/helpers';
 import { Badge } from '../components/common';
-import { PRP, BLK, LGR, BRD, MTD } from '../constants/colors';
+import { PRP, IND, BLK, LGR, BRD, MTD } from '../constants/colors';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeColors } from '../hooks/useThemeColors';
 
 interface Props {
@@ -35,8 +36,10 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
   const [nota, setNota]          = useState('');
   const [foto, setFoto]          = useState<string | null>(null);
   const [flash, setFlash]        = useState(false);
-  const last    = useRef<string | null>(null);
-  const scanAnim = useRef(new Animated.Value(-90)).current;
+  const last         = useRef<string | null>(null);
+  const scanAnim     = useRef(new Animated.Value(-90)).current;
+  const successFlash = useRef(new Animated.Value(0)).current;
+  const cornerPulse  = useRef(new Animated.Value(0.7)).current;
 
   useEffect(() => {
     Animated.loop(
@@ -45,7 +48,15 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
         Animated.timing(scanAnim, { toValue: -90, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
       ]),
     ).start();
-    return () => scanAnim.stopAnimation();
+    // Pulso suave en las esquinas del HUD
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(cornerPulse, { toValue: 1.0, duration: 1200, useNativeDriver: true }),
+        Animated.timing(cornerPulse, { toValue: 0.7, duration: 1200, useNativeDriver: true }),
+      ])
+    ).start();
+
+    return () => { scanAnim.stopAnimation(); cornerPulse.stopAnimation(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -57,7 +68,15 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
     if (pausado || data === last.current) return;
     last.current = data;
     const found = CAT.find(c => c.itemId === data);
-    if (found) { Vibration.vibrate(60); abrirItem(found); }
+    if (found) {
+      Vibration.vibrate(60);
+      // Flash verde de éxito
+      Animated.sequence([
+        Animated.timing(successFlash, { toValue: 0.35, duration: 80, useNativeDriver: true }),
+        Animated.timing(successFlash, { toValue: 0,   duration: 300, useNativeDriver: true }),
+      ]).start();
+      abrirItem(found);
+    }
     else {
       Vibration.vibrate([0, 60, 60, 60]);
       Alert.alert('Código no encontrado', `"${data}" no está en el inventario.`, [
@@ -154,14 +173,35 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
         </TouchableOpacity>
       </View>
 
-      {/* Marco de escaneo */}
+      {/* Flash verde de éxito (cubre toda la pantalla brevemente) */}
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { backgroundColor: '#4ADE80', opacity: successFlash }]}
+      />
+
+      {/* Marco HUD de escaneo */}
       <View style={s.frameArea}>
         <View style={s.frame}>
-          <View style={[s.corner, s.tl]} /><View style={[s.corner, s.tr]} />
-          <View style={[s.corner, s.bl]} /><View style={[s.corner, s.br]} />
+          {/* Esquinas con opacidad pulsante */}
+          <Animated.View style={[s.corner, s.tl, { opacity: cornerPulse, shadowColor: tienda.color, shadowOpacity: 0.9, shadowRadius: 8, elevation: 4, borderColor: tienda.color }]} />
+          <Animated.View style={[s.corner, s.tr, { opacity: cornerPulse, shadowColor: tienda.color, shadowOpacity: 0.9, shadowRadius: 8, elevation: 4, borderColor: tienda.color }]} />
+          <Animated.View style={[s.corner, s.bl, { opacity: cornerPulse, shadowColor: tienda.color, shadowOpacity: 0.9, shadowRadius: 8, elevation: 4, borderColor: tienda.color }]} />
+          <Animated.View style={[s.corner, s.br, { opacity: cornerPulse, shadowColor: tienda.color, shadowOpacity: 0.9, shadowRadius: 8, elevation: 4, borderColor: tienda.color }]} />
+
+          {/* Línea de escaneo con gradiente */}
           <Animated.View style={[s.frameCenter, { transform: [{ translateY: scanAnim }] }]}>
-            <View style={[s.frameLine, { backgroundColor: tienda.color }]} />
-            <View style={[s.frameLineGlow, { backgroundColor: tienda.color }]} />
+            <LinearGradient
+              colors={['transparent', tienda.color, tienda.color, 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={s.frameLine}
+            />
+            <LinearGradient
+              colors={['transparent', tienda.color + '50', tienda.color + '50', 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={s.frameLineGlow}
+            />
           </Animated.View>
         </View>
         <Text style={s.frameHint}>Apunta al código QR o de barras</Text>
@@ -282,7 +322,13 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
                     multiline
                   />
 
-                  <TouchableOpacity style={[m.guardarBtn, { backgroundColor: tienda.color }]} onPress={guardar} activeOpacity={0.88}>
+                  <TouchableOpacity style={[m.guardarBtn, { backgroundColor: tienda.color, overflow: 'hidden' }]} onPress={guardar} activeOpacity={0.88}>
+                    <LinearGradient
+                      colors={[tienda.color + 'FF', tienda.color + 'AA']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={StyleSheet.absoluteFill}
+                    />
                     <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginRight: 8 }} />
                     <Text style={m.guardarTxt}>Guardar y continuar</Text>
                   </TouchableOpacity>
@@ -368,14 +414,14 @@ const s = StyleSheet.create({
 
   frameArea:   { flex: 1, alignItems: 'center', justifyContent: 'center' },
   frame:       { width: 256, height: 220, position: 'relative' },
-  corner:      { position: 'absolute', width: 30, height: 30, borderColor: '#fff', borderWidth: 3.5 },
+  corner:      { position: 'absolute', width: 32, height: 32, borderWidth: 3.5 },
   tl: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 6 },
   tr: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 6 },
   bl: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 6 },
   br: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 6 },
   frameCenter:    { position: 'absolute', top: '50%', left: 0, right: 0, alignItems: 'center' },
-  frameLine:      { width: '80%', height: 2, borderRadius: 1 },
-  frameLineGlow:  { width: '80%', height: 8, borderRadius: 4, opacity: 0.25, marginTop: -4 },
+  frameLine:      { width: '88%', height: 2.5, borderRadius: 2 },
+  frameLineGlow:  { width: '88%', height: 10, borderRadius: 6, opacity: 0.30, marginTop: -5 },
   frameHint:   { color: 'rgba(255,255,255,0.65)', fontSize: 13, marginTop: 18 },
 
   bottom:      { backgroundColor: 'rgba(0,0,0,0.75)', paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 36, alignItems: 'center', gap: 12 },
