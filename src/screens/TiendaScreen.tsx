@@ -112,7 +112,7 @@ export const TiendaScreen: React.FC<Props> = ({
       { icon: 'list' as IoniconName, bg: '#27272A', title: 'Registros de conteo', sub: `${regTienda.length} escaneos totales en la tienda`, fn: () => onNavRegistros(tienda) },
       { icon: 'add-circle' as IoniconName, bg: '#92400E', title: 'Sobrantes sin Stock', sub: sobrantesTienda > 0 ? `${sobrantesTienda} registrados` : 'Artículos sin existencia en sistema', fn: () => onNavSobrantes(tienda), badge: sobrantesTienda > 0 ? String(sobrantesTienda) : undefined },
     ] : []),
-    ...(esSuperAdmin
+    ...(esAdmin
       ? [{ icon: 'cloud-upload' as IoniconName, bg: '#09090B', title: 'Cargar inventario Excel', sub: CAT.length > 0 ? `${CAT.length} artículos cargados` : 'Sin inventario cargado', fn: () => onNavImportar(tienda) }]
       : []),
   ];

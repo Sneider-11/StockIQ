@@ -250,8 +250,8 @@ function AppInner() {
     );
   }
 
-  // ── Importar Excel (solo SUPERADMIN) ─────────────────────────────────────────
-  if (pantalla === 'importar' && tiendaActiva && esSuperAdmin) {
+  // ── Importar Excel (ADMIN y SUPERADMIN) ──────────────────────────────────────
+  if (pantalla === 'importar' && tiendaActiva && esAdmin) {
     return (
       <>
         <StatusBar style="dark" />
