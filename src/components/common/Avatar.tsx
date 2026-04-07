@@ -14,6 +14,8 @@ export const Avatar: React.FC<Props> = ({ nombre, size = 42, bg = '#7C3AED', fot
     style={[s.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: bg }]}
     accessibilityElementsHidden={true}
     importantForAccessibility="no-hide-descendants"
+    // Renderizado en GPU para evitar bordes dentados en Android
+    renderToHardwareTextureAndroid
   >
     {fotoUri ? (
       <Image

@@ -4,6 +4,7 @@ import {
   ScrollView, Alert, KeyboardAvoidingView, Platform, Image, Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Usuario, Registro, Tienda } from '../constants/data';
@@ -124,41 +125,69 @@ export const PerfilScreen: React.FC<Props> = ({
   return (
     <View style={{ flex: 1, backgroundColor: tc.bg }}>
 
-      {/* ── Header con gradiente y avatar con anillo pulsante ── */}
+      {/* ── Header con gradiente y avatar con anillo SVG vectorial ── */}
       <LinearGradient colors={gradColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <TouchableOpacity style={s.backBtn} onPress={onBack}>
-          <Ionicons name="arrow-back" size={20} color="rgba(255,255,255,0.9)" />
+        <TouchableOpacity style={[s.backBtn, {
+          backgroundColor: tc.isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)',
+        }]} onPress={onBack}>
+          <Ionicons
+            name="arrow-back" size={20}
+            color={tc.isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.70)'}
+          />
         </TouchableOpacity>
 
         <View style={s.heroWrap}>
           <View style={s.avatarWrap}>
-            {/* Anillo pulsante */}
+            {/* Anillo pulsante con SVG — vectorial, sin pixelado */}
             <Animated.View
               pointerEvents="none"
               style={[
-                s.avatarRing,
-                { opacity: ringOpacity, transform: [{ scale: ringScale }] },
+                StyleSheet.absoluteFill,
+                { alignItems: 'center', justifyContent: 'center',
+                  opacity: ringOpacity, transform: [{ scale: ringScale }] },
               ]}
-            />
+            >
+              <Svg width={88} height={88}>
+                <Circle
+                  cx={44} cy={44} r={41}
+                  stroke={PRP}
+                  strokeWidth={2.5}
+                  fill="none"
+                />
+              </Svg>
+            </Animated.View>
+
             <TouchableOpacity onPress={elegirFoto} activeOpacity={0.85}>
               {usuario.fotoUri ? (
                 <Image source={{ uri: usuario.fotoUri }} style={s.avatarImg} />
               ) : (
-                <Avatar nombre={usuario.nombre} size={72} bg="rgba(255,255,255,0.18)" />
+                <Avatar
+                  nombre={usuario.nombre}
+                  size={72}
+                  bg={tc.isDark ? 'rgba(255,255,255,0.18)' : PRP}
+                />
               )}
               <View style={s.cameraOverlay}>
                 <Ionicons name="camera" size={14} color="#fff" />
               </View>
             </TouchableOpacity>
           </View>
-          <Text style={s.heroNombre}>{usuario.nombre}</Text>
+
+          <Text style={[s.heroNombre, { color: tc.isDark ? '#fff' : tc.text }]}>
+            {usuario.nombre}
+          </Text>
           <View style={{ marginTop: 6, alignItems: 'center' }}>
             <RolBadge rol={usuario.rol} />
           </View>
         </View>
 
-        <TouchableOpacity style={s.logoutIconBtn} onPress={confirmarLogout}>
-          <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.65)" />
+        <TouchableOpacity style={[s.logoutIconBtn, {
+          backgroundColor: tc.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.07)',
+        }]} onPress={confirmarLogout}>
+          <Ionicons
+            name="log-out-outline" size={20}
+            color={tc.isDark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.50)'}
+          />
         </TouchableOpacity>
       </LinearGradient>
 
@@ -304,12 +333,11 @@ const s = StyleSheet.create({
   header:         { paddingTop: 54, paddingBottom: 28, paddingHorizontal: 20 },
   backBtn:        { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
   logoutIconBtn:  { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', position: 'absolute', top: 54, right: 20 },
-  heroWrap:       { alignItems: 'center', marginTop: -4, marginBottom: 4 },
-  heroNombre:     { fontSize: 20, fontWeight: '900', color: '#fff', marginTop: 12, textAlign: 'center' },
-  avatarWrap:     { width: 88, height: 88, alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  avatarRing:     { position: 'absolute', width: 84, height: 84, borderRadius: 42, borderWidth: 2, borderColor: 'rgba(167,139,250,0.65)' },
-  avatarImg:      { width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)' },
-  cameraOverlay:  { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
+  heroWrap:      { alignItems: 'center', marginTop: -4, marginBottom: 4 },
+  heroNombre:    { fontSize: 20, fontWeight: '900', marginTop: 12, textAlign: 'center' },
+  avatarWrap:    { width: 88, height: 88, alignItems: 'center', justifyContent: 'center' },
+  avatarImg:     { width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)' },
+  cameraOverlay: { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
 
   card:           { backgroundColor: '#fff', borderRadius: 18, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: BRD, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
 
