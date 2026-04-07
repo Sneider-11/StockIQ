@@ -29,8 +29,9 @@ interface Props {
   onSelect:  (key: string) => void;
 }
 
-const PILL_W = 54;
-const NAV_H  = Platform.OS === 'ios' ? 82 : 64;
+const PILL_W = 58;
+const PILL_H = 36;
+const NAV_H  = Platform.OS === 'ios' ? 82 : 66;
 
 export const BottomNavBar: React.FC<Props> = ({ tabs, activeKey, onSelect }) => {
   const tc           = useThemeColors();
@@ -49,19 +50,19 @@ export const BottomNavBar: React.FC<Props> = ({ tabs, activeKey, onSelect }) => 
     const idx     = Math.max(0, tabs.findIndex(t => t.key === activeKey));
     const targetX = idx * tabW + tabW / 2 - PILL_W / 2;
 
-    // Pill: squish (aplanar) → deslizar → recuperar forma
+    // Pill: squish suave → deslizar → recuperar
     Animated.parallel([
       Animated.spring(pillX, {
         toValue: targetX, tension: 80, friction: 12, useNativeDriver: true,
       }),
       Animated.sequence([
         Animated.parallel([
-          Animated.spring(pillScaleX, { toValue: 1.35, tension: 450, friction: 8, useNativeDriver: true }),
-          Animated.spring(pillScaleY, { toValue: 0.72, tension: 450, friction: 8, useNativeDriver: true }),
+          Animated.spring(pillScaleX, { toValue: 1.14, tension: 300, friction: 10, useNativeDriver: true }),
+          Animated.spring(pillScaleY, { toValue: 0.84, tension: 300, friction: 10, useNativeDriver: true }),
         ]),
         Animated.parallel([
-          Animated.spring(pillScaleX, { toValue: 1.0,  tension: 200, friction: 9, useNativeDriver: true }),
-          Animated.spring(pillScaleY, { toValue: 1.0,  tension: 200, friction: 9, useNativeDriver: true }),
+          Animated.spring(pillScaleX, { toValue: 1.0, tension: 180, friction: 10, useNativeDriver: true }),
+          Animated.spring(pillScaleY, { toValue: 1.0, tension: 180, friction: 10, useNativeDriver: true }),
         ]),
       ]),
     ]).start();
@@ -131,10 +132,10 @@ export const BottomNavBar: React.FC<Props> = ({ tabs, activeKey, onSelect }) => 
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
             >
+              {/* Ícono con scale en press — separado de la label para que el pill no tape el texto */}
               <Animated.View
-                style={[s.tabInner, { transform: [{ scale: scales[idx] }] }]}
+                style={[s.iconWrap, { transform: [{ scale: scales[idx] }] }]}
               >
-                {/* Ícono con glow cuando está activo */}
                 <View style={isActive ? [s.iconGlow, { shadowColor: PRP }] : undefined}>
                   <Ionicons
                     name={(isActive ? tab.iconActive : tab.icon) as any}
@@ -142,22 +143,22 @@ export const BottomNavBar: React.FC<Props> = ({ tabs, activeKey, onSelect }) => 
                     color={isActive ? VLT : tc.isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.25)'}
                   />
                 </View>
-
-                {/* Label con fade + slide */}
-                <Animated.Text
-                  style={[
-                    s.label,
-                    {
-                      color:     VLT,
-                      opacity:   labelOps[idx],
-                      transform: [{ translateY: labelY[idx] }],
-                    },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {tab.label}
-                </Animated.Text>
               </Animated.View>
+
+              {/* Label fuera del scale, debajo del pill */}
+              <Animated.Text
+                style={[
+                  s.label,
+                  {
+                    color:     VLT,
+                    opacity:   labelOps[idx],
+                    transform: [{ translateY: labelY[idx] }],
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                {tab.label}
+              </Animated.Text>
             </TouchableOpacity>
           );
         })}
@@ -195,25 +196,27 @@ const s = StyleSheet.create({
   },
   pill: {
     position:      'absolute',
-    top:           8,
+    top:           5,
     width:         PILL_W,
-    height:        40,
-    borderRadius:  13,
+    height:        PILL_H,
+    borderRadius:  12,
     borderWidth:   1,
     shadowOffset:  { width: 0, height: 0 },
-    shadowOpacity: 0.55,
-    shadowRadius:  10,
-    elevation:     6,
+    shadowOpacity: 0.50,
+    shadowRadius:  9,
+    elevation:     5,
   },
   tab: {
     flex:           1,
     alignItems:     'center',
-    justifyContent: 'center',
-    paddingTop:     4,
+    justifyContent: 'flex-start',
+    paddingTop:     5,
+    paddingBottom:  4,
   },
-  tabInner: {
+  iconWrap: {
+    width:          PILL_W,
+    height:         PILL_H,
     alignItems:     'center',
-    minHeight:      42,
     justifyContent: 'center',
   },
   iconGlow: {
@@ -225,7 +228,7 @@ const s = StyleSheet.create({
   label: {
     fontSize:      10,
     fontWeight:    '700',
-    marginTop:     3,
+    marginTop:     2,
     letterSpacing: 0.3,
   },
 });
