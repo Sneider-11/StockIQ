@@ -5,7 +5,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import * as XLSX from 'xlsx';
+
+// XLSX se carga dinámicamente — no forma parte del bundle principal (~7MB menos al inicio)
+let _xlsx: typeof import('xlsx') | null = null;
+async function getXLSX() {
+  if (!_xlsx) _xlsx = await import('xlsx');
+  return _xlsx;
+}
 import { Tienda, Articulo } from '../constants/data';
 import { PRP, BLK, LGR, BRD, MTD } from '../constants/colors';
 import { useThemeColors } from '../hooks/useThemeColors';
@@ -34,6 +40,7 @@ export const ImportarScreen: React.FC<Props> = ({ tienda, catalogoActual = [], o
       if (result.canceled) return;
       setLoading(true);
       setFileName(result.assets[0].name);
+      const XLSX        = await getXLSX();
       const response    = await fetch(result.assets[0].uri);
       const arrayBuffer = await response.arrayBuffer();
       const workbook    = XLSX.read(arrayBuffer, { type: 'array', cellText: true });
