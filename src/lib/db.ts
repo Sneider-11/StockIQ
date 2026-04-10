@@ -2,29 +2,26 @@
  * db.ts — Capa de acceso a datos de Supabase
  *
  * Todas las funciones son fire-and-forget seguras:
- * si SUPABASE_LISTO es false o hay error de red, devuelven
- * valor vacío sin lanzar excepción (el llamador usa .catch(() => {})).
+ * si getSupabaseListo() es false o hay error de red, devuelven
+ * valor vacío sin lanzar excepción.
+ *
+ * Supabase se inicializa de forma diferida (ver supabase.ts).
+ * Estas funciones se llaman SOLO después de initSupabase().
  */
 
-import { supabase, SUPABASE_LISTO } from './supabase';
+import { getSupabaseListo, getSupabaseClient } from './supabase';
 import { Usuario, Articulo, Registro, SobranteSinStock, Tienda } from '../constants/data';
 
+// Acceso seguro al cliente — devuelve null si no está listo
+function sb() {
+  return getSupabaseListo() ? getSupabaseClient() : null;
+}
+
 // ─── TIENDAS ──────────────────────────────────────────────────────────────────
-/**
- * Tabla requerida en Supabase:
- * CREATE TABLE tiendas (
- *   id TEXT PRIMARY KEY,
- *   nombre TEXT NOT NULL,
- *   icono TEXT NOT NULL DEFAULT 'storefront',
- *   color TEXT NOT NULL DEFAULT '#09090B',
- *   nit TEXT,
- *   creado_en TIMESTAMPTZ DEFAULT NOW()
- * );
- */
 
 export async function dbGetTiendas(): Promise<Tienda[]> {
-  if (!SUPABASE_LISTO) return [];
-  const { data, error } = await supabase.from('tiendas').select('*').order('creado_en');
+  const c = sb(); if (!c) return [];
+  const { data, error } = await c.from('tiendas').select('*').order('creado_en');
   if (error || !data) return [];
   return data.map(r => ({
     id:     r.id,
@@ -36,29 +33,28 @@ export async function dbGetTiendas(): Promise<Tienda[]> {
 }
 
 export async function dbUpsertTienda(t: Tienda): Promise<void> {
-  if (!SUPABASE_LISTO) return;
-  await supabase.from('tiendas').upsert(
+  const c = sb(); if (!c) return;
+  await c.from('tiendas').upsert(
     { id: t.id, nombre: t.nombre, icono: t.icono, color: t.color, nit: t.nit ?? null },
     { onConflict: 'id' },
   );
 }
 
 export async function dbDeleteTienda(id: string): Promise<void> {
-  if (!SUPABASE_LISTO) return;
-  await supabase.from('tiendas').delete().eq('id', id);
+  const c = sb(); if (!c) return;
+  await c.from('tiendas').delete().eq('id', id);
 }
 
 // ─── USUARIOS ─────────────────────────────────────────────────────────────────
 
 function migrateRol(rol: string): Usuario['rol'] {
-  if (rol === 'AUDITOR') return 'ADMIN'; // migración legacy
+  if (rol === 'AUDITOR') return 'ADMIN';
   return rol as Usuario['rol'];
 }
 
 export async function dbGetUsuarios(): Promise<Usuario[]> {
-  if (!SUPABASE_LISTO) return [];
-  // Selecciona solo los campos necesarios — excluye 'pass' para no exponer contraseñas
-  const { data, error } = await supabase
+  const c = sb(); if (!c) return [];
+  const { data, error } = await c
     .from('usuarios')
     .select('id,cedula,nombre,rol,tiendas,tiendas_roles,telefono,activo,creado_por');
   if (error || !data) return [];
@@ -69,7 +65,7 @@ export async function dbGetUsuarios(): Promise<Usuario[]> {
     rol:          migrateRol(r.rol),
     tiendas:      r.tiendas ?? [],
     tiendasRoles: r.tiendas_roles ?? {},
-    pass:         '',  // Las contraseñas se gestionan localmente (SecureStore)
+    pass:         '',
     telefono:     r.telefono ?? undefined,
     activo:       r.activo ?? true,
     creadoPor:    r.creado_por ?? undefined,
@@ -77,9 +73,8 @@ export async function dbGetUsuarios(): Promise<Usuario[]> {
 }
 
 export async function dbInsertUsuario(u: Usuario): Promise<void> {
-  if (!SUPABASE_LISTO) return;
-  // Nota: 'pass' se omite intencionalmente — las contraseñas son locales (SecureStore)
-  await supabase.from('usuarios').upsert(
+  const c = sb(); if (!c) return;
+  await c.from('usuarios').upsert(
     {
       id:            u.id,
       cedula:        u.cedula,
@@ -96,15 +91,15 @@ export async function dbInsertUsuario(u: Usuario): Promise<void> {
 }
 
 export async function dbDeleteUsuario(id: string): Promise<void> {
-  if (!SUPABASE_LISTO) return;
-  await supabase.from('usuarios').delete().eq('id', id);
+  const c = sb(); if (!c) return;
+  await c.from('usuarios').delete().eq('id', id);
 }
 
 // ─── REGISTROS ────────────────────────────────────────────────────────────────
 
 export async function dbGetRegistros(): Promise<Registro[]> {
-  if (!SUPABASE_LISTO) return [];
-  const { data, error } = await supabase
+  const c = sb(); if (!c) return [];
+  const { data, error } = await c
     .from('registros')
     .select('*')
     .order('escaneado_en', { ascending: false });
@@ -119,7 +114,7 @@ export async function dbGetRegistros(): Promise<Registro[]> {
     costoUnitario: r.costo_unitario,
     cantidad:      r.cantidad,
     nota:          r.nota ?? '',
-    fotoUri:       null,          // las fotos son URIs locales, no se suben en esta fase
+    fotoUri:       null,
     usuarioNombre: r.usuario_nombre,
     escaneadoEn:   r.escaneado_en,
     clasificacion: r.clasificacion,
@@ -127,8 +122,8 @@ export async function dbGetRegistros(): Promise<Registro[]> {
 }
 
 export async function dbInsertRegistro(r: Registro): Promise<void> {
-  if (!SUPABASE_LISTO) return;
-  await supabase.from('registros').insert({
+  const c = sb(); if (!c) return;
+  await c.from('registros').insert({
     id:             r.id,
     tienda_id:      r.tiendaId,
     item_id:        r.itemId,
@@ -146,28 +141,28 @@ export async function dbInsertRegistro(r: Registro): Promise<void> {
 }
 
 export async function dbDeleteRegistro(id: string): Promise<void> {
-  if (!SUPABASE_LISTO) return;
-  await supabase.from('registros').delete().eq('id', id);
+  const c = sb(); if (!c) return;
+  await c.from('registros').delete().eq('id', id);
 }
 
 export async function dbLimpiarRegistrosTienda(tiendaId: string): Promise<void> {
-  if (!SUPABASE_LISTO) return;
-  await supabase.from('registros').delete().eq('tienda_id', tiendaId);
+  const c = sb(); if (!c) return;
+  await c.from('registros').delete().eq('tienda_id', tiendaId);
 }
 
 export async function dbReiniciarInventario(tiendaId: string): Promise<void> {
-  if (!SUPABASE_LISTO) return;
+  const c = sb(); if (!c) return;
   await Promise.all([
-    supabase.from('registros').delete().eq('tienda_id', tiendaId),
-    supabase.from('sobrantes').delete().eq('tienda_id', tiendaId),
+    c.from('registros').delete().eq('tienda_id', tiendaId),
+    c.from('sobrantes').delete().eq('tienda_id', tiendaId),
   ]);
 }
 
 // ─── CATÁLOGOS ────────────────────────────────────────────────────────────────
 
 export async function dbGetAllCatalogos(): Promise<Record<string, Articulo[]>> {
-  if (!SUPABASE_LISTO) return {};
-  const { data, error } = await supabase.from('catalogos').select('*');
+  const c = sb(); if (!c) return {};
+  const { data, error } = await c.from('catalogos').select('*');
   if (error || !data) return {};
   const result: Record<string, Articulo[]> = {};
   for (const r of data) {
@@ -183,29 +178,27 @@ export async function dbGetAllCatalogos(): Promise<Record<string, Articulo[]>> {
   return result;
 }
 
+export async function dbUpsertCatalogo(tiendaId: string, articulos: Articulo[]): Promise<void> {
+  const c = sb(); if (!c) return;
+  await c.from('catalogos').delete().eq('tienda_id', tiendaId);
+  if (!articulos.length) return;
+  await c.from('catalogos').insert(
+    articulos.map(a => ({
+      tienda_id:   tiendaId,
+      item_id:     a.itemId,
+      descripcion: a.descripcion,
+      ubicacion:   a.ubicacion,
+      stock:       a.stock,
+      costo:       a.costo,
+    })),
+  );
+}
+
 // ─── SOBRANTES SIN STOCK ──────────────────────────────────────────────────────
 
-/**
- * Tabla requerida en Supabase:
- * CREATE TABLE sobrantes (
- *   id TEXT PRIMARY KEY,
- *   tienda_id TEXT NOT NULL,
- *   codigo TEXT NOT NULL,
- *   descripcion TEXT NOT NULL,
- *   ubicacion TEXT NOT NULL,
- *   foto_uri TEXT,
- *   estado TEXT NOT NULL,
- *   precio NUMERIC NOT NULL,
- *   cantidad INTEGER NOT NULL,
- *   usuario_nombre TEXT NOT NULL,
- *   registrado_en TEXT NOT NULL,
- *   creado_en TIMESTAMPTZ DEFAULT NOW()
- * );
- */
-
 export async function dbGetSobrantes(): Promise<SobranteSinStock[]> {
-  if (!SUPABASE_LISTO) return [];
-  const { data, error } = await supabase
+  const c = sb(); if (!c) return [];
+  const { data, error } = await c
     .from('sobrantes')
     .select('*')
     .order('creado_en', { ascending: false });
@@ -226,8 +219,8 @@ export async function dbGetSobrantes(): Promise<SobranteSinStock[]> {
 }
 
 export async function dbInsertSobrante(s: SobranteSinStock): Promise<void> {
-  if (!SUPABASE_LISTO) return;
-  await supabase.from('sobrantes').upsert({
+  const c = sb(); if (!c) return;
+  await c.from('sobrantes').upsert({
     id:             s.id,
     tienda_id:      s.tiendaId,
     codigo:         s.codigo,
@@ -243,30 +236,11 @@ export async function dbInsertSobrante(s: SobranteSinStock): Promise<void> {
 }
 
 export async function dbDeleteSobrante(id: string): Promise<void> {
-  if (!SUPABASE_LISTO) return;
-  await supabase.from('sobrantes').delete().eq('id', id);
+  const c = sb(); if (!c) return;
+  await c.from('sobrantes').delete().eq('id', id);
 }
 
 export async function dbUpdateSobranteEstado(id: string, estado: string): Promise<void> {
-  if (!SUPABASE_LISTO) return;
-  await supabase.from('sobrantes').update({ estado }).eq('id', id);
-}
-
-// ─── CATÁLOGOS ────────────────────────────────────────────────────────────────
-
-export async function dbUpsertCatalogo(tiendaId: string, articulos: Articulo[]): Promise<void> {
-  if (!SUPABASE_LISTO) return;
-  // Reemplaza el catálogo completo de esa tienda
-  await supabase.from('catalogos').delete().eq('tienda_id', tiendaId);
-  if (!articulos.length) return;
-  await supabase.from('catalogos').insert(
-    articulos.map(a => ({
-      tienda_id:   tiendaId,
-      item_id:     a.itemId,
-      descripcion: a.descripcion,
-      ubicacion:   a.ubicacion,
-      stock:       a.stock,
-      costo:       a.costo,
-    })),
-  );
+  const c = sb(); if (!c) return;
+  await c.from('sobrantes').update({ estado }).eq('id', id);
 }

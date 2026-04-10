@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppState } from './src/hooks/useAppState';
 import { getRolEnTienda } from './src/utils/helpers';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { Tienda } from './src/constants/data';
 import {
   LoginScreen,
   HomeSuperAdminScreen,
@@ -466,8 +468,6 @@ function AppInner() {
 }
 
 // ─── PANTALLA: INVENTARIO CERRADO ────────────────────────────────────────────
-import { Tienda } from './src/constants/data';
-import { Ionicons } from '@expo/vector-icons';
 
 const InventarioCerradoScreen: React.FC<{ tienda: Tienda; onVolver: () => void }> = ({
   tienda, onVolver,

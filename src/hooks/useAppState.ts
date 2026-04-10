@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { USUARIOS_INICIALES, TIENDAS, CATALOGO_BASE, Usuario, Articulo, Registro, Tienda, SobranteSinStock, Rol } from '../constants/data';
 import { genId, clasificar } from '../utils/helpers';
-import { SUPABASE_LISTO } from '../lib/supabase';
+import { initSupabase, getSupabaseListo } from '../lib/supabase';
 import {
   dbGetTiendas, dbUpsertTienda, dbDeleteTienda,
   dbGetUsuarios, dbInsertUsuario, dbDeleteUsuario,
@@ -184,15 +184,19 @@ export function useAppState() {
   }, []);
 
   // ── FASE 2: Supabase en segundo plano (no bloquea la UI) ─────────────────
+  // initSupabase() se llama AQUÍ — después del primer render — para que
+  // createClient() no ejecute en el hilo JS durante la carga inicial.
   useEffect(() => {
-    if (cargando || !SUPABASE_LISTO || sincronizado) return;
+    if (cargando || sincronizado) return;
+    initSupabase();                  // inicialización diferida, segura
+    if (!getSupabaseListo()) return; // sin credenciales válidas → solo offline
     const sincronizar = async () => {
       try {
-        // Timeout de 10 s para no quedar bloqueado si Supabase no responde
-        const withTimeout = <T,>(p: Promise<T>, ms = 10000): Promise<T> =>
-          Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+        // Timeout de 12 s para no quedar bloqueado si Supabase no responde
+        const sbTimeout = <T,>(p: Promise<T>): Promise<T> =>
+          Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(new Error('sb-timeout')), 12000))]);
 
-        const [sbTiendas, sbUsuarios, sbRegistros, sbCatalogos, sbSobrantes] = await withTimeout(
+        const [sbTiendas, sbUsuarios, sbRegistros, sbCatalogos, sbSobrantes] = await sbTimeout(
           Promise.all([
             dbGetTiendas(),
             dbGetUsuarios(),

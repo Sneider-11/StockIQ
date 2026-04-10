@@ -7,7 +7,7 @@
     "description": "Sistema inteligente de auditoría de inventarios para equipos comerciales. Escanea, cuenta y detecta diferencias de stock en múltiples tiendas.",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
