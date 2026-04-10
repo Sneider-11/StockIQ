@@ -24,18 +24,28 @@ export async function dbGetTiendas(): Promise<Tienda[]> {
   const { data, error } = await c.from('tiendas').select('*').order('creado_en');
   if (error || !data) return [];
   return data.map(r => ({
-    id:     r.id,
-    nombre: r.nombre,
-    icono:  r.icono ?? 'storefront',
-    color:  r.color ?? '#09090B',
-    nit:    r.nit ?? undefined,
+    id:             r.id,
+    nombre:         r.nombre,
+    icono:          r.icono          ?? 'storefront',
+    color:          r.color          ?? '#09090B',
+    nit:            r.nit            ?? undefined,
+    modoInventario: r.modo_inventario ?? undefined,
+    cerradoPor:     r.cerrado_por    ?? undefined,
   }));
 }
 
 export async function dbUpsertTienda(t: Tienda): Promise<void> {
   const c = sb(); if (!c) return;
   await c.from('tiendas').upsert(
-    { id: t.id, nombre: t.nombre, icono: t.icono, color: t.color, nit: t.nit ?? null },
+    {
+      id:             t.id,
+      nombre:         t.nombre,
+      icono:          t.icono,
+      color:          t.color,
+      nit:            t.nit            ?? null,
+      modo_inventario: t.modoInventario ?? null,
+      cerrado_por:    t.cerradoPor     ?? null,
+    },
     { onConflict: 'id' },
   );
 }
@@ -114,7 +124,7 @@ export async function dbGetRegistros(): Promise<Registro[]> {
     costoUnitario: r.costo_unitario,
     cantidad:      r.cantidad,
     nota:          r.nota ?? '',
-    fotoUri:       null,
+    fotoUri:       r.foto_uri ?? null,
     usuarioNombre: r.usuario_nombre,
     escaneadoEn:   r.escaneado_en,
     clasificacion: r.clasificacion,
@@ -209,7 +219,7 @@ export async function dbGetSobrantes(): Promise<SobranteSinStock[]> {
     codigo:        r.codigo,
     descripcion:   r.descripcion,
     ubicacion:     r.ubicacion,
-    fotoUri:       r.foto_uri ?? '',
+    fotoUri:       r.foto_uri ?? null,
     estado:        r.estado,
     precio:        r.precio,
     cantidad:      r.cantidad,

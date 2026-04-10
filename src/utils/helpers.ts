@@ -37,8 +37,22 @@ export const genId = (): string => {
   }
 };
 
-export const initials = (nombre: string): string =>
-  nombre.split(' ').map(x => x[0]).join('').slice(0, 2);
+export const initials = (nombre: string): string => {
+  if (!nombre || nombre.trim() === '') return '?';
+  return nombre
+    .split(' ')
+    .filter(w => w.length > 0)
+    .map(w => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+};
+
+/** Devuelve el primer nombre (antes del primer espacio). Seguro con cualquier string. */
+export const primerNombre = (nombre: string): string => {
+  if (!nombre || nombre.trim() === '') return '';
+  return nombre.split(' ').filter(w => w.length > 0)[0] ?? '';
+};
 
 export const ahora = (): string => {
   const d = new Date();

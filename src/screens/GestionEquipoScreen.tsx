@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Usuario, Tienda, IoniconName } from '../constants/data';
+import { primerNombre } from '../utils/helpers';
 import { Avatar, RolBadge } from '../components/common';
 import { PRP, BLK, DRK, LGR, BRD, MTD, GRN } from '../constants/colors';
 import { useThemeColors } from '../hooks/useThemeColors';
@@ -84,7 +85,7 @@ export const GestionEquipoScreen: React.FC<Props> = ({
     const tiendasNombres = tiendas.filter(t => u.tiendas.includes(t.id)).map(t => t.nombre).join(', ');
     const rolLabel = u.rol === 'ADMIN' ? 'Admin de Tienda' : 'Contador';
     const msg =
-      `Hola ${u.nombre.split(' ')[0]} 👋\n\n` +
+      `Hola ${primerNombre(u.nombre)} 👋\n\n` +
       `Te registré en *StockIQ*, el sistema de auditoría de inventarios del Grupo Comercial.\n\n` +
       `📱 *Tus datos de acceso:*\n• Usuario: ${u.cedula}\n• Contraseña: la que te compartí por separado\n• Cargo: ${rolLabel}\n\n` +
       `🏪 *Tiendas asignadas:*\n${tiendasNombres}\n\n` +

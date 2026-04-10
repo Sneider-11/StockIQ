@@ -13,6 +13,7 @@ import { Usuario, Registro, Tienda } from '../constants/data';
 import { Avatar, SecHeader, RolBadge } from '../components/common';
 import { PRP, IND } from '../constants/colors';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { primerNombre } from '../utils/helpers';
 
 // ── PressCard: spring scale al presionar ──────────────────────────────────────
 const PressCard: React.FC<{
@@ -154,7 +155,7 @@ export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
               SUPER ADMINISTRADOR
             </Text>
             <Text style={[s.nombre, { color: tc.isDark ? '#fff' : '#1C0A3B' }]} numberOfLines={1}>
-              {usuario.nombre.split(' ')[0]}{usuario.nombre.split(' ')[1] ? ` ${usuario.nombre.split(' ')[1]}` : ''}
+              {usuario.nombre.split(' ').filter(w => w.length > 0).slice(0, 2).join(' ')}
             </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, flexShrink: 0 }}>
@@ -185,7 +186,7 @@ export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
               tienda={t}
               sub={asignados.length === 0
                 ? 'Sin personal asignado'
-                : asignados.map(u => u.nombre.split(' ')[0]).join(', ')}
+                : asignados.map(u => primerNombre(u.nombre)).join(', ')}
               onPress={() => onNavTienda(t)}
               anim={anim}
               index={idx}
@@ -312,7 +313,7 @@ export const HomeAdminScreen: React.FC<AdminProps> = ({
               ADMIN DE TIENDA
             </Text>
             <Text style={[s.nombre, { color: tc.isDark ? '#fff' : '#0C2A42' }]} numberOfLines={1}>
-              Hola, {usuario.nombre.split(' ')[0]}
+              Hola, {primerNombre(usuario.nombre)}
             </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, flexShrink: 0 }}>
@@ -415,7 +416,7 @@ export const HomeContadorScreen: React.FC<ContadorProps> = ({
               CONTADOR
             </Text>
             <Text style={[s.nombre, { color: tc.isDark ? '#fff' : '#063020' }]} numberOfLines={1}>
-              Hola, {usuario.nombre.split(' ')[0]}
+              Hola, {primerNombre(usuario.nombre)}
             </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, flexShrink: 0 }}>

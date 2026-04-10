@@ -158,7 +158,7 @@ export const PerfilScreen: React.FC<Props> = ({
             </Animated.View>
 
             <TouchableOpacity onPress={elegirFoto} activeOpacity={0.85}>
-              {usuario.fotoUri ? (
+              {usuario.fotoUri && usuario.fotoUri.length > 0 ? (
                 <Image source={{ uri: usuario.fotoUri }} style={s.avatarImg} />
               ) : (
                 <Avatar

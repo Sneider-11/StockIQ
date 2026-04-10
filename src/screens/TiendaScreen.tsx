@@ -431,7 +431,7 @@ export const TiendaScreen: React.FC<Props> = ({
                     `¿Volver a poner "${tienda.nombre}" en modo ONLINE? Los auditores podrán ingresar nuevamente.`,
                     [
                       { text: 'Cancelar', style: 'cancel' },
-                      { text: 'Activar', style: 'default', onPress: () => onToggleModo('ONLINE') },
+                      { text: 'Activar', style: 'default', onPress: () => onToggleModo?.('ONLINE') },
                     ],
                   );
                 } else {
@@ -440,7 +440,7 @@ export const TiendaScreen: React.FC<Props> = ({
                     `¿Pasar "${tienda.nombre}" a modo OFFLINE?\n\nLos auditores activos serán expulsados y no podrán volver a ingresar hasta que lo reactives.`,
                     [
                       { text: 'Cancelar', style: 'cancel' },
-                      { text: 'Cerrar inventario', style: 'destructive', onPress: () => onToggleModo('OFFLINE') },
+                      { text: 'Cerrar inventario', style: 'destructive', onPress: () => onToggleModo?.('OFFLINE') },
                     ],
                   );
                 }

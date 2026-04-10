@@ -19,7 +19,7 @@ export interface Usuario {
   telefono?: string;
   activo?: boolean;      // false = desactivado por un ADMIN
   creadoPor?: string;    // id del ADMIN que creó este CONTADOR
-  fotoUri?: string;      // URI de la foto de perfil (almacenado localmente)
+  fotoUri?: string | null;  // URI de la foto de perfil (almacenado localmente)
 }
 
 export interface Tienda {
@@ -71,7 +71,7 @@ export interface SobranteSinStock {
   codigo: string;
   descripcion: string;
   ubicacion: string;
-  fotoUri: string;
+  fotoUri: string | null;
   estado: EstadoSobrante;
   precio: number;
   cantidad: number;
