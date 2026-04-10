@@ -107,7 +107,7 @@ export async function dbGetRegistros(): Promise<Registro[]> {
   const { data, error } = await supabase
     .from('registros')
     .select('*')
-    .order('creado_en', { ascending: false });
+    .order('escaneado_en', { ascending: false });
   if (error || !data) return [];
   return data.map(r => ({
     id:            r.id,

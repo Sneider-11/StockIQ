@@ -133,12 +133,17 @@ export function useAppState() {
             ...guardados.map(u => {
               const tiendasRoles = normalizarTiendasRoles(u);
               const rolGlobal    = u.rol === 'SUPERADMIN' ? 'SUPERADMIN' : deriveRolGlobal(tiendasRoles);
+              // Fallback: si SecureStore falló y passwords está vacío,
+              // recuperar la contraseña desde USUARIOS_INICIALES para los usuarios semilla
+              const passLocal = passwords[u.id]
+                ?? USUARIOS_INICIALES.find(i => i.id === u.id)?.pass
+                ?? '';
               return {
                 ...u,
                 rol:          rolGlobal,
                 tiendasRoles,
                 activo:       u.activo ?? true,
-                pass:         passwords[u.id] ?? '',
+                pass:         passLocal,
               } as Usuario;
             }),
             ...nuevos,
