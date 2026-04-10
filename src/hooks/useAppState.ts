@@ -26,9 +26,20 @@ const KEYS = {
 // ─── HELPERS SECURE STORE ─────────────────────────────────────────────────────
 type PassMap = Record<string, string>;
 
+// Timeout helper — resuelve con null si la promesa tarda más de `ms` milisegundos.
+// Usado para evitar que SecureStore cuelgue indefinidamente en Expo Go / Android.
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>(resolve => setTimeout(() => resolve(null), ms)),
+  ]);
+}
+
 async function loadPasswords(): Promise<PassMap> {
   try {
-    const raw = await SecureStore.getItemAsync(KEYS.PASSWORDS);
+    // SecureStore puede congelarse sin resolver en Android/Expo Go.
+    // Si tarda más de 4 s, devolvemos {} y la app arranca sin contraseñas del store.
+    const raw = await withTimeout(SecureStore.getItemAsync(KEYS.PASSWORDS), 4000);
     return raw ? (JSON.parse(raw) as PassMap) : {};
   } catch (err) {
     if (__DEV__) console.warn('[useAppState] loadPasswords error:', err);
@@ -101,15 +112,22 @@ export function useAppState() {
 
   // ── FASE 1: AsyncStorage + SecureStore (inmediato, funciona offline) ────────
   useEffect(() => {
+    // Safety-net: si la carga local tarda más de 7 s (p.ej. SecureStore congelado
+    // en Android/Expo Go), desbloquea la app con los datos iniciales de todos modos.
+    const safetyTimer = setTimeout(() => {
+      if (__DEV__) console.warn('[useAppState] Safety-net: carga local superó 7 s, desbloqueando app.');
+      setCargando(false);
+    }, 7000);
+
     const cargar = async () => {
       try {
         const [rawTiendas, rawUsuarios, rawRegistros, rawCatalogos, rawSobrantes, rawConfirmados, passwords] = await Promise.all([
-          AsyncStorage.getItem(KEYS.TIENDAS),
-          AsyncStorage.getItem(KEYS.USUARIOS),
-          AsyncStorage.getItem(KEYS.REGISTROS),
-          AsyncStorage.getItem(KEYS.CATALOGOS),
-          AsyncStorage.getItem(KEYS.SOBRANTES),
-          AsyncStorage.getItem(KEYS.CONFIRMADOS_CERO),
+          withTimeout(AsyncStorage.getItem(KEYS.TIENDAS),          5000),
+          withTimeout(AsyncStorage.getItem(KEYS.USUARIOS),         5000),
+          withTimeout(AsyncStorage.getItem(KEYS.REGISTROS),        5000),
+          withTimeout(AsyncStorage.getItem(KEYS.CATALOGOS),        5000),
+          withTimeout(AsyncStorage.getItem(KEYS.SOBRANTES),        5000),
+          withTimeout(AsyncStorage.getItem(KEYS.CONFIRMADOS_CERO), 5000),
           loadPasswords(),
         ]);
 
@@ -157,10 +175,12 @@ export function useAppState() {
         // Si algo falla, la app sigue con los datos iniciales
         if (__DEV__) console.warn('[useAppState] Error al cargar datos locales:', err);
       } finally {
+        clearTimeout(safetyTimer);
         setCargando(false);
       }
     };
     cargar();
+    return () => clearTimeout(safetyTimer);
   }, []);
 
   // ── FASE 2: Supabase en segundo plano (no bloquea la UI) ─────────────────
