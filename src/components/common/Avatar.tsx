@@ -6,7 +6,7 @@ interface Props {
   nombre: string;
   size?: number;
   bg?: string;
-  fotoUri?: string;
+  fotoUri?: string | null;
 }
 
 export const Avatar: React.FC<Props> = ({ nombre, size = 42, bg = '#7C3AED', fotoUri }) => (

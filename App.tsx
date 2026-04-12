@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,22 +6,22 @@ import { useAppState } from './src/hooks/useAppState';
 import { getRolEnTienda } from './src/utils/helpers';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { Tienda } from './src/constants/data';
-import {
-  LoginScreen,
-  HomeSuperAdminScreen,
-  HomeAdminScreen,
-  HomeContadorScreen,
-  GestionEquipoScreen,
-  GestionTiendasScreen,
-  TiendaScreen,
-  ScannerScreen,
-  MisRegistrosScreen,
-  ResultadosScreen,
-  ImportarScreen,
-  SobrantesSinStockScreen,
-  PerfilScreen,
-  ReporteAuditoriaScreen,
-} from './src/screens';
+// Screens que cargan SIEMPRE al inicio (login + home después del login)
+import { LoginScreen }                                                   from './src/screens/LoginScreen';
+import { HomeSuperAdminScreen, HomeAdminScreen, HomeContadorScreen }     from './src/screens/HomeScreen';
+
+// Screens secundarios — se cargan SOLO cuando el usuario navega a ellos
+// Esto reduce el bundle inicial y el tiempo de parseo en Hermes (iPhone)
+const GestionEquipoScreen     = lazy(() => import('./src/screens/GestionEquipoScreen').then(m => ({ default: m.GestionEquipoScreen })));
+const GestionTiendasScreen    = lazy(() => import('./src/screens/GestionTiendasScreen').then(m => ({ default: m.GestionTiendasScreen })));
+const TiendaScreen            = lazy(() => import('./src/screens/TiendaScreen').then(m => ({ default: m.TiendaScreen })));
+const ScannerScreen           = lazy(() => import('./src/screens/ScannerScreen').then(m => ({ default: m.ScannerScreen })));
+const MisRegistrosScreen      = lazy(() => import('./src/screens/MisRegistrosScreen').then(m => ({ default: m.MisRegistrosScreen })));
+const ResultadosScreen        = lazy(() => import('./src/screens/ResultadosScreen').then(m => ({ default: m.ResultadosScreen })));
+const ImportarScreen          = lazy(() => import('./src/screens/ImportarScreen').then(m => ({ default: m.ImportarScreen })));
+const SobrantesSinStockScreen = lazy(() => import('./src/screens/SobrantesSinStockScreen').then(m => ({ default: m.SobrantesSinStockScreen })));
+const PerfilScreen            = lazy(() => import('./src/screens/PerfilScreen').then(m => ({ default: m.PerfilScreen })));
+const ReporteAuditoriaScreen  = lazy(() => import('./src/screens/ReporteAuditoriaScreen').then(m => ({ default: m.ReporteAuditoriaScreen })));
 import {
   ScreenTransition,
   BottomNavBar,
@@ -116,12 +116,15 @@ function AppInner() {
 
   // ── Helper: wrapper para pantallas en contexto tienda ──────────────────────
   // Anima la entrada de cada pantalla y muestra la barra de nav inferior.
+  // withNav incluye Suspense para soportar screens lazy-loaded
   const withNav = (statusStyle: 'light' | 'dark', content: React.ReactNode) => (
     <View style={{ flex: 1 }}>
       <StatusBar style={statusStyle} />
       <View style={{ flex: 1, paddingBottom: showBottomNav ? NAV_H : 0 }}>
         <ScreenTransition screenKey={pantalla}>
-          {content}
+          <Suspense fallback={<PageLoader />}>
+            {content}
+          </Suspense>
         </ScreenTransition>
       </View>
       {showBottomNav && (
@@ -181,18 +184,20 @@ function AppInner() {
     return (
       <>
         <StatusBar style="light" />
-        <ScreenTransition screenKey="perfil">
-          <PerfilScreen
-            usuario={usuario}
-            registros={registros}
-            tiendas={tiendas}
-            onCambiarPass={nueva => editarUsuario(usuario.id, { pass: nueva })}
-            onActualizarFoto={uri => editarUsuario(usuario.id, { fotoUri: uri })}
-            onEliminarFoto={() => editarUsuario(usuario.id, { fotoUri: undefined })}
-            onLogout={logout}
-            onBack={() => setPantalla(tiendaActiva ? 'tienda' : 'home')}
-          />
-        </ScreenTransition>
+        <Suspense fallback={<PageLoader />}>
+          <ScreenTransition screenKey="perfil">
+            <PerfilScreen
+              usuario={usuario}
+              registros={registros}
+              tiendas={tiendas}
+              onCambiarPass={nueva => editarUsuario(usuario.id, { pass: nueva })}
+              onActualizarFoto={uri => editarUsuario(usuario.id, { fotoUri: uri })}
+              onEliminarFoto={() => editarUsuario(usuario.id, { fotoUri: undefined })}
+              onLogout={logout}
+              onBack={() => setPantalla(tiendaActiva ? 'tienda' : 'home')}
+            />
+          </ScreenTransition>
+        </Suspense>
       </>
     );
   }
@@ -202,15 +207,17 @@ function AppInner() {
     return (
       <>
         <StatusBar style="dark" />
-        <ScreenTransition screenKey="tiendas">
-          <GestionTiendasScreen
-            tiendas={tiendas}
-            onAgregar={agregarTienda}
-            onEditar={editarTienda}
-            onEliminar={eliminarTienda}
-            onVolver={() => setPantalla('home')}
-          />
-        </ScreenTransition>
+        <Suspense fallback={<PageLoader />}>
+          <ScreenTransition screenKey="tiendas">
+            <GestionTiendasScreen
+              tiendas={tiendas}
+              onAgregar={agregarTienda}
+              onEditar={editarTienda}
+              onEliminar={eliminarTienda}
+              onVolver={() => setPantalla('home')}
+            />
+          </ScreenTransition>
+        </Suspense>
       </>
     );
   }
@@ -236,9 +243,11 @@ function AppInner() {
     return (
       <>
         <StatusBar style="dark" />
-        <ScreenTransition screenKey="equipo">
-          {equipoScreen}
-        </ScreenTransition>
+        <Suspense fallback={<PageLoader />}>
+          <ScreenTransition screenKey="equipo">
+            {equipoScreen}
+          </ScreenTransition>
+        </Suspense>
       </>
     );
   }
@@ -248,17 +257,19 @@ function AppInner() {
     return (
       <>
         <StatusBar style="dark" />
-        <ScreenTransition screenKey="reporte">
-          <ReporteAuditoriaScreen
-            tienda={tiendaActiva}
-            registros={registros}
-            catalogo={getCatalogo(tiendaActiva.id)}
-            sobrantes={getSobrantesTienda(tiendaActiva.id)}
-            usuarios={usuarios}
-            confirmadosCero={getConfirmadosCero(tiendaActiva.id)}
-            onBack={volverATienda}
-          />
-        </ScreenTransition>
+        <Suspense fallback={<PageLoader />}>
+          <ScreenTransition screenKey="reporte">
+            <ReporteAuditoriaScreen
+              tienda={tiendaActiva}
+              registros={registros}
+              catalogo={getCatalogo(tiendaActiva.id)}
+              sobrantes={getSobrantesTienda(tiendaActiva.id)}
+              usuarios={usuarios}
+              confirmadosCero={getConfirmadosCero(tiendaActiva.id)}
+              onBack={volverATienda}
+            />
+          </ScreenTransition>
+        </Suspense>
       </>
     );
   }
@@ -268,17 +279,19 @@ function AppInner() {
     return (
       <>
         <StatusBar style="dark" />
-        <ScreenTransition screenKey="importar">
-          <ImportarScreen
-            tienda={tiendaActiva}
-            catalogoActual={catalogos[tiendaActiva.id] ?? []}
-            onImportar={data => {
-              cargarCatalogo(tiendaActiva.id, data);
-              volverATienda();
-            }}
-            onBack={volverATienda}
-          />
-        </ScreenTransition>
+        <Suspense fallback={<PageLoader />}>
+          <ScreenTransition screenKey="importar">
+            <ImportarScreen
+              tienda={tiendaActiva}
+              catalogoActual={catalogos[tiendaActiva.id] ?? []}
+              onImportar={data => {
+                cargarCatalogo(tiendaActiva.id, data);
+                volverATienda();
+              }}
+              onBack={volverATienda}
+            />
+          </ScreenTransition>
+        </Suspense>
       </>
     );
   }

@@ -10,8 +10,14 @@ import {
   ScrollView, Alert, ActivityIndicator,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+// expo-print y expo-sharing se cargan dinámicamente — no forman parte del bundle inicial
+let _Print: typeof import('expo-print') | null = null;
+let _Sharing: typeof import('expo-sharing') | null = null;
+async function loadPrintLibs() {
+  if (!_Print)   _Print   = await import('expo-print');
+  if (!_Sharing) _Sharing = await import('expo-sharing');
+  return { Print: _Print!, Sharing: _Sharing! };
+}
 import { Ionicons } from '@expo/vector-icons';
 import {
   Tienda, Registro, Articulo, SobranteSinStock, Usuario, CATALOGO_BASE,
@@ -507,6 +513,7 @@ export const ReporteAuditoriaScreen: React.FC<Props> = ({
     setGenerando(true);
     try {
       const html = generarHTML();
+      const { Print, Sharing } = await loadPrintLibs();
       const { uri } = await Print.printToFileAsync({ html, base64: false });
       const disponible = await Sharing.isAvailableAsync();
       if (disponible) {

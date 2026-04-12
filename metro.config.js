@@ -1,16 +1,20 @@
 const { getDefaultConfig } = require('expo/metro-config');
-const path = require('path');
 
 const config = getDefaultConfig(__dirname);
 
-// Excluir carpetas que no forman parte del bundle nativo
-// Esto evita que Metro procese archivos web/test innecesarios
+// ── Excluir módulos web que no se usan en la app nativa ─────────────────────
 config.resolver.blockList = [
   /node_modules\/react-dom\/.*/,
   /node_modules\/react-native-web\/.*/,
+  /.*\/__tests__\/.*/,
+  /.*\.test\.[jt]sx?$/,
+  /.*\.spec\.[jt]sx?$/,
 ];
 
-// Aumentar workers para aprovechar múltiples núcleos del CPU
-config.maxWorkers = 4;
+// ── Plataformas nativas únicamente ──────────────────────────────────────────
+config.resolver.platforms = ['ios', 'android', 'native'];
+
+// ── Workers paralelos — usa todos los núcleos disponibles ───────────────────
+config.maxWorkers = require('os').cpus().length;
 
 module.exports = config;
