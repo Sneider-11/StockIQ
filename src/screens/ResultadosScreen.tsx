@@ -8,7 +8,7 @@ import Svg, { Circle } from 'react-native-svg';
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 import { Ionicons } from '@expo/vector-icons';
 import { Tienda, Registro, Articulo, SobranteSinStock, CLSF, CATALOGO_BASE, Usuario } from '../constants/data';
-import { clasificar, fCOP } from '../utils/helpers';
+import { clasificar, fCOP, formatFechaDisplay } from '../utils/helpers';
 import { Avatar, AnimatedCounter } from '../components/common';
 import { PRP, BLK, LGR, BRD, MTD } from '../constants/colors';
 import { useThemeColors } from '../hooks/useThemeColors';
@@ -68,7 +68,7 @@ const DonutChart: React.FC<{ segments: DonutSeg[]; centerLabel: string; centerSu
 
   // Un Animated.Value fijo por slot (4 = máximo de clasificaciones posibles)
   // No se inicializa desde segments.length para evitar desajuste si el array cambia.
-  const drawAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
+  const drawAnims = useRef([0, 1, 2, 3, 4].map(() => new Animated.Value(0))).current;
   const centerScale = useRef(new Animated.Value(0.7)).current;
   const centerOpacity = useRef(new Animated.Value(0)).current;
 
@@ -723,7 +723,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                     </View>
                     <View style={[s.metaRow, { borderTopColor: tc.borderLight }]}>
                       <Avatar nombre={ss.usuarioNombre} size={16} bg="#27272A" />
-                      <Text style={[s.metaTxt, { color: tc.muted }]} numberOfLines={1}> {ss.usuarioNombre} · {ss.registradoEn}</Text>
+                      <Text style={[s.metaTxt, { color: tc.muted }]} numberOfLines={1}> {ss.usuarioNombre} · {formatFechaDisplay(ss.registradoEn)}</Text>
                     </View>
                   </View>
                 );
@@ -888,7 +888,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                               <Text style={[s.regUsuario, { color: tc.text }]} numberOfLines={1}>{reg.usuarioNombre}</Text>
                               <Text style={[s.regCantidad, { color: tienda.color }]}>{reg.cantidad} und.</Text>
                             </View>
-                            <Text style={[s.regFecha, { color: tc.muted }]} numberOfLines={1}>{reg.escaneadoEn}</Text>
+                            <Text style={[s.regFecha, { color: tc.muted }]} numberOfLines={1}>{formatFechaDisplay(reg.escaneadoEn)}</Text>
                             {reg.nota ? <Text style={s.regNota} numberOfLines={1}>"{reg.nota}"</Text> : null}
                           </View>
                           <Ionicons name="chevron-forward" size={14} color="#A1A1AA" style={{ marginLeft: 4 }} />
@@ -927,7 +927,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                 {[
                   { icon: 'person-circle-outline' as const, lbl: 'Usuario',      val: miniReg.usuarioNombre },
                   { icon: 'layers-outline'         as const, lbl: 'Cantidad',     val: `${miniReg.cantidad} unidad${miniReg.cantidad !== 1 ? 'es' : ''}` },
-                  { icon: 'time-outline'           as const, lbl: 'Fecha y hora', val: miniReg.escaneadoEn },
+                  { icon: 'time-outline'           as const, lbl: 'Fecha y hora', val: formatFechaDisplay(miniReg.escaneadoEn) },
                 ].map(row => (
                   <View key={row.lbl} style={s.miniRow}>
                     <Ionicons name={row.icon} size={16} color={tienda.color} style={{ marginRight: 10, marginTop: 2 }} />
@@ -1041,7 +1041,7 @@ export const ResultadosScreen: React.FC<Props> = ({
                                 </View>
                                 <Text style={{ fontSize: 13, fontWeight: '600', color: tc.text, marginBottom: 2 }} numberOfLines={1}>{reg.descripcion}</Text>
                                 <Text style={{ fontSize: 10, color: tc.muted }}>
-                                  Sistema: {reg.stockSistema} · Dif: {delta > 0 ? '+' : ''}{delta} · {reg.escaneadoEn}
+                                  Sistema: {reg.stockSistema} · Dif: {delta > 0 ? '+' : ''}{delta} · {formatFechaDisplay(reg.escaneadoEn)}
                                 </Text>
                                 {reg.nota ? <Text style={s.regNota} numberOfLines={1}>"{reg.nota}"</Text> : null}
                               </View>
