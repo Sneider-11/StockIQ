@@ -183,7 +183,7 @@ export const GestionTiendasScreen: React.FC<Props> = ({
                   <Ionicons name="storefront-outline" size={16} color={tc.icon} />
                 </View>
                 <TextInput
-                  style={[s.input, { color: tc.text, backgroundColor: tc.inputBg }]}
+                  style={[s.input, { color: tc.text, backgroundColor: 'transparent' }]}
                   placeholder="Ej: Tienda Norte"
                   placeholderTextColor={tc.placeholder}
                   value={nombre}
@@ -201,7 +201,7 @@ export const GestionTiendasScreen: React.FC<Props> = ({
                   <Ionicons name="card-outline" size={16} color={tc.icon} />
                 </View>
                 <TextInput
-                  style={[s.input, { color: tc.text, backgroundColor: tc.inputBg }]}
+                  style={[s.input, { color: tc.text, backgroundColor: 'transparent' }]}
                   placeholder="Ej: 900.123.456-7"
                   placeholderTextColor={tc.placeholder}
                   value={nit}

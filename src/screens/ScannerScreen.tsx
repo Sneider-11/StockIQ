@@ -353,7 +353,7 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
             <View style={[m.searchRow, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder }]}>
               <Ionicons name="search" size={16} color={tc.icon} style={{ marginRight: 8 }} />
               <TextInput
-                style={{ flex: 1, fontSize: 15, color: tc.text, backgroundColor: tc.inputBg }}
+                style={{ flex: 1, fontSize: 15, color: tc.text, backgroundColor: 'transparent' }}
                 placeholder="Últimos 6 dígitos o descripción..."
                 placeholderTextColor={tc.placeholder}
                 value={busq}

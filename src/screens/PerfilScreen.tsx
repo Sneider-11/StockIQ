@@ -8,6 +8,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Usuario, Registro, Tienda } from '../constants/data';
+import { verifyPassword, hashPassword } from '../lib/crypto';
 import { Avatar, RolBadge, SecHeader } from '../components/common';
 import { PRP, IND, BLK, LGR, BRD, MTD } from '../constants/colors';
 import { useThemeColors } from '../hooks/useThemeColors';
@@ -101,16 +102,20 @@ export const PerfilScreen: React.FC<Props> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const guardarPass = () => {
+  const guardarPass = async () => {
     setError('');
-    if (!passActual)                { setError('Ingresa tu contraseña actual.'); return; }
-    if (passActual !== usuario.pass){ setError('La contraseña actual es incorrecta.'); return; }
-    if (!passNueva)                 { setError('Ingresa la nueva contraseña.'); return; }
-    if (passNueva.length < 8)       { setError('Mínimo 8 caracteres para la nueva contraseña.'); return; }
-    if (passNueva !== passConfirmar) { setError('Las contraseñas nuevas no coinciden.'); return; }
-    if (passNueva === passActual)    { setError('La nueva contraseña debe ser diferente a la actual.'); return; }
+    if (!passActual)                 { setError('Ingresa tu contraseña actual.'); return; }
+    if (!passNueva)                  { setError('Ingresa la nueva contraseña.'); return; }
+    if (passNueva.length < 8)        { setError('Mínimo 8 caracteres para la nueva contraseña.'); return; }
+    if (passNueva !== passConfirmar)  { setError('Las contraseñas nuevas no coinciden.'); return; }
 
-    onCambiarPass(passNueva);
+    const { valid } = await verifyPassword(passActual, usuario.pass);
+    if (!valid) { setError('La contraseña actual es incorrecta.'); return; }
+
+    if (passNueva === passActual) { setError('La nueva contraseña debe ser diferente a la actual.'); return; }
+
+    const hash = await hashPassword(passNueva);
+    onCambiarPass(hash);
     setPassActual(''); setPassNueva(''); setPassConfirmar('');
     setExito(true);
     setTimeout(() => setExito(false), 3500);
@@ -255,7 +260,7 @@ export const PerfilScreen: React.FC<Props> = ({
             <View style={[s.inputWrap, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder }]}>
               <Ionicons name="lock-closed-outline" size={16} color={tc.icon} style={s.inputIcon} />
               <TextInput
-                style={[s.input, { color: tc.text, backgroundColor: tc.inputBg }]}
+                style={[s.input, { color: tc.text, backgroundColor: 'transparent' }]}
                 placeholder="Tu contraseña actual"
                 placeholderTextColor={tc.placeholder}
                 value={passActual}
@@ -272,7 +277,7 @@ export const PerfilScreen: React.FC<Props> = ({
             <View style={[s.inputWrap, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder }]}>
               <Ionicons name="key-outline" size={16} color={tc.icon} style={s.inputIcon} />
               <TextInput
-                style={[s.input, { color: tc.text, backgroundColor: tc.inputBg }]}
+                style={[s.input, { color: tc.text, backgroundColor: 'transparent' }]}
                 placeholder="Mínimo 6 caracteres"
                 placeholderTextColor={tc.placeholder}
                 value={passNueva}
@@ -286,7 +291,7 @@ export const PerfilScreen: React.FC<Props> = ({
             <View style={[s.inputWrap, { backgroundColor: tc.inputBg, borderColor: tc.inputBorder, marginBottom: 0 }]}>
               <Ionicons name="key-outline" size={16} color={tc.icon} style={s.inputIcon} />
               <TextInput
-                style={[s.input, { color: tc.text, backgroundColor: tc.inputBg }]}
+                style={[s.input, { color: tc.text, backgroundColor: 'transparent' }]}
                 placeholder="Repite la nueva contraseña"
                 placeholderTextColor={tc.placeholder}
                 value={passConfirmar}

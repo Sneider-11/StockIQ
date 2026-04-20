@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Usuario, Tienda, IoniconName } from '../constants/data';
+import { hashPassword } from '../lib/crypto';
 import { primerNombre } from '../utils/helpers';
 import { Avatar, RolBadge } from '../components/common';
 import { PRP, BLK, DRK, LGR, BRD, MTD, GRN } from '../constants/colors';
@@ -118,7 +119,7 @@ export const GestionEquipoScreen: React.FC<Props> = ({
   };
 
   /* ── Agregar ── */
-  const handleAgregar = () => {
+  const handleAgregar = async () => {
     setError('');
     if (!nombre.trim())            { setError('Ingresa el nombre completo.'); return; }
     if (!cedula.trim())            { setError('Ingresa el número de cédula.'); return; }
@@ -129,13 +130,14 @@ export const GestionEquipoScreen: React.FC<Props> = ({
     if (!telefonoValido(telefono)) { setError('Celular inválido. Debe tener 10 dígitos y empezar en 3.'); return; }
     if (usuarios.find(u => u.cedula === cedula.trim())) { setError('Ya existe un usuario con esa cédula.'); return; }
 
+    const passHash = await hashPassword(pass.trim());
     onAgregar({
       cedula:       cedula.trim(),
       nombre:       nombre.trim().toUpperCase(),
       rol:          'CONTADOR',           // useAppState derivará el rol global desde tiendasRoles
       tiendas:      tiendasSel,
       tiendasRoles: tiendasRolesSel,
-      pass:         pass.trim(),
+      pass:         passHash,
       telefono:     telefono.trim() || undefined,
       activo:       true,
       creadoPor:    esSuperAdmin ? undefined : usuarioActual.id,
@@ -144,7 +146,7 @@ export const GestionEquipoScreen: React.FC<Props> = ({
   };
 
   /* ── Guardar edición ── */
-  const handleEditar = () => {
+  const handleEditar = async () => {
     setError('');
     if (!nombre.trim())                            { setError('Ingresa el nombre completo.'); return; }
     if (pass.trim() && pass.trim().length < 8)     { setError('La contraseña debe tener mínimo 8 caracteres.'); return; }
@@ -158,7 +160,7 @@ export const GestionEquipoScreen: React.FC<Props> = ({
       telefono:     telefono.trim() || undefined,
       activo:       activoSel,
     };
-    if (pass.trim()) cambios.pass = pass.trim();  // solo actualizar si se ingresó nueva
+    if (pass.trim()) cambios.pass = await hashPassword(pass.trim());
 
     onEditar(editandoId!, cambios);
     limpiarYCerrar();
@@ -360,7 +362,7 @@ export const GestionEquipoScreen: React.FC<Props> = ({
                         <Ionicons name={f.icon} size={16} color={tc.icon} />
                       </View>
                       <TextInput
-                        style={[s.input, { color: tc.text, backgroundColor: tc.inputBg }]}
+                        style={[s.input, { color: tc.text, backgroundColor: 'transparent' }]}
                         placeholder={f.placeholder}
                         placeholderTextColor={tc.placeholder}
                         value={f.value}
