@@ -965,32 +965,33 @@ export const ResultadosScreen: React.FC<Props> = ({
             </Animated.View>
           )}
 
-          {/* ── Overlay editar cantidad: hermano de detalleSheet → sin Modal anidado ── */}
-          {editRegId && (
-            <Animated.View style={[StyleSheet.absoluteFillObject, s.overlayBg, { opacity: editOpacity }]}>
-              <View style={[s.miniModalCard, { width: '85%', backgroundColor: tc.card }]} onStartShouldSetResponder={() => true}>
-                <Text style={[s.miniTitle, { color: tc.text }]}>Editar cantidad</Text>
-                <TextInput
-                  style={[s.editInput, { color: tc.text, backgroundColor: tc.inputBg, borderColor: tc.inputBorder }]}
-                  value={editCantidad}
-                  onChangeText={setEditCantidad}
-                  keyboardType="numeric"
-                  placeholder="Nueva cantidad"
-                  placeholderTextColor={tc.placeholder}
-                  autoFocus
-                />
-                <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-                  <TouchableOpacity style={[s.editAction, { backgroundColor: tc.btnBg, flex: 1 }]} onPress={() => setEditRegId(null)}>
-                    <Text style={{ color: tc.text, fontWeight: '700', fontSize: 14 }}>Cancelar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[s.editAction, { backgroundColor: PRP, flex: 1 }]} onPress={guardarEdicion}>
-                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Guardar</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </Animated.View>
-          )}
         </Animated.View>{/* ← cierra detalleModalBg */}
+      </Modal>
+
+      {/* ── Modal: editar cantidad — Modal propio para evitar bloqueo de toques ── */}
+      <Modal visible={!!editRegId} transparent animationType="fade" onRequestClose={() => setEditRegId(null)}>
+        <TouchableOpacity style={s.overlayBg} activeOpacity={1} onPress={() => setEditRegId(null)}>
+          <View style={[s.miniModalCard, { width: '85%', backgroundColor: tc.card }]} onStartShouldSetResponder={() => true}>
+            <Text style={[s.miniTitle, { color: tc.text }]}>Editar cantidad</Text>
+            <TextInput
+              style={[s.editInput, { color: tc.text, backgroundColor: tc.inputBg, borderColor: tc.inputBorder }]}
+              value={editCantidad}
+              onChangeText={setEditCantidad}
+              keyboardType="numeric"
+              placeholder="Nueva cantidad"
+              placeholderTextColor={tc.placeholder}
+              autoFocus
+            />
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+              <TouchableOpacity style={[s.editAction, { backgroundColor: tc.btnBg, flex: 1 }]} onPress={() => setEditRegId(null)}>
+                <Text style={{ color: tc.text, fontWeight: '700', fontSize: 14 }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.editAction, { backgroundColor: PRP, flex: 1 }]} onPress={guardarEdicion}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
       </Modal>
 
       {/* ══════════════════════════════════════════════════════════════════
