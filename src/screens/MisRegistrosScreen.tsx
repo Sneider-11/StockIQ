@@ -272,8 +272,9 @@ export const MisRegistrosScreen: React.FC<Props> = ({
               </View>
             }
             renderItem={({ item: r }) => {
-              const cfg   = CLSF[r.clasificacion];
-              const delta = r.cantidad - r.stockSistema;
+              const cfg      = CLSF[r.clasificacion];
+              const delta    = r.cantidad - r.stockSistema;
+              const esPropio = r.usuarioNombre === usuario.nombre;
               return (
                 /* ── Cada card abre el detalle del artículo ── */
                 <TouchableOpacity
@@ -286,6 +287,15 @@ export const MisRegistrosScreen: React.FC<Props> = ({
                       <Text style={[s.codeTxt, { color: tienda.color }]} numberOfLines={1}>{r.itemId}</Text>
                     </View>
                     <Badge label={cfg.label} color={cfg.color} bg={cfg.bg} />
+                    {esPropio && onEditarRegistro && (
+                      <TouchableOpacity
+                        style={[s.deleteBtn, { backgroundColor: '#EDE9FE', marginLeft: 'auto' as any }]}
+                        onPress={() => { setMiniReg(r); abrirEdicion(r); }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="pencil-outline" size={15} color={PRP} />
+                      </TouchableOpacity>
+                    )}
                     {(esAdmin && !forzarSoloMios) && onEliminar && (
                       <TouchableOpacity
                         style={s.deleteBtn}
