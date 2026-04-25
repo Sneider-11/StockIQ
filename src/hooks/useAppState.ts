@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { USUARIOS_INICIALES, TIENDAS, CATALOGO_BASE, Usuario, Articulo, Registro, Tienda, SobranteSinStock, Rol } from '../constants/data';
@@ -7,7 +8,7 @@ import { initSupabase, getSupabaseListo } from '../lib/supabase';
 import {
   dbGetTiendas, dbUpsertTienda, dbDeleteTienda,
   dbGetUsuarios, dbInsertUsuario, dbDeleteUsuario,
-  dbGetRegistros, dbInsertRegistro, dbDeleteRegistro, dbLimpiarRegistrosTienda, dbReiniciarInventario,
+  dbGetRegistros, dbInsertRegistro, dbActualizarRegistro, dbDeleteRegistro, dbLimpiarRegistrosTienda, dbReiniciarInventario,
   dbGetAllCatalogos, dbUpsertCatalogo,
   dbGetSobrantes, dbInsertSobrante, dbDeleteSobrante, dbUpdateSobranteEstado,
 } from '../lib/db';
@@ -21,6 +22,8 @@ const KEYS = {
   SOBRANTES:         '@stockiq:sobrantes',
   CONFIRMADOS_CERO:  '@stockiq:confirmados_cero',
   PASSWORDS:         'stockiq_pass_v1',
+  DELETED_USERS:     '@stockiq:deleted_users_v1',
+  DELETED_TIENDAS:   '@stockiq:deleted_tiendas_v1',
 } as const;
 
 // ─── HELPERS SECURE STORE ─────────────────────────────────────────────────────
@@ -96,9 +99,37 @@ export type Pantalla =
   | 'perfil'
   | 'reporte';
 
+async function loadDeletedUsers(): Promise<Set<string>> {
+  try {
+    const raw = await withTimeout(AsyncStorage.getItem(KEYS.DELETED_USERS), 3000);
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+  } catch { return new Set(); }
+}
+
+async function saveDeletedUsers(set: Set<string>): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.DELETED_USERS, JSON.stringify([...set]));
+  } catch {}
+}
+
+async function loadDeletedTiendas(): Promise<Set<string>> {
+  try {
+    const raw = await withTimeout(AsyncStorage.getItem(KEYS.DELETED_TIENDAS), 3000);
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+  } catch { return new Set(); }
+}
+
+async function saveDeletedTiendas(set: Set<string>): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.DELETED_TIENDAS, JSON.stringify([...set]));
+  } catch {}
+}
+
 export function useAppState() {
   const [cargando, setCargando]           = useState(true);
   const [sincronizado, setSincronizado]   = useState(false);
+  const deletedUsersRef   = useRef<Set<string>>(new Set());
+  const deletedTiendasRef = useRef<Set<string>>(new Set());
   const [tiendas, setTiendas]             = useState<Tienda[]>(TIENDAS);
   const [usuarios, setUsuarios]           = useState<Usuario[]>(USUARIOS_INICIALES);
   const [usuario, setUsuario]             = useState<Usuario | null>(null);
@@ -109,6 +140,10 @@ export function useAppState() {
   const [sobrantes, setSobrantes]         = useState<SobranteSinStock[]>([]);
   // confirmadosCero: tiendaId → [itemId, ...] artículos con conteo cero confirmados por Admin/SuperAdmin
   const [confirmadosCero, setConfirmadosCero] = useState<Record<string, string[]>>({});
+
+  // Ref siempre actualizado con los registros más recientes — permite acceder al
+  // estado actual desde efectos sin incluirlo como dependencia.
+  const registrosRef = useRef<Registro[]>([]);
 
   // ── FASE 1: AsyncStorage + SecureStore (inmediato, funciona offline) ────────
   useEffect(() => {
@@ -121,7 +156,7 @@ export function useAppState() {
 
     const cargar = async () => {
       try {
-        const [rawTiendas, rawUsuarios, rawRegistros, rawCatalogos, rawSobrantes, rawConfirmados, passwords] = await Promise.all([
+        const [rawTiendas, rawUsuarios, rawRegistros, rawCatalogos, rawSobrantes, rawConfirmados, passwords, deletedUsers, deletedTiendas] = await Promise.all([
           withTimeout(AsyncStorage.getItem(KEYS.TIENDAS),          5000),
           withTimeout(AsyncStorage.getItem(KEYS.USUARIOS),         5000),
           withTimeout(AsyncStorage.getItem(KEYS.REGISTROS),        5000),
@@ -129,30 +164,40 @@ export function useAppState() {
           withTimeout(AsyncStorage.getItem(KEYS.SOBRANTES),        5000),
           withTimeout(AsyncStorage.getItem(KEYS.CONFIRMADOS_CERO), 5000),
           loadPasswords(),
+          loadDeletedUsers(),
+          loadDeletedTiendas(),
         ]);
+        deletedUsersRef.current   = deletedUsers;
+        deletedTiendasRef.current = deletedTiendas;
 
-        // Tiendas dinámicas
+        // Tiendas dinámicas — excluir las eliminadas explícitamente
         if (rawTiendas) {
-          setTiendas(JSON.parse(rawTiendas) as Tienda[]);
+          const all = JSON.parse(rawTiendas) as Tienda[];
+          setTiendas(all.filter(t => !deletedTiendas.has(t.id)));
         }
 
-        // Sembrar SecureStore con las contraseñas de USUARIOS_INICIALES si faltan
+        // Sembrar SecureStore con las contraseñas de USUARIOS_INICIALES si faltan,
+        // pero solo para usuarios que NO han sido eliminados explícitamente.
         let passNeedsSave = false;
         for (const u of USUARIOS_INICIALES) {
+          if (deletedUsers.has(u.id)) continue;
           if (!passwords[u.id]) { passwords[u.id] = u.pass; passNeedsSave = true; }
         }
         if (passNeedsSave) savePasswords(passwords);
 
         if (rawUsuarios) {
           const guardados = JSON.parse(rawUsuarios) as any[];
-          const ids = guardados.map(u => u.id);
-          const nuevos = USUARIOS_INICIALES.filter(u => !ids.includes(u.id));
+          // Excluir usuarios que fueron eliminados explícitamente (blocklist)
+          const guardadosFiltrados = guardados.filter((u: any) => !deletedUsers.has(u.id));
+          const ids = guardadosFiltrados.map((u: any) => u.id);
+          // Solo re-agregar semillas que no han sido eliminadas y no están ya guardadas
+          const nuevos = USUARIOS_INICIALES.filter(
+            u => !ids.includes(u.id) && !deletedUsers.has(u.id),
+          );
           setUsuarios([
-            ...guardados.map(u => {
+            ...guardadosFiltrados.map((u: any) => {
               const tiendasRoles = normalizarTiendasRoles(u);
               const rolGlobal    = u.rol === 'SUPERADMIN' ? 'SUPERADMIN' : deriveRolGlobal(tiendasRoles);
-              // Fallback: si SecureStore falló y passwords está vacío,
-              // recuperar la contraseña desde USUARIOS_INICIALES para los usuarios semilla
               const passLocal = passwords[u.id]
                 ?? USUARIOS_INICIALES.find(i => i.id === u.id)?.pass
                 ?? '';
@@ -183,43 +228,64 @@ export function useAppState() {
     return () => clearTimeout(safetyTimer);
   }, []);
 
+  // Evita ejecuciones concurrentes del sync (ej. foreground + timer)
+  const sincronizandoRef = useRef(false);
+
+  // ── FASE 3: Re-sync al volver a primer plano ──────────────────────────────
+  useEffect(() => {
+    if (cargando) return;
+    const sub = AppState.addEventListener('change', nextState => {
+      if (nextState === 'active') setSincronizado(false);
+    });
+    return () => sub.remove();
+  }, [cargando]);
+
   // ── FASE 2: Supabase en segundo plano (no bloquea la UI) ─────────────────
   // initSupabase() se llama AQUÍ — después del primer render — para que
   // createClient() no ejecute en el hilo JS durante la carga inicial.
   useEffect(() => {
     if (cargando || sincronizado) return;
+    if (sincronizandoRef.current) return;  // sync ya en curso
     initSupabase();                  // inicialización diferida, segura
     if (!getSupabaseListo()) return; // sin credenciales válidas → solo offline
     const sincronizar = async () => {
+      sincronizandoRef.current = true;
       try {
         // Timeout de 12 s para no quedar bloqueado si Supabase no responde
         const sbTimeout = <T,>(p: Promise<T>): Promise<T> =>
           Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(new Error('sb-timeout')), 12000))]);
 
+        const tiendaIdsFilter = (usuario && usuario.rol !== 'SUPERADMIN') ? usuario.tiendas : undefined;
         const [sbTiendas, sbUsuarios, sbRegistros, sbCatalogos, sbSobrantes] = await sbTimeout(
           Promise.all([
             dbGetTiendas(),
             dbGetUsuarios(),
-            dbGetRegistros(),
+            dbGetRegistros(tiendaIdsFilter),
             dbGetAllCatalogos(),
             dbGetSobrantes(),
           ]),
         );
 
-        // Tiendas: Supabase como base, locales tienen prioridad
+        // Tiendas: Supabase actualiza las existentes y añade nuevas.
+        // Ignorar tiendas que fueron eliminadas localmente (deletedTiendasRef).
         if (sbTiendas.length > 0) {
           setTiendas(prev => {
+            const sbFiltered = sbTiendas.filter(t => !deletedTiendasRef.current.has(t.id));
+            const sbMap   = new Map(sbFiltered.map(t => [t.id, t]));
+            const updated = prev.map(t => sbMap.has(t.id) ? { ...t, ...sbMap.get(t.id)! } : t);
             const localIds = new Set(prev.map(t => t.id));
-            const extras = sbTiendas.filter(t => !localIds.has(t.id));
-            return extras.length > 0 ? [...prev, ...extras] : prev;
+            const extras   = sbFiltered.filter(t => !localIds.has(t.id));
+            return extras.length > 0 ? [...updated, ...extras] : updated;
           });
         }
 
         // Merge usuarios: preservar contraseñas locales, normalizar tiendasRoles
+        // Ignorar usuarios que fueron eliminados localmente (deletedUsersRef)
         if (sbUsuarios.length > 0) {
           setUsuarios(prev => {
             const merged = [...prev];
             for (const su of sbUsuarios) {
+              if (deletedUsersRef.current.has(su.id)) continue;
               const tiendasRoles = normalizarTiendasRoles(su);
               const rolGlobal: Rol = su.rol === 'SUPERADMIN' ? 'SUPERADMIN' : deriveRolGlobal(tiendasRoles);
               const normalizado  = { ...su, tiendasRoles, rol: rolGlobal };
@@ -234,16 +300,52 @@ export function useAppState() {
           });
         }
 
+        // ── Sync bidireccional de registros ─────────────────────────────────
+        // 1. Bajar y actualizar registros de Supabase (deep-merge por ID)
         if (sbRegistros.length > 0) {
           setRegistros(prev => {
+            const sbMap = new Map(sbRegistros.map((r: Registro) => [r.id, r]));
+            const updated = prev.map(r => sbMap.has(r.id) ? { ...r, ...sbMap.get(r.id)! } : r);
             const localIds = new Set(prev.map(r => r.id));
-            const extras = sbRegistros.filter(r => !localIds.has(r.id));
-            return extras.length > 0 ? [...extras, ...prev] : prev;
+            const extras = sbRegistros.filter((r: Registro) => !localIds.has(r.id));
+            return extras.length > 0 ? [...extras, ...updated] : updated;
           });
+        }
+        // 2. Subir a Supabase los registros locales que no están en la nube
+        // Si ya existe uno del mismo usuario+artículo+tienda, actualizar en vez de duplicar (BUG-03)
+        const sbIds = new Set(sbRegistros.map((r: Registro) => r.id));
+        const porSubir = registrosRef.current.filter(r => !sbIds.has(r.id));
+        if (porSubir.length > 0) {
+          if (__DEV__) console.log(`[StockIQ] Subiendo ${porSubir.length} registro(s) local(es) a Supabase...`);
+          let subidos = 0, errores = 0;
+          for (const r of porSubir) {
+            try {
+              const existing = sbRegistros.find(
+                (sb: Registro) => sb.tiendaId === r.tiendaId && sb.itemId === r.itemId && sb.usuarioNombre === r.usuarioNombre,
+              );
+              if (existing) {
+                await dbActualizarRegistro(existing.id, {
+                  cantidad: r.cantidad, nota: r.nota, usuarioNombre: r.usuarioNombre,
+                  clasificacion: r.clasificacion, escaneadoEn: r.escaneadoEn,
+                });
+                setRegistros(prev => prev.map(reg => reg.id === r.id ? { ...reg, id: existing.id } : reg));
+              } else {
+                await dbInsertRegistro(r);
+              }
+              subidos++;
+            } catch (e) {
+              errores++;
+              if (__DEV__) console.warn('[StockIQ] Error subiendo registro:', (e as Error)?.message);
+            }
+          }
+          if (__DEV__) {
+            if (errores > 0) console.warn(`[StockIQ] ${errores} registro(s) no se pudieron subir.`);
+            else console.log(`[StockIQ] ${subidos} registro(s) sincronizado(s) correctamente.`);
+          }
         }
 
         if (Object.keys(sbCatalogos).length > 0) {
-          setCatalogos(prev => ({ ...sbCatalogos, ...prev }));
+          setCatalogos(prev => ({ ...prev, ...sbCatalogos }));
         }
 
         if (sbSobrantes.length > 0) {
@@ -258,10 +360,59 @@ export function useAppState() {
       } catch (err) {
         // Sin conexión o timeout — seguimos con datos locales
         if (__DEV__) console.warn('[useAppState] Supabase sync falló:', err);
+      } finally {
+        sincronizandoRef.current = false;
       }
     };
     sincronizar();
   }, [cargando, sincronizado]);
+
+  // ─── Sync liviano: descarga + sube pendientes, cada 15 s en primer plano ──
+  const refreshRegistros = useCallback(async () => {
+    if (!getSupabaseListo()) return;
+    try {
+      const tiendaIdsFilter = (usuario && usuario.rol !== 'SUPERADMIN') ? usuario.tiendas : undefined;
+      const sbRegistros = await dbGetRegistros(tiendaIdsFilter);
+      if (sbRegistros.length > 0) {
+        setRegistros(prev => {
+          const sbMap = new Map(sbRegistros.map((r: Registro) => [r.id, r]));
+          const updated = prev.map(r => sbMap.has(r.id) ? { ...r, ...sbMap.get(r.id)! } : r);
+          const localIds = new Set(prev.map(r => r.id));
+          const extras = sbRegistros.filter((r: Registro) => !localIds.has(r.id));
+          return extras.length > 0 ? [...extras, ...updated] : updated;
+        });
+      }
+      // Subir registros locales pendientes que Supabase aún no conoce
+      const sbIds = new Set(sbRegistros.map((r: Registro) => r.id));
+      const porSubir = registrosRef.current.filter(r => !sbIds.has(r.id));
+      for (const r of porSubir) {
+        try {
+          const existing = sbRegistros.find(
+            (sb: Registro) => sb.tiendaId === r.tiendaId && sb.itemId === r.itemId && sb.usuarioNombre === r.usuarioNombre,
+          );
+          if (existing) {
+            await dbActualizarRegistro(existing.id, {
+              cantidad: r.cantidad, nota: r.nota, usuarioNombre: r.usuarioNombre,
+              clasificacion: r.clasificacion, escaneadoEn: r.escaneadoEn,
+            });
+            setRegistros(prev => prev.map(reg => reg.id === r.id ? { ...reg, id: existing.id } : reg));
+          } else {
+            await dbInsertRegistro(r);
+          }
+        } catch (e) {
+          if (__DEV__) console.warn('[StockIQ] refreshRegistros upload error:', (e as Error)?.message);
+        }
+      }
+    } catch {}
+  }, [usuario]);
+
+  useEffect(() => {
+    if (cargando) return;
+    const timer = setInterval(() => {
+      if (AppState.currentState === 'active') refreshRegistros();
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [cargando, refreshRegistros]);
 
   // ── Persistir en AsyncStorage cuando el estado cambia ────────────────────
   useEffect(() => {
@@ -276,6 +427,7 @@ export function useAppState() {
   }, [usuarios, cargando]);
 
   useEffect(() => {
+    registrosRef.current = registros;
     if (cargando) return;
     AsyncStorage.setItem(KEYS.REGISTROS, JSON.stringify(registros)).catch(() => {});
   }, [registros, cargando]);
@@ -337,6 +489,8 @@ export function useAppState() {
 
   const eliminarTienda = useCallback((id: string) => {
     setTiendas(prev => prev.filter(t => t.id !== id));
+    deletedTiendasRef.current.add(id);
+    saveDeletedTiendas(deletedTiendasRef.current);
     dbDeleteTienda(id).catch(() => {});
   }, []);
 
@@ -376,13 +530,18 @@ export function useAppState() {
   const eliminarUsuario = useCallback((id: string) => {
     setUsuarios(prev => prev.filter(u => u.id !== id));
     loadPasswords().then(map => { delete map[id]; savePasswords(map); });
+    deletedUsersRef.current.add(id);
+    saveDeletedUsers(deletedUsersRef.current);
     dbDeleteUsuario(id).catch(() => {});
   }, []);
 
   // ── Inventario — optimistic update + Supabase fire-and-forget ────────────
   const agregarRegistro = useCallback((r: Registro) => {
     setRegistros(prev => [r, ...prev]);
-    dbInsertRegistro(r).catch(() => {});
+    dbInsertRegistro(r).catch(err => {
+      // El registro se guardó en AsyncStorage; se sincronizará en la próxima sesión.
+      if (__DEV__) console.warn('[StockIQ] agregarRegistro no se sincronizó en vivo:', err?.message ?? err);
+    });
   }, []);
 
   const eliminarRegistro = useCallback((id: string) => {
@@ -444,6 +603,7 @@ export function useAppState() {
   const reiniciarInventario = useCallback((tiendaId: string) => {
     setRegistros(prev => prev.filter(r => r.tiendaId !== tiendaId));
     setSobrantes(prev => prev.filter(s => s.tiendaId !== tiendaId));
+    setCatalogos(prev => { const next = { ...prev }; delete next[tiendaId]; return next; });
     setConfirmadosCero(prev => { const next = { ...prev }; delete next[tiendaId]; return next; });
     dbReiniciarInventario(tiendaId).catch(() => {});
   }, []);
@@ -507,5 +667,8 @@ export function useAppState() {
     confirmadosCero, confirmarCero, desconfirmarCero, getConfirmadosCero,
     // Modo inventario
     toggleModoInventario,
+    // Refresh manual
+    refresh: () => setSincronizado(false),
+    refreshRegistros,
   };
 }
