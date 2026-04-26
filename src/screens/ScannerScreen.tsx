@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  Modal, Alert, FlatList, ScrollView, Vibration, KeyboardAvoidingView, Platform, Image,
+  Modal, Alert, FlatList, ScrollView, Vibration, KeyboardAvoidingView, Platform, Image, Keyboard,
   Animated, Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,6 +37,7 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
   const [foto, setFoto]          = useState<string | null>(null);
   const [flash, setFlash]        = useState(false);
   const last         = useRef<string | null>(null);
+  const scrollRef    = useRef<ScrollView>(null);
   const scanAnim     = useRef(new Animated.Value(-90)).current;
   const successFlash = useRef(new Animated.Value(0)).current;
   const cornerPulse  = useRef(new Animated.Value(0.7)).current;
@@ -60,7 +61,17 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const abrirItem = (it: Articulo) => { setItem(it); setCantidad('1'); setNota(''); setFoto(null); setModal(true); setPausado(true); };
+  const abrirItem = (it: Articulo) => {
+    const miReg = registros
+      .filter(r => r.itemId === it.itemId && r.usuarioNombre === usuario.nombre)
+      .sort((a, b) => new Date(b.escaneadoEn).getTime() - new Date(a.escaneadoEn).getTime())[0];
+    setItem(it);
+    setCantidad(miReg ? String(miReg.cantidad) : '1');
+    setNota(miReg?.nota ?? '');
+    setFoto(miReg?.fotoUri ?? null);
+    setModal(true);
+    setPausado(true);
+  };
   const cerrar    = () => { setModal(false); setFoto(null); setTimeout(() => { last.current = null; setPausado(false); }, 250); };
   const cerrarB   = () => { setSearch(false); setBusq(''); setTimeout(() => { last.current = null; setPausado(false); }, 250); };
 
@@ -104,6 +115,7 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
     if (!item) return;
     const cant = parseInt(cantidad, 10);
     if (isNaN(cant) || cant < 0) { Alert.alert('Cantidad inválida'); return; }
+    Keyboard.dismiss();
     onGuardar({
       id: genId(), tiendaId: tienda.id, itemId: item.itemId, descripcion: item.descripcion,
       ubicacion: item.ubicacion, stockSistema: item.stock, costoUnitario: item.costo,
@@ -120,6 +132,21 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
         c.itemId.toLowerCase().includes(busq.toLowerCase()) ||
         c.descripcion.toLowerCase().includes(busq.toLowerCase())
       ).slice(0, 12);
+
+  if (tienda.modoInventario === 'OFFLINE') return (
+    <View style={{ flex: 1, backgroundColor: '#09090B', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+      <Ionicons name="lock-closed" size={48} color="#6D28D9" style={{ marginBottom: 20 }} />
+      <Text style={{ color: '#F4F4F5', fontSize: 18, fontWeight: '800', textAlign: 'center', marginBottom: 8 }}>Inventario cerrado</Text>
+      <Text style={{ color: '#71717A', fontSize: 13, textAlign: 'center', marginBottom: 28, lineHeight: 20 }}>
+        {tienda.cerradoPor
+          ? `${tienda.cerradoPor} cerró el inventario de ${tienda.nombre}. Contacta al administrador para reabrirlo.`
+          : `El inventario de ${tienda.nombre} está cerrado. Contacta al administrador.`}
+      </Text>
+      <TouchableOpacity onPress={onBack} style={{ paddingHorizontal: 24, paddingVertical: 12, backgroundColor: '#27272A', borderRadius: 12, borderWidth: 1, borderColor: '#3F3F46' }}>
+        <Text style={{ color: '#A1A1AA', fontSize: 14, fontWeight: '600' }}>Volver</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   if (!perm) return <View style={{ flex: 1, backgroundColor: '#000' }} />;
 
@@ -219,28 +246,46 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
         </TouchableOpacity>
       </View>
 
-      {/* ── Modal: artículo detectado ── */}
-      <Modal visible={modal} animationType="slide" transparent accessibilityViewIsModal={true}>
-        <View style={m.bg}>
-          <View style={[m.sheet, { backgroundColor: tc.card }]}>
-            <View style={[m.handle, { backgroundColor: tc.border }]} accessibilityElementsHidden={true} />
-            <View style={m.header}>
-              <View>
-                <Text style={m.headerLbl}>Artículo detectado</Text>
-                {item && <Text style={[m.headerCode, { color: tienda.color }]}>{item.itemId}</Text>}
-              </View>
-              <TouchableOpacity onPress={cerrar} style={[m.closeBtn, { backgroundColor: tc.btnBg }]}>
-                <Ionicons name="close" size={18} color={tc.muted} />
-              </TouchableOpacity>
+      {/* ── Modal: artículo detectado (pantalla completa) ── */}
+      <Modal visible={modal} animationType="slide" transparent={false} accessibilityViewIsModal={true}>
+        <View style={{ flex: 1, backgroundColor: tc.card }}>
+          {/* Header fijo con safe area */}
+          <View style={{
+            paddingTop: Platform.OS === 'ios' ? 54 : 36,
+            paddingHorizontal: 20,
+            paddingBottom: 14,
+            borderBottomWidth: 1,
+            borderBottomColor: tc.border,
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+          }}>
+            <View>
+              <Text style={m.headerLbl}>Artículo detectado</Text>
+              {item && <Text style={[m.headerCode, { color: tienda.color }]}>{item.itemId}</Text>}
             </View>
+            <TouchableOpacity onPress={cerrar} style={[m.closeBtn, { backgroundColor: tc.btnBg }]}>
+              <Ionicons name="close" size={18} color={tc.muted} />
+            </TouchableOpacity>
+          </View>
 
-            {item && (() => {
-              const cant  = parseInt(cantidad, 10) || 0;
-              const clsf  = clasificar(item.stock, cant);
-              const cfg   = CLSF[clsf];
-              const delta = cant - item.stock;
-              return (
-                <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {item && (() => {
+            const cant  = parseInt(cantidad, 10) || 0;
+            const clsf  = clasificar(item.stock, cant);
+            const cfg   = CLSF[clsf];
+            const delta = cant - item.stock;
+            return (
+              <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={0}
+              >
+                <ScrollView
+                  ref={scrollRef}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={{ padding: 20, paddingBottom: 8 }}
+                >
                   {/* Info card */}
                   <View style={[m.infoCard, { backgroundColor: tc.cardAlt, borderColor: tc.border }]}>
                     <View style={m.infoRow}>
@@ -254,6 +299,37 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
                       <View style={m.infoStat}><Text style={m.infoStatLbl}>Costo unitario</Text><Text style={[m.infoStatVal, { color: tc.text }]}>{fCOP(item.costo)}</Text></View>
                     </View>
                   </View>
+
+                  {/* Conteos registrados de todos los auditores */}
+                  {(() => {
+                    const previos = registros.filter(r => r.itemId === item.itemId);
+                    if (previos.length === 0) return null;
+                    return (
+                      <View style={{ marginBottom: 16, backgroundColor: tc.cardAlt, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: tc.border }}>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: tc.muted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10 }}>
+                          {previos.length} conteo{previos.length !== 1 ? 's' : ''} registrado{previos.length !== 1 ? 's' : ''}
+                        </Text>
+                        {previos.map(r => (
+                          <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                            <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: PRP + '33', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <Text style={{ color: PRP, fontSize: 12, fontWeight: '900' }}>{r.usuarioNombre.charAt(0)}</Text>
+                            </View>
+                            <View style={{ flex: 1, minWidth: 0 }}>
+                              <Text style={{ color: tc.text, fontSize: 12, fontWeight: '700' }} numberOfLines={1}>
+                                {r.usuarioNombre}{r.usuarioNombre === usuario.nombre ? ' (tú)' : ''}
+                              </Text>
+                              <Text style={{ color: tc.muted, fontSize: 10 }}>
+                                {new Date(r.escaneadoEn).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </Text>
+                            </View>
+                            <View style={{ backgroundColor: r.usuarioNombre === usuario.nombre ? PRP + '22' : '#3F3F4644', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                              <Text style={{ color: r.usuarioNombre === usuario.nombre ? PRP : tc.muted, fontSize: 13, fontWeight: '800' }}>{r.cantidad} ud.</Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    );
+                  })()}
 
                   {/* Cantidad */}
                   <Text style={[m.fieldLbl, { color: tc.muted }]}>Cantidad contada</Text>
@@ -305,7 +381,7 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
                     </TouchableOpacity>
                   )}
 
-                  {/* Nota */}
+                  {/* Nota — onFocus hace scroll para que el teclado no la tape */}
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 14, marginBottom: 10 }}>
                     <Text style={m.fieldLbl}>Nota (opcional)</Text>
                     <Text style={{ fontSize: 10, color: nota.length > 180 ? '#F97316' : '#A1A1AA', marginLeft: 'auto' }}>
@@ -320,8 +396,12 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
                     onChangeText={t => setNota(t.slice(0, 200))}
                     maxLength={200}
                     multiline
+                    onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 300)}
                   />
+                </ScrollView>
 
+                {/* Botón fijo en la parte inferior */}
+                <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: Platform.OS === 'ios' ? 34 : 20, borderTopWidth: 1, borderTopColor: tc.border }}>
                   <TouchableOpacity style={[m.guardarBtn, { backgroundColor: tienda.color, overflow: 'hidden' }]} onPress={guardar} activeOpacity={0.88}>
                     <LinearGradient
                       colors={[tienda.color + 'FF', tienda.color + 'AA']}
@@ -332,20 +412,25 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
                     <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginRight: 8 }} />
                     <Text style={m.guardarTxt}>Guardar y continuar</Text>
                   </TouchableOpacity>
-                </ScrollView>
-              );
-            })()}
-          </View>
+                </View>
+              </KeyboardAvoidingView>
+            );
+          })()}
         </View>
       </Modal>
 
-      {/* ── Modal: búsqueda manual ── */}
-      <Modal visible={modalSearch} animationType="slide" transparent>
-        <KeyboardAvoidingView style={m.bg} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={[m.sheet, { maxHeight: '88%', backgroundColor: tc.card }]}>
-            <View style={[m.handle, { backgroundColor: tc.border }]} />
+      {/* ── Modal: búsqueda manual (pantalla completa) ── */}
+      <Modal visible={modalSearch} animationType="slide" onRequestClose={cerrarB}>
+        <KeyboardAvoidingView
+          style={{ flex: 1, backgroundColor: tc.card }}
+          behavior="padding"
+        >
+          <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 54 : 32, paddingHorizontal: 20 }}>
             <View style={m.header}>
-              <Text style={m.headerLbl}>Buscar artículo</Text>
+              <View>
+                <Text style={m.headerLbl}>Buscar artículo</Text>
+                <Text style={{ fontSize: 11, color: tc.muted, marginTop: 1 }}>{CAT.length} artículos en catálogo</Text>
+              </View>
               <TouchableOpacity onPress={cerrarB} style={[m.closeBtn, { backgroundColor: tc.btnBg }]}>
                 <Ionicons name="close" size={18} color={tc.muted} />
               </TouchableOpacity>
@@ -371,17 +456,28 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
               data={resultados}
               keyExtractor={i => i.itemId}
               keyboardShouldPersistTaps="handled"
-              renderItem={({ item: it }) => (
-                <TouchableOpacity style={[m.searchItem, { borderBottomColor: tc.border }]} onPress={() => { setSearch(false); setBusq(''); abrirItem(it); }}>
-                  <View style={[m.searchDot, { backgroundColor: tienda.color }]} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[m.searchCode, { color: tienda.color }]}>{it.itemId}</Text>
-                    <Text style={[m.searchDesc, { color: tc.text }]}>{it.descripcion}</Text>
-                    <Text style={[m.searchMeta, { color: tc.muted }]}>{it.ubicacion} · Stock: {it.stock} · {fCOP(it.costo)}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={tc.border} />
-                </TouchableOpacity>
-              )}
+              renderItem={({ item: it }) => {
+                const conteos = registros.filter(r => r.itemId === it.itemId);
+                return (
+                  <TouchableOpacity
+                    style={[m.searchItem, { borderBottomColor: tc.border }]}
+                    onPress={() => { setSearch(false); setBusq(''); abrirItem(it); }}
+                  >
+                    <View style={[m.searchDot, { backgroundColor: conteos.length > 0 ? tienda.color : tc.border }]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[m.searchCode, { color: tienda.color }]}>{it.itemId}</Text>
+                      <Text style={[m.searchDesc, { color: tc.text }]}>{it.descripcion}</Text>
+                      <Text style={[m.searchMeta, { color: tc.muted }]}>{it.ubicacion} · Stock: {it.stock} · {fCOP(it.costo)}</Text>
+                    </View>
+                    {conteos.length > 0 && (
+                      <View style={{ backgroundColor: PRP + '22', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginLeft: 6, flexShrink: 0 }}>
+                        <Text style={{ color: PRP, fontSize: 10, fontWeight: '800' }}>{conteos.length} ✓</Text>
+                      </View>
+                    )}
+                    <Ionicons name="chevron-forward" size={16} color={tc.border} style={{ marginLeft: 6 }} />
+                  </TouchableOpacity>
+                );
+              }}
               ListEmptyComponent={
                 <View style={{ alignItems: 'center', paddingVertical: 32 }}>
                   <Ionicons name="search-circle-outline" size={36} color={BRD} />
@@ -433,7 +529,7 @@ const s = StyleSheet.create({
 
 const m = StyleSheet.create({
   bg:          { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
-  sheet:       { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 36 },
+  sheet:       { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 20, paddingBottom: 24, maxHeight: '90%' },
   handle:      { width: 40, height: 4, backgroundColor: BRD, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
   header:      { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
   headerLbl:   { fontSize: 12, fontWeight: '700', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 2 },
