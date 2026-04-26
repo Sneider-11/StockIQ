@@ -68,7 +68,13 @@ export const MisRegistrosScreen: React.FC<Props> = ({
     Animated.parallel([
       Animated.timing(bgOpacity, { toValue: 0, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
       Animated.timing(sheetY,    { toValue: 700, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-    ]).start(() => { panDy.setValue(0); setDetalleReg(null); });
+    ]).start(() => {
+      panDy.setValue(0);
+      setDetalleReg(null);
+      setMiniReg(null);
+      setMiniEditando(false);
+      setEditRegId(null);
+    });
   };
 
   const abrirEdicion = (reg: Registro) => {
@@ -290,7 +296,7 @@ export const MisRegistrosScreen: React.FC<Props> = ({
                     {esPropio && onEditarRegistro && (
                       <TouchableOpacity
                         style={[s.deleteBtn, { backgroundColor: '#EDE9FE', marginLeft: 'auto' as any }]}
-                        onPress={() => { setMiniReg(r); abrirEdicion(r); }}
+                        onPress={() => { setDetalleReg(r); setMiniReg(r); abrirEdicion(r); }}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
                         <Ionicons name="pencil-outline" size={15} color={PRP} />
@@ -467,7 +473,7 @@ export const MisRegistrosScreen: React.FC<Props> = ({
         </TouchableOpacity>
       </Modal>
 
-      {/* ══ MODAL: DETALLE DEL ARTÍCULO ════════════════════════════════════════ */}
+      {/* ══ MODAL ÚNICO: artículo → conteo individual → edición ══════════════ */}
       <Modal
         visible={!!detalleReg}
         animationType="none"
@@ -482,7 +488,7 @@ export const MisRegistrosScreen: React.FC<Props> = ({
             pointerEvents="none"
           />
 
-          {/* Tap en el fondo cierra el modal */}
+          {/* Tap en el fondo cierra todo */}
           <TouchableOpacity
             style={StyleSheet.absoluteFillObject}
             activeOpacity={1}
@@ -497,239 +503,231 @@ export const MisRegistrosScreen: React.FC<Props> = ({
 
             {detalleReg && (
               <>
-                {/* Header con color del artículo */}
+                {/* Header — muestra flecha volver cuando estamos en sub-vista */}
                 <View style={[s.detalleHeader, { backgroundColor: cfgArticulo.bg, borderBottomColor: tc.border }]}>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={[s.detalleEstado, { color: cfgArticulo.color }]}>{cfgArticulo.label}</Text>
-                    <Text style={[s.detalleRef, { color: cfgArticulo.color }]} numberOfLines={1}>{detalleReg.itemId}</Text>
-                  </View>
+                  {miniReg ? (
+                    <TouchableOpacity
+                      onPress={() => { setMiniReg(null); setMiniEditando(false); setEditRegId(null); }}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}
+                    >
+                      <Ionicons name="arrow-back" size={18} color={cfgArticulo.color} />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={[s.detalleEstado, { color: cfgArticulo.color }]}>
+                          {miniEditando ? 'Editar conteo' : 'Detalle del conteo'}
+                        </Text>
+                        <Text style={[s.detalleRef, { color: cfgArticulo.color }]} numberOfLines={1}>{detalleReg.itemId}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={[s.detalleEstado, { color: cfgArticulo.color }]}>{cfgArticulo.label}</Text>
+                      <Text style={[s.detalleRef, { color: cfgArticulo.color }]} numberOfLines={1}>{detalleReg.itemId}</Text>
+                    </View>
+                  )}
                   <TouchableOpacity onPress={cerrarDetalle} style={s.detalleClose}>
                     <Ionicons name="close" size={20} color={cfgArticulo.color} />
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView
-                  style={{ flex: 1 }}
-                  contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
-                  showsVerticalScrollIndicator={false}
-                >
-                  {/* Descripción y ubicación */}
-                  <Text style={[s.detalleDesc, { color: tc.text }]}>{detalleReg.descripcion}</Text>
-                  <Text style={s.detalleUbic}>{detalleReg.ubicacion}</Text>
+                {/* ── VISTA A: estadísticas + lista de conteos ── */}
+                {!miniReg && (
+                  <ScrollView
+                    style={{ flex: 1 }}
+                    contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <Text style={[s.detalleDesc, { color: tc.text }]}>{detalleReg.descripcion}</Text>
+                    <Text style={s.detalleUbic}>{detalleReg.ubicacion}</Text>
 
-                  {/* Grid de datos del artículo (suma de todos los conteos) */}
-                  <View style={[s.detalleGrid, { backgroundColor: tc.cardAlt, borderColor: tc.border }]}>
-                    {[
-                      { l: 'Stock sistema',   v: String(detalleReg.stockSistema), c: tc.muted },
-                      { l: 'Total contado',   v: String(totalContado),            c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
-                      { l: 'Diferencia',      v: (delta > 0 ? '+' : '') + delta,  c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
-                      { l: 'Valor unitario',  v: fCOP(detalleReg.costoUnitario),  c: tc.muted },
-                      { l: 'Impacto total',   v: delta !== 0 ? (delta > 0 ? '+' : '') + fCOP(Math.abs(delta * detalleReg.costoUnitario)) : '—', c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
-                    ].map(q => (
-                      <View key={q.l} style={[s.detalleGridBox, { backgroundColor: tc.cardAlt, borderColor: tc.border }]}>
-                        <Text style={[s.detalleGridLbl, { color: tc.muted }]}>{q.l}</Text>
-                        <Text style={[s.detalleGridVal, { color: q.c }]} numberOfLines={1} adjustsFontSizeToFit>{q.v}</Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  {/* ── Lista de TODOS los conteos de este artículo ── */}
-                  <Text style={[s.secTitle, { marginTop: 16, marginBottom: 10, color: tc.text }]}>
-                    Conteos de este artículo ({hermanos.length})
-                  </Text>
-
-                  {hermanos.length === 0 ? (
-                    <View style={{ padding: 20, backgroundColor: tc.card, borderRadius: 14, borderWidth: 1, borderColor: tc.border, alignItems: 'center' }}>
-                      <Ionicons name="cube-outline" size={28} color="#A1A1AA" />
-                      <Text style={{ color: tc.muted, fontSize: 13, marginTop: 8 }}>Sin conteos registrados</Text>
+                    <View style={[s.detalleGrid, { backgroundColor: tc.cardAlt, borderColor: tc.border }]}>
+                      {[
+                        { l: 'Stock sistema',  v: String(detalleReg.stockSistema), c: tc.muted },
+                        { l: 'Total contado',  v: String(totalContado),            c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
+                        { l: 'Diferencia',     v: (delta > 0 ? '+' : '') + delta,  c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
+                        { l: 'Valor unitario', v: fCOP(detalleReg.costoUnitario),  c: tc.muted },
+                        { l: 'Impacto total',  v: delta !== 0 ? (delta > 0 ? '+' : '') + fCOP(Math.abs(delta * detalleReg.costoUnitario)) : '—', c: delta === 0 ? '#15803D' : delta > 0 ? '#B45309' : '#DC2626' },
+                      ].map(q => (
+                        <View key={q.l} style={[s.detalleGridBox, { backgroundColor: tc.cardAlt, borderColor: tc.border }]}>
+                          <Text style={[s.detalleGridLbl, { color: tc.muted }]}>{q.l}</Text>
+                          <Text style={[s.detalleGridVal, { color: q.c }]} numberOfLines={1} adjustsFontSizeToFit>{q.v}</Text>
+                        </View>
+                      ))}
                     </View>
-                  ) : hermanos.map((reg, idx) => {
-                    const esPropio = reg.usuarioNombre === usuario.nombre;
-                    const cfgReg   = CLSF[reg.clasificacion];
-                    return (
-                      <TouchableOpacity
-                        key={reg.id}
-                        style={[s.regRow, { backgroundColor: tc.card, borderColor: tc.border }, esPropio && { borderLeftColor: tienda.color, borderLeftWidth: 3 }]}
-                        onPress={() => setMiniReg(reg)}
-                        activeOpacity={0.82}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-                              <Avatar nombre={reg.usuarioNombre} size={26} bg={esPropio ? tienda.color : '#27272A'} />
-                              <View style={{ flex: 1, minWidth: 0 }}>
-                                <Text style={[s.regUsuario, { color: tc.text }]} numberOfLines={1}>
-                                  {reg.usuarioNombre}{esPropio ? <Text style={{ color: tienda.color }}> (tú)</Text> : null}
-                                </Text>
-                                <Text style={[s.regFecha, { color: tc.muted }]} numberOfLines={1}>{formatFechaDisplay(reg.escaneadoEn)}</Text>
+
+                    <Text style={[s.secTitle, { marginTop: 16, marginBottom: 10, color: tc.text }]}>
+                      Conteos de este artículo ({hermanos.length})
+                    </Text>
+
+                    {hermanos.length === 0 ? (
+                      <View style={{ padding: 20, backgroundColor: tc.card, borderRadius: 14, borderWidth: 1, borderColor: tc.border, alignItems: 'center' }}>
+                        <Ionicons name="cube-outline" size={28} color="#A1A1AA" />
+                        <Text style={{ color: tc.muted, fontSize: 13, marginTop: 8 }}>Sin conteos registrados</Text>
+                      </View>
+                    ) : hermanos.map((reg) => {
+                      const esPropio = reg.usuarioNombre === usuario.nombre;
+                      const cfgReg   = CLSF[reg.clasificacion];
+                      return (
+                        <TouchableOpacity
+                          key={reg.id}
+                          style={[s.regRow, { backgroundColor: tc.card, borderColor: tc.border }, esPropio && { borderLeftColor: tienda.color, borderLeftWidth: 3 }]}
+                          onPress={() => setMiniReg(reg)}
+                          activeOpacity={0.82}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                                <Avatar nombre={reg.usuarioNombre} size={26} bg={esPropio ? tienda.color : '#27272A'} />
+                                <View style={{ flex: 1, minWidth: 0 }}>
+                                  <Text style={[s.regUsuario, { color: tc.text }]} numberOfLines={1}>
+                                    {reg.usuarioNombre}{esPropio ? <Text style={{ color: tienda.color }}> (tú)</Text> : null}
+                                  </Text>
+                                  <Text style={[s.regFecha, { color: tc.muted }]} numberOfLines={1}>{formatFechaDisplay(reg.escaneadoEn)}</Text>
+                                </View>
+                              </View>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <View style={[s.regBadge, { backgroundColor: cfgReg.bg }]}>
+                                  <Text style={[s.regBadgeTxt, { color: cfgReg.color }]}>{reg.cantidad} und.</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={14} color="#A1A1AA" />
                               </View>
                             </View>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                              <View style={[s.regBadge, { backgroundColor: cfgReg.bg }]}>
-                                <Text style={[s.regBadgeTxt, { color: cfgReg.color }]}>{reg.cantidad} und.</Text>
-                              </View>
-                              <Ionicons name="chevron-forward" size={14} color="#A1A1AA" />
+                            <View style={{ flexDirection: 'row', gap: 10, marginTop: 2 }}>
+                              {reg.nota ? (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                  <Ionicons name="chatbubble-outline" size={11} color="#92400E" />
+                                  <Text style={{ fontSize: 11, color: '#92400E' }} numberOfLines={1}>Nota</Text>
+                                </View>
+                              ) : null}
+                              {reg.fotoUri ? (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                  <Ionicons name="camera-outline" size={11} color={tc.muted} />
+                                  <Text style={{ fontSize: 11, color: tc.muted }}>Foto</Text>
+                                </View>
+                              ) : null}
                             </View>
                           </View>
-                          {/* Indicadores inline de contenido extra */}
-                          <View style={{ flexDirection: 'row', gap: 10, marginTop: 2 }}>
-                            {reg.nota ? (
-                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                <Ionicons name="chatbubble-outline" size={11} color="#92400E" />
-                                <Text style={{ fontSize: 11, color: '#92400E' }} numberOfLines={1}>Nota</Text>
-                              </View>
-                            ) : null}
-                            {reg.fotoUri ? (
-                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                <Ionicons name="camera-outline" size={11} color={tc.muted} />
-                                <Text style={{ fontSize: 11, color: tc.muted }}>Foto</Text>
-                              </View>
-                            ) : null}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                )}
+
+                {/* ── VISTA B: detalle de un conteo individual ── */}
+                {miniReg && !miniEditando && (() => {
+                  const esPropio = miniReg.usuarioNombre === usuario.nombre;
+                  const puedEdit = puedeEditar(miniReg);
+                  const cfgReg   = CLSF[miniReg.clasificacion];
+                  return (
+                    <ScrollView
+                      style={{ flex: 1 }}
+                      contentContainerStyle={{ padding: 20, paddingBottom: 32 }}
+                      showsVerticalScrollIndicator={false}
+                    >
+                      {/* Cabecera usuario */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                        <Avatar nombre={miniReg.usuarioNombre} size={40} bg={esPropio ? tienda.color : '#27272A'} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[s.editTitle, { color: tc.text, marginBottom: 4 }]} numberOfLines={1}>
+                            {miniReg.usuarioNombre}
+                            {esPropio ? <Text style={{ color: tienda.color, fontSize: 13 }}> (tú)</Text> : null}
+                          </Text>
+                          <View style={[s.regBadge, { backgroundColor: cfgReg.bg, alignSelf: 'flex-start' }]}>
+                            <Text style={[s.regBadgeTxt, { color: cfgReg.color }]}>{miniReg.cantidad} und. · {cfgReg.label}</Text>
                           </View>
                         </View>
+                      </View>
+
+                      {/* Fecha */}
+                      <View style={s.miniRow}>
+                        <Ionicons name="time-outline" size={15} color={tienda.color} style={{ marginRight: 10 }} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[s.miniLbl, { color: tc.muted }]}>Fecha y hora del conteo</Text>
+                          <Text style={[s.miniVal, { color: tc.text }]}>{formatFechaDisplay(miniReg.escaneadoEn)}</Text>
+                        </View>
+                      </View>
+
+                      {/* Nota */}
+                      {miniReg.nota ? (
+                        <View style={s.miniRow}>
+                          <Ionicons name="chatbubble-outline" size={15} color="#92400E" style={{ marginRight: 10 }} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={[s.miniLbl, { color: tc.muted }]}>Comentario del auditor</Text>
+                            <Text style={[s.miniVal, { color: '#92400E' }]}>"{miniReg.nota}"</Text>
+                          </View>
+                        </View>
+                      ) : (
+                        <View style={s.miniRow}>
+                          <Ionicons name="chatbubble-outline" size={15} color="#A1A1AA" style={{ marginRight: 10 }} />
+                          <Text style={[s.miniVal, { color: tc.muted }]}>Sin comentario en este conteo</Text>
+                        </View>
+                      )}
+
+                      {/* Foto */}
+                      {miniReg.fotoUri ? (
+                        <TouchableOpacity
+                          style={{ marginTop: 6, marginBottom: 8 }}
+                          onPress={() => { const uri = miniReg!.fotoUri!; cerrarDetalle(); setFotoModal(uri); }}
+                          activeOpacity={0.88}
+                        >
+                          <Image source={{ uri: miniReg.fotoUri }} style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: 12 }} resizeMode="cover" />
+                          <Text style={{ fontSize: 11, color: tc.muted, textAlign: 'center', marginTop: 6 }}>Toca la foto para ampliar</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <View style={s.miniRow}>
+                          <Ionicons name="image-outline" size={15} color="#A1A1AA" style={{ marginRight: 10 }} />
+                          <Text style={[s.miniVal, { color: tc.muted }]}>Sin foto en este conteo</Text>
+                        </View>
+                      )}
+
+                      {/* Botón editar */}
+                      {puedEdit && onEditarRegistro && (
+                        <TouchableOpacity
+                          style={[s.editAction, { backgroundColor: '#EDE9FE', marginTop: 12, flexDirection: 'row', gap: 8 }]}
+                          onPress={() => abrirEdicion(miniReg)}
+                        >
+                          <Ionicons name="pencil-outline" size={16} color={PRP} />
+                          <Text style={{ color: PRP, fontWeight: '700', fontSize: 14 }}>Editar cantidad</Text>
+                        </TouchableOpacity>
+                      )}
+                    </ScrollView>
+                  );
+                })()}
+
+                {/* ── VISTA C: formulario de edición de cantidad ── */}
+                {miniReg && miniEditando && (
+                  <View style={{ padding: 20, flex: 1 }}>
+                    <Text style={[s.editSub, { color: tc.muted }]}>{miniReg.descripcion}</Text>
+                    <TextInput
+                      style={[s.editInput, { color: tc.text, borderColor: PRP, backgroundColor: tc.inputBg }]}
+                      value={editCantidad}
+                      onChangeText={setEditCantidad}
+                      keyboardType="numeric"
+                      placeholder="Nueva cantidad"
+                      placeholderTextColor={tc.placeholder}
+                      autoFocus
+                    />
+                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+                      <TouchableOpacity
+                        style={[s.editAction, { backgroundColor: tc.btnBg, flex: 1 }]}
+                        onPress={() => { setMiniEditando(false); setEditRegId(null); }}
+                      >
+                        <Text style={{ color: tc.text, fontWeight: '700', fontSize: 14 }}>Cancelar</Text>
                       </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
+                      <TouchableOpacity
+                        style={[s.editAction, { backgroundColor: PRP, flex: 1 }]}
+                        onPress={guardarEdicion}
+                      >
+                        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Guardar</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
               </>
             )}
 
           </Animated.View>
         </View>
       </Modal>
-
-      {/* ══ MODAL: DETALLE DE CONTEO INDIVIDUAL ════════════════════════════════ */}
-      <Modal
-        visible={!!miniReg}
-        transparent
-        animationType="fade"
-        onRequestClose={() => { setMiniReg(null); setMiniEditando(false); setEditRegId(null); }}
-      >
-        <TouchableOpacity
-          style={s.miniModalBg}
-          activeOpacity={1}
-          onPress={() => {
-            if (miniEditando) { setMiniEditando(false); setEditRegId(null); }
-            else setMiniReg(null);
-          }}
-        >
-          <View style={[s.miniCard, { backgroundColor: tc.card }]} onStartShouldSetResponder={() => true}>
-            {miniReg && !miniEditando && (() => {
-              const esPropio = miniReg.usuarioNombre === usuario.nombre;
-              const puedEdit = puedeEditar(miniReg);
-              const cfgReg   = CLSF[miniReg.clasificacion];
-              return (
-                <>
-                  {/* Cabecera */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <Avatar nombre={miniReg.usuarioNombre} size={36} bg={esPropio ? tienda.color : '#27272A'} />
-                      <View>
-                        <Text style={[s.editTitle, { color: tc.text, marginBottom: 0 }]} numberOfLines={1}>
-                          {miniReg.usuarioNombre}
-                          {esPropio ? <Text style={{ color: tienda.color, fontSize: 12 }}> (tú)</Text> : null}
-                        </Text>
-                        <View style={[s.regBadge, { backgroundColor: cfgReg.bg, alignSelf: 'flex-start', marginTop: 4 }]}>
-                          <Text style={[s.regBadgeTxt, { color: cfgReg.color }]}>{miniReg.cantidad} und. · {cfgReg.label}</Text>
-                        </View>
-                      </View>
-                    </View>
-                    <TouchableOpacity onPress={() => setMiniReg(null)}>
-                      <Ionicons name="close-circle" size={24} color={MTD} />
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Fecha y hora */}
-                  <View style={s.miniRow}>
-                    <Ionicons name="time-outline" size={15} color={tienda.color} style={{ marginRight: 10 }} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[s.miniLbl, { color: tc.muted }]}>Fecha y hora del conteo</Text>
-                      <Text style={[s.miniVal, { color: tc.text }]}>{formatFechaDisplay(miniReg.escaneadoEn)}</Text>
-                    </View>
-                  </View>
-
-                  {/* Nota */}
-                  {miniReg.nota ? (
-                    <View style={s.miniRow}>
-                      <Ionicons name="chatbubble-outline" size={15} color="#92400E" style={{ marginRight: 10 }} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[s.miniLbl, { color: tc.muted }]}>Comentario del auditor</Text>
-                        <Text style={[s.miniVal, { color: '#92400E' }]}>"{miniReg.nota}"</Text>
-                      </View>
-                    </View>
-                  ) : (
-                    <View style={s.miniRow}>
-                      <Ionicons name="chatbubble-outline" size={15} color="#A1A1AA" style={{ marginRight: 10 }} />
-                      <Text style={[s.miniVal, { color: tc.muted }]}>Sin comentario en este conteo</Text>
-                    </View>
-                  )}
-
-                  {/* Foto */}
-                  {miniReg.fotoUri ? (
-                    <TouchableOpacity
-                      style={{ marginTop: 6, marginBottom: 8 }}
-                      onPress={() => { setMiniReg(null); setFotoModal(miniReg.fotoUri!); }}
-                      activeOpacity={0.88}
-                    >
-                      <Image source={{ uri: miniReg.fotoUri }} style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: 12 }} resizeMode="cover" />
-                      <Text style={{ fontSize: 11, color: tc.muted, textAlign: 'center', marginTop: 6 }}>Toca la foto para ampliar</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <View style={s.miniRow}>
-                      <Ionicons name="image-outline" size={15} color="#A1A1AA" style={{ marginRight: 10 }} />
-                      <Text style={[s.miniVal, { color: tc.muted }]}>Sin foto en este conteo</Text>
-                    </View>
-                  )}
-
-                  {/* Botón editar — solo admin/superadmin */}
-                  {puedEdit && onEditarRegistro && (
-                    <TouchableOpacity
-                      style={[s.editAction, { backgroundColor: '#EDE9FE', marginTop: 12, flexDirection: 'row', gap: 8 }]}
-                      onPress={() => abrirEdicion(miniReg)}
-                    >
-                      <Ionicons name="pencil-outline" size={16} color={PRP} />
-                      <Text style={{ color: PRP, fontWeight: '700', fontSize: 14 }}>Editar cantidad</Text>
-                    </TouchableOpacity>
-                  )}
-                </>
-              );
-            })()}
-
-            {/* ── Vista de edición dentro del mini-detalle ── */}
-            {miniReg && miniEditando && (
-              <>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <Text style={[s.editTitle, { color: tc.text }]}>Editar cantidad</Text>
-                  <TouchableOpacity onPress={() => { setMiniEditando(false); setEditRegId(null); }}>
-                    <Ionicons name="close-circle" size={24} color={MTD} />
-                  </TouchableOpacity>
-                </View>
-                <Text style={[s.editSub, { color: tc.muted }]}>{miniReg.descripcion}</Text>
-                <TextInput
-                  style={[s.editInput, { color: tc.text, borderColor: PRP, backgroundColor: tc.inputBg }]}
-                  value={editCantidad}
-                  onChangeText={setEditCantidad}
-                  keyboardType="numeric"
-                  placeholder="Nueva cantidad"
-                  placeholderTextColor={tc.placeholder}
-                  autoFocus
-                />
-                <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-                  <TouchableOpacity style={[s.editAction, { backgroundColor: tc.btnBg, flex: 1 }]} onPress={() => { setMiniEditando(false); setEditRegId(null); }}>
-                    <Text style={{ color: tc.text, fontWeight: '700', fontSize: 14 }}>Cancelar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[s.editAction, { backgroundColor: PRP, flex: 1 }]} onPress={guardarEdicion}>
-                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>Guardar</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* ══ MODAL: EDITAR CANTIDAD (desde ResultadosScreen route, no usado aquí) ══ */}
-      {/* El edit ahora vive dentro del mini-detalle modal de arriba */}
 
     </View>
   );
