@@ -311,26 +311,31 @@ export function useAppState() {
             return extras.length > 0 ? [...extras, ...updated] : updated;
           });
         }
-        // 2. Subir a Supabase los registros locales que no están en la nube
-        // Si ya existe uno del mismo usuario+artículo+tienda, actualizar en vez de duplicar (BUG-03)
+        // 2. Subir a Supabase los registros locales que no están en la nube.
+        // uploadedInBatch rastrea registros ya enviados en este ciclo para evitar que
+        // el snapshot estático de sbRegistros provoque INSERTs duplicados cuando el
+        // mismo (tienda, artículo, usuario) aparece más de una vez en porSubir.
         const sbIds = new Set(sbRegistros.map((r: Registro) => r.id));
         const porSubir = registrosRef.current.filter(r => !sbIds.has(r.id));
         if (porSubir.length > 0) {
           if (__DEV__) console.log(`[StockIQ] Subiendo ${porSubir.length} registro(s) local(es) a Supabase...`);
           let subidos = 0, errores = 0;
+          const uploadedInBatch = new Map<string, string>(); // `tienda|item|usuario` → id en Supabase
           for (const r of porSubir) {
             try {
-              const existing = sbRegistros.find(
-                (sb: Registro) => sb.tiendaId === r.tiendaId && sb.itemId === r.itemId && sb.usuarioNombre === r.usuarioNombre,
-              );
-              if (existing) {
-                await dbActualizarRegistro(existing.id, {
+              const batchKey   = `${r.tiendaId}|${r.itemId}|${r.usuarioNombre}`;
+              const existingId = uploadedInBatch.get(batchKey)
+                ?? sbRegistros.find((sb: Registro) => sb.tiendaId === r.tiendaId && sb.itemId === r.itemId && sb.usuarioNombre === r.usuarioNombre)?.id;
+              if (existingId) {
+                await dbActualizarRegistro(existingId, {
                   cantidad: r.cantidad, nota: r.nota, usuarioNombre: r.usuarioNombre,
                   clasificacion: r.clasificacion, escaneadoEn: r.escaneadoEn,
                 });
-                setRegistros(prev => prev.map(reg => reg.id === r.id ? { ...reg, id: existing.id } : reg));
+                setRegistros(prev => prev.map(reg => reg.id === r.id ? { ...reg, id: existingId } : reg));
+                uploadedInBatch.set(batchKey, existingId);
               } else {
                 await dbInsertRegistro(r);
+                uploadedInBatch.set(batchKey, r.id);
               }
               subidos++;
             } catch (e) {
@@ -382,22 +387,27 @@ export function useAppState() {
           return extras.length > 0 ? [...extras, ...updated] : updated;
         });
       }
-      // Subir registros locales pendientes que Supabase aún no conoce
+      // Subir registros locales pendientes que Supabase aún no conoce.
+      // uploadedInBatch evita INSERTs duplicados cuando el mismo (tienda, artículo, usuario)
+      // aparece varias veces en porSubir y el snapshot sbRegistros ya está desactualizado.
       const sbIds = new Set(sbRegistros.map((r: Registro) => r.id));
       const porSubir = registrosRef.current.filter(r => !sbIds.has(r.id));
+      const uploadedInBatch = new Map<string, string>(); // `tienda|item|usuario` → id en Supabase
       for (const r of porSubir) {
         try {
-          const existing = sbRegistros.find(
-            (sb: Registro) => sb.tiendaId === r.tiendaId && sb.itemId === r.itemId && sb.usuarioNombre === r.usuarioNombre,
-          );
-          if (existing) {
-            await dbActualizarRegistro(existing.id, {
+          const batchKey   = `${r.tiendaId}|${r.itemId}|${r.usuarioNombre}`;
+          const existingId = uploadedInBatch.get(batchKey)
+            ?? sbRegistros.find((sb: Registro) => sb.tiendaId === r.tiendaId && sb.itemId === r.itemId && sb.usuarioNombre === r.usuarioNombre)?.id;
+          if (existingId) {
+            await dbActualizarRegistro(existingId, {
               cantidad: r.cantidad, nota: r.nota, usuarioNombre: r.usuarioNombre,
               clasificacion: r.clasificacion, escaneadoEn: r.escaneadoEn,
             });
-            setRegistros(prev => prev.map(reg => reg.id === r.id ? { ...reg, id: existing.id } : reg));
+            setRegistros(prev => prev.map(reg => reg.id === r.id ? { ...reg, id: existingId } : reg));
+            uploadedInBatch.set(batchKey, existingId);
           } else {
             await dbInsertRegistro(r);
+            uploadedInBatch.set(batchKey, r.id);
           }
         } catch (e) {
           if (__DEV__) console.warn('[StockIQ] refreshRegistros upload error:', (e as Error)?.message);
@@ -537,9 +547,14 @@ export function useAppState() {
 
   // ── Inventario — optimistic update + Supabase fire-and-forget ────────────
   const agregarRegistro = useCallback((r: Registro) => {
-    setRegistros(prev => [r, ...prev]);
+    // Si el ID ya existe (re-escaneo del mismo artículo), reemplazar en vez de duplicar.
+    setRegistros(prev => {
+      const idx = prev.findIndex(reg => reg.id === r.id);
+      if (idx >= 0) { const next = [...prev]; next[idx] = r; return next; }
+      return [r, ...prev];
+    });
+    // dbInsertRegistro usa upsert por id — funciona tanto para insert como para update.
     dbInsertRegistro(r).catch(err => {
-      // El registro se guardó en AsyncStorage; se sincronizará en la próxima sesión.
       if (__DEV__) console.warn('[StockIQ] agregarRegistro no se sincronizó en vivo:', err?.message ?? err);
     });
   }, []);

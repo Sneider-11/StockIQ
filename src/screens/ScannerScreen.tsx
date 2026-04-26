@@ -36,6 +36,7 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
   const [nota, setNota]          = useState('');
   const [foto, setFoto]          = useState<string | null>(null);
   const [flash, setFlash]        = useState(false);
+  const [existingRegId, setExistingRegId] = useState<string | null>(null);
   const last         = useRef<string | null>(null);
   const scrollRef    = useRef<ScrollView>(null);
   const scanAnim     = useRef(new Animated.Value(-90)).current;
@@ -69,10 +70,12 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
     setCantidad(miReg ? String(miReg.cantidad) : '1');
     setNota(miReg?.nota ?? '');
     setFoto(miReg?.fotoUri ?? null);
+    // Guardar el ID existente para reusar en guardar() — evita duplicados en DB
+    setExistingRegId(miReg?.id ?? null);
     setModal(true);
     setPausado(true);
   };
-  const cerrar    = () => { setModal(false); setFoto(null); setTimeout(() => { last.current = null; setPausado(false); }, 250); };
+  const cerrar    = () => { setModal(false); setFoto(null); setExistingRegId(null); setTimeout(() => { last.current = null; setPausado(false); }, 250); };
   const cerrarB   = () => { setSearch(false); setBusq(''); setTimeout(() => { last.current = null; setPausado(false); }, 250); };
 
   const handleCode = ({ data }: { data: string }) => {
@@ -117,12 +120,14 @@ export const ScannerScreen: React.FC<Props> = ({ usuario, tienda, registros, cat
     if (isNaN(cant) || cant < 0) { Alert.alert('Cantidad inválida'); return; }
     Keyboard.dismiss();
     onGuardar({
-      id: genId(), tiendaId: tienda.id, itemId: item.itemId, descripcion: item.descripcion,
+      // Reusar el ID existente si este usuario ya contó este artículo → upsert en DB, sin duplicados
+      id: existingRegId ?? genId(),
+      tiendaId: tienda.id, itemId: item.itemId, descripcion: item.descripcion,
       ubicacion: item.ubicacion, stockSistema: item.stock, costoUnitario: item.costo,
       cantidad: cant, nota, fotoUri: foto, usuarioNombre: usuario.nombre,
       escaneadoEn: ahora(), clasificacion: clasificar(item.stock, cant),
     });
-    setModal(false); setFoto(null);
+    setModal(false); setFoto(null); setExistingRegId(null);
     setTimeout(() => { last.current = null; setPausado(false); }, 250);
   };
 
