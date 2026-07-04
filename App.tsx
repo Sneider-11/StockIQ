@@ -69,7 +69,7 @@ const CONTADOR_TABS = [
 function AppInner() {
   const state = useAppState();
   const {
-    cargando,
+    cargando, sincronizado, refresh,
     tiendas,
     usuario, usuarios, pantalla, tiendaActiva, registros, catalogos,
     login, logout,
@@ -160,7 +160,7 @@ function AppInner() {
     return (
       <>
         <StatusBar style="light" />
-        <LoginScreen usuarios={usuarios} onLogin={login} />
+        <LoginScreen usuarios={usuarios} onLogin={login} onRehashPass={(id, hash) => editarUsuario(id, { pass: hash })} />
       </>
     );
   }
@@ -174,6 +174,7 @@ function AppInner() {
           usuarios={usuarios}
           onLogin={login}
           mensajeExtra="Tu cuenta está inactiva. Contacta al administrador."
+          onRehashPass={(id, hash) => editarUsuario(id, { pass: hash })}
         />
       </>
     );
@@ -437,6 +438,8 @@ function AppInner() {
             onNavEquipo={() => setPantalla('equipo')}
             onNavTiendas={() => setPantalla('tiendas')}
             onNavPerfil={navPerfil}
+            onRefresh={refresh}
+            refreshing={!sincronizado && !cargando}
           />
         </ScreenTransition>
       </>
@@ -456,6 +459,8 @@ function AppInner() {
             onLogout={logout}
             onNavTienda={navTienda}
             onNavPerfil={navPerfil}
+            onRefresh={refresh}
+            refreshing={!sincronizado && !cargando}
           />
         </ScreenTransition>
       </>
@@ -474,6 +479,8 @@ function AppInner() {
           onLogout={logout}
           onNavTienda={navTienda}
           onNavPerfil={navPerfil}
+          onRefresh={refresh}
+          refreshing={!sincronizado && !cargando}
         />
       </ScreenTransition>
     </>

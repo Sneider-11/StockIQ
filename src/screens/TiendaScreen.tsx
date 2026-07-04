@@ -18,6 +18,21 @@ import { Avatar, SecHeader } from '../components/common';
 import { PRP, IND } from '../constants/colors';
 import { useThemeColors } from '../hooks/useThemeColors';
 
+function latestPerItem(regs: Registro[]): Registro[] {
+  const map = new Map<string, Registro>();
+  regs.forEach(r => {
+    const ex = map.get(r.itemId);
+    if (!ex || new Date(r.escaneadoEn) > new Date(ex.escaneadoEn)) map.set(r.itemId, r);
+  });
+  return [...map.values()];
+}
+
+function fShort(v: number): string {
+  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000)     return `$${Math.round(v / 1_000)}K`;
+  return `$${Math.round(v).toLocaleString('es-CO')}`;
+}
+
 interface Props {
   tienda:           Tienda;
   usuario:          Usuario;
@@ -125,6 +140,14 @@ export const TiendaScreen: React.FC<Props> = ({
   const confirmadosSet = new Set(confirmadosCero);
   const contados       = new Set([...escaneadosSet, ...confirmadosSet]).size;
   const pct            = Math.min(100, Math.round(contados / total * 100));
+
+  const sinDifUnicos   = latestPerItem(regTienda.filter(r => r.clasificacion === 'SIN_DIF'));
+  const cerosContados  = latestPerItem(regTienda.filter(r => r.clasificacion === 'CERO'));
+  const noContados     = CAT.filter(a => !escaneadosSet.has(a.itemId));
+  const totalCerosN    = cerosContados.length + noContados.length;
+  const valorSinDif    = sinDifUnicos.reduce((s, r) => s + r.cantidad * r.costoUnitario, 0);
+  const valorCeros     = cerosContados.reduce((s, r) => s + r.stockSistema * r.costoUnitario, 0)
+                       + noContados.reduce((s, a) => s + a.stock * a.costo, 0);
 
   // Color dinámico de progreso
   const progColor = pct >= 80 ? '#10B981' : pct >= 40 ? '#F59E0B' : '#F87171';
@@ -278,42 +301,50 @@ export const TiendaScreen: React.FC<Props> = ({
         {/* Cuadrícula de estadísticas */}
         <View style={s.statsGrid}>
           <View style={s.statsRow}>
-            {(['SIN_DIF', 'FALTANTE'] as const).map((k, idx) => {
-              const cfg = CLSF[k];
-              const n   = regTienda.filter(r => r.clasificacion === k).length;
-              return (
-                <GlassStatCard
-                  key={k}
-                  anim={cardAnims[idx]}
-                  onPress={esAdmin ? () => onNavResultados(tienda) : undefined}
-                  accentColor={cfg.dot}
-                >
-                  <View style={[s.statAccent, { backgroundColor: cfg.dot }]} />
-                  <Text style={[s.statN, { color: '#fff' }]} numberOfLines={1} adjustsFontSizeToFit>{n}</Text>
-                  <Text style={s.statLbl} numberOfLines={1}>{cfg.label}</Text>
-                  {esAdmin && <Text style={s.statHint}>Ver →</Text>}
-                </GlassStatCard>
-              );
-            })}
+            <GlassStatCard
+              anim={cardAnims[0]}
+              onPress={esAdmin ? () => onNavResultados(tienda) : undefined}
+              accentColor={CLSF.SIN_DIF.dot}
+            >
+              <View style={[s.statAccent, { backgroundColor: CLSF.SIN_DIF.dot }]} />
+              <Text style={[s.statN, { color: '#fff' }]} numberOfLines={1} adjustsFontSizeToFit>{sinDifUnicos.length}</Text>
+              <Text style={s.statLbl} numberOfLines={1}>{CLSF.SIN_DIF.label}</Text>
+              {valorSinDif > 0 && <Text style={s.statVal}>{fShort(valorSinDif)}</Text>}
+              {esAdmin && <Text style={s.statHint}>Ver →</Text>}
+            </GlassStatCard>
+            <GlassStatCard
+              anim={cardAnims[1]}
+              onPress={esAdmin ? () => onNavResultados(tienda) : undefined}
+              accentColor={CLSF.FALTANTE.dot}
+            >
+              <View style={[s.statAccent, { backgroundColor: CLSF.FALTANTE.dot }]} />
+              <Text style={[s.statN, { color: '#fff' }]} numberOfLines={1} adjustsFontSizeToFit>{regTienda.filter(r => r.clasificacion === 'FALTANTE').length}</Text>
+              <Text style={s.statLbl} numberOfLines={1}>{CLSF.FALTANTE.label}</Text>
+              {esAdmin && <Text style={s.statHint}>Ver →</Text>}
+            </GlassStatCard>
           </View>
           <View style={s.statsRow}>
-            {(['SOBRANTE', 'CERO'] as const).map((k, idx) => {
-              const cfg = CLSF[k];
-              const n   = regTienda.filter(r => r.clasificacion === k).length;
-              return (
-                <GlassStatCard
-                  key={k}
-                  anim={cardAnims[idx + 2]}
-                  onPress={esAdmin ? () => onNavResultados(tienda) : undefined}
-                  accentColor={cfg.dot}
-                >
-                  <View style={[s.statAccent, { backgroundColor: cfg.dot }]} />
-                  <Text style={[s.statN, { color: '#fff' }]} numberOfLines={1} adjustsFontSizeToFit>{n}</Text>
-                  <Text style={s.statLbl} numberOfLines={1}>{cfg.label}</Text>
-                  {esAdmin && <Text style={s.statHint}>Ver →</Text>}
-                </GlassStatCard>
-              );
-            })}
+            <GlassStatCard
+              anim={cardAnims[2]}
+              onPress={esAdmin ? () => onNavResultados(tienda) : undefined}
+              accentColor={CLSF.SOBRANTE.dot}
+            >
+              <View style={[s.statAccent, { backgroundColor: CLSF.SOBRANTE.dot }]} />
+              <Text style={[s.statN, { color: '#fff' }]} numberOfLines={1} adjustsFontSizeToFit>{regTienda.filter(r => r.clasificacion === 'SOBRANTE').length}</Text>
+              <Text style={s.statLbl} numberOfLines={1}>{CLSF.SOBRANTE.label}</Text>
+              {esAdmin && <Text style={s.statHint}>Ver →</Text>}
+            </GlassStatCard>
+            <GlassStatCard
+              anim={cardAnims[3]}
+              onPress={esAdmin ? () => onNavResultados(tienda) : undefined}
+              accentColor={CLSF.CERO.dot}
+            >
+              <View style={[s.statAccent, { backgroundColor: CLSF.CERO.dot }]} />
+              <Text style={[s.statN, { color: '#fff' }]} numberOfLines={1} adjustsFontSizeToFit>{totalCerosN}</Text>
+              <Text style={s.statLbl} numberOfLines={1}>{CLSF.CERO.label}</Text>
+              {valorCeros > 0 && <Text style={s.statVal}>{fShort(valorCeros)}</Text>}
+              {esAdmin && <Text style={s.statHint}>Ver →</Text>}
+            </GlassStatCard>
           </View>
           {esAdmin && (
             <GlassStatCard
@@ -504,7 +535,7 @@ export const TiendaScreen: React.FC<Props> = ({
               onPress={() =>
                 Alert.alert(
                   'Reiniciar inventario',
-                  `¿Eliminar TODOS los escaneos, sobrantes y conteos cero de "${tienda.nombre}"? Esta acción no se puede deshacer.`,
+                  `¿Eliminar TODOS los registros, sobrantes, conteos y el catálogo cargado de "${tienda.nombre}"? Quedará completamente vacío para un nuevo cargue. Esta acción no se puede deshacer.`,
                   [
                     { text: 'Cancelar', style: 'cancel' },
                     { text: 'Reiniciar', style: 'destructive', onPress: onReiniciar },
@@ -517,7 +548,7 @@ export const TiendaScreen: React.FC<Props> = ({
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.dangerTitle}>Reiniciar inventario</Text>
-                <Text style={s.dangerSub}>Borra todos los datos para comenzar de cero</Text>
+                <Text style={s.dangerSub}>Borra registros, sobrantes y catálogo para un nuevo cargue</Text>
               </View>
               <View style={[s.actionArrow, { backgroundColor: tc.btnBg }]}>
                 <Ionicons name="chevron-forward" size={16} color="#A1A1AA" />
@@ -581,7 +612,8 @@ const s = StyleSheet.create({
   statAccent:    { position: 'absolute', top: 0, left: 0, right: 0, height: 3, borderTopLeftRadius: 18, borderTopRightRadius: 18 },
   statN:         { fontSize: 28, fontWeight: '900', marginBottom: 3, marginTop: 4 },
   statLbl:       { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' },
-  statHint:      { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: '600', marginTop: 4 },
+  statVal:       { fontSize: 10, color: 'rgba(255,255,255,0.80)', fontWeight: '800', marginTop: 3, letterSpacing: 0.2 },
+  statHint:      { fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: '600', marginTop: 2 },
 
   actionCard:  {
     flexDirection: 'row', alignItems: 'center',

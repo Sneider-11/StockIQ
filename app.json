@@ -27,7 +27,8 @@
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "StockIQ necesita acceso a la cámara para escanear códigos de barras y tomar fotos de artículos.",
-        "NSPhotoLibraryUsageDescription": "StockIQ accede a la galería para adjuntar fotos a los registros de inventario."
+        "NSPhotoLibraryUsageDescription": "StockIQ accede a la galería para adjuntar fotos a los registros de inventario.",
+        "NSLocationWhenInUseUsageDescription": "StockIQ usa tu ubicación para registrar la posición exacta durante el seguimiento de auditorías."
       }
     },
     "android": {
@@ -39,7 +40,9 @@
       "versionCode": 1,
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
       ]
     },
     "web": {

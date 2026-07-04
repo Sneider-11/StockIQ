@@ -5,15 +5,140 @@
  * - Animación de entrada stagger con translateY
  * - Filas de equipo con avatar de contraste
  */
-import React, { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated } from 'react-native';
+import React, { useRef, useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, RefreshControl, Modal, FlatList, ActivityIndicator, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Usuario, Registro, Tienda } from '../constants/data';
+import { Usuario, Registro, Tienda, Notification } from '../constants/data';
 import { Avatar, SecHeader, RolBadge } from '../components/common';
 import { PRP, IND } from '../constants/colors';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { useTheme } from '../context/ThemeContext';
 import { primerNombre } from '../utils/helpers';
+import { useNotifications } from '../hooks/useNotifications';
+
+// ── Helpers de notificaciones ────────────────────────────────────────────────
+function notifIcon(type: Notification['type']): string {
+  switch (type) {
+    case 'store_assigned':     return 'storefront-outline';
+    case 'store_removed':      return 'storefront-outline';
+    case 'group_assigned':     return 'business-outline';
+    case 'inventory_opened':   return 'power-outline';
+    case 'inventory_closed':   return 'power-outline';
+    case 'inventory_complete': return 'checkmark-circle-outline';
+    default:                   return 'notifications-outline';
+  }
+}
+function notifColor(type: Notification['type']): string {
+  switch (type) {
+    case 'store_assigned':     return '#38BDF8';
+    case 'store_removed':      return '#F87171';
+    case 'group_assigned':     return '#A78BFA';
+    case 'inventory_opened':   return '#34D399';
+    case 'inventory_closed':   return '#FBBF24';
+    case 'inventory_complete': return '#34D399';
+    default:                   return '#71717A';
+  }
+}
+function timeAgo(iso: string): string {
+  const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (diff < 60)    return 'ahora';
+  if (diff < 3600)  return `hace ${Math.floor(diff / 60)} min`;
+  if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;
+  return `hace ${Math.floor(diff / 86400)} d`;
+}
+
+// ── NotifBell: campana con badge + modal de lista ─────────────────────────────
+const NotifBell: React.FC<{ cedula: string }> = ({ cedula }) => {
+  const [open, setOpen] = useState(false);
+  const { notifications, unreadCount, loading, markRead, markAllRead } = useNotifications(cedula);
+  const { isDark } = useTheme();
+
+  const bg         = isDark ? '#09090B' : '#F4F4F5';
+  const panelBg    = isDark ? '#0E0E12' : '#FFFFFF';
+  const panelBord  = isDark ? '#27272A' : '#E4E4E7';
+  const titleColor = isDark ? '#F4F4F5' : '#18181B';
+  const bodyColor  = isDark ? '#71717A' : '#52525B';
+  const timeColor  = isDark ? '#3F3F46' : '#A1A1AA';
+  const sepColor   = isDark ? '#18181B' : '#E4E4E7';
+  const iconBoxBg  = isDark ? '#1C1C1E' : '#E4E4E7';
+  const emptyIcon  = isDark ? '#3F3F46' : '#A1A1AA';
+  const emptyText  = isDark ? '#52525B' : '#71717A';
+
+  return (
+    <>
+      <TouchableOpacity onPress={() => setOpen(true)} style={[sh.headerBtn, { position: 'relative' }]}>
+        <Ionicons name="notifications-outline" size={20} color="rgba(255,255,255,0.7)" />
+        {unreadCount > 0 && (
+          <View style={sh.badge}>
+            <Text style={sh.badgeTxt}>{unreadCount > 9 ? '9+' : String(unreadCount)}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
+      <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: bg }}>
+          {/* Header del modal */}
+          <View style={[sh.panelHeader, { backgroundColor: panelBg, borderBottomColor: panelBord }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="notifications" size={16} color="#A78BFA" />
+              <Text style={[sh.panelTitle, { color: titleColor }]}>Notificaciones</Text>
+              {unreadCount > 0 && (
+                <View style={sh.newBadge}>
+                  <Text style={sh.newBadgeTxt}>{unreadCount} nueva{unreadCount !== 1 ? 's' : ''}</Text>
+                </View>
+              )}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {unreadCount > 0 && (
+                <TouchableOpacity onPress={markAllRead} style={sh.readAllBtn}>
+                  <Text style={sh.readAllTxt}>Todo leído</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={() => setOpen(false)} style={{ padding: 6 }}>
+                <Ionicons name="close" size={20} color="#71717A" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Contenido */}
+          {loading ? (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator color="#A78BFA" />
+            </View>
+          ) : notifications.length === 0 ? (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="notifications-off-outline" size={36} color={emptyIcon} />
+              <Text style={{ color: emptyText, fontSize: 13, marginTop: 12 }}>Sin notificaciones</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={notifications}
+              keyExtractor={n => n.id}
+              renderItem={({ item: n }) => (
+                <TouchableOpacity
+                  onPress={() => { if (!n.read) markRead(n.id); }}
+                  style={[sh.notifRow, n.read ? undefined : sh.notifRowUnread]}
+                >
+                  <View style={[sh.notifIconBox, { backgroundColor: iconBoxBg }]}>
+                    <Ionicons name={notifIcon(n.type) as any} size={16} color={notifColor(n.type)} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={[sh.notifTitle, { color: titleColor }, n.read && sh.notifTitleRead]} numberOfLines={2}>{n.title}</Text>
+                    {n.body ? <Text style={[sh.notifBody, { color: bodyColor }]} numberOfLines={2}>{n.body}</Text> : null}
+                    <Text style={[sh.notifTime, { color: timeColor }]}>{timeAgo(n.createdAt)}</Text>
+                  </View>
+                  {!n.read && <View style={sh.dot} />}
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: sepColor }} />}
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
+    </>
+  );
+};
 
 // ── PressCard: spring scale al presionar ──────────────────────────────────────
 const PressCard: React.FC<{
@@ -117,10 +242,13 @@ interface SuperAdminProps {
   onNavEquipo:  () => void;
   onNavTiendas: () => void;
   onNavPerfil:  () => void;
+  onRefresh?:   () => void;
+  refreshing?:  boolean;
 }
 
 export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
   usuario, usuarios, tiendas, onLogout, onNavTienda, onNavEquipo, onNavTiendas, onNavPerfil,
+  onRefresh, refreshing = false,
 }) => {
   const tc         = useThemeColors();
   const equipo     = usuarios.filter(u => u.rol !== 'SUPERADMIN');
@@ -142,6 +270,11 @@ export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
       style={{ flex: 1, backgroundColor: tc.bg }}
       contentContainerStyle={{ paddingBottom: 48 }}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRP} colors={[PRP]} />
+        ) : undefined
+      }
     >
       <LinearGradient
         colors={tc.isDark ? ['#10071E', '#080510', '#030305'] : ['#EDE9FE', '#F4F0FF', '#F8F6FF']}
@@ -159,6 +292,7 @@ export const HomeSuperAdminScreen: React.FC<SuperAdminProps> = ({
             </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, flexShrink: 0 }}>
+            <NotifBell cedula={usuario.cedula} />
             <TouchableOpacity onPress={onNavPerfil} style={s.headerBtn}>
               <Ionicons name="person-circle-outline" size={20} color={tc.isDark ? 'rgba(255,255,255,0.7)' : 'rgba(88,28,200,0.7)'} />
             </TouchableOpacity>
@@ -274,10 +408,13 @@ interface AdminProps {
   onLogout:    () => void;
   onNavTienda: (t: Tienda) => void;
   onNavPerfil: () => void;
+  onRefresh?:  () => void;
+  refreshing?: boolean;
 }
 
 export const HomeAdminScreen: React.FC<AdminProps> = ({
   usuario, usuarios, tiendas, onLogout, onNavTienda, onNavPerfil,
+  onRefresh, refreshing = false,
 }) => {
   const tc            = useThemeColors();
   const misTiendas    = tiendas.filter(t => usuario.tiendas.includes(t.id));
@@ -300,6 +437,11 @@ export const HomeAdminScreen: React.FC<AdminProps> = ({
       style={{ flex: 1, backgroundColor: tc.bg }}
       contentContainerStyle={{ paddingBottom: 48 }}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={IND} colors={[IND]} />
+        ) : undefined
+      }
     >
       <LinearGradient
         colors={tc.isDark ? ['#040D1C', '#050A14', '#030305'] : ['#DBEAFE', '#EFF6FF', '#F8FAFF']}
@@ -317,6 +459,7 @@ export const HomeAdminScreen: React.FC<AdminProps> = ({
             </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, flexShrink: 0 }}>
+            <NotifBell cedula={usuario.cedula} />
             <TouchableOpacity onPress={onNavPerfil} style={s.headerBtn}>
               <Ionicons name="person-circle-outline" size={20} color={tc.isDark ? 'rgba(255,255,255,0.7)' : 'rgba(3,105,161,0.7)'} />
             </TouchableOpacity>
@@ -380,10 +523,13 @@ interface ContadorProps {
   onLogout:    () => void;
   onNavTienda: (t: Tienda) => void;
   onNavPerfil: () => void;
+  onRefresh?:  () => void;
+  refreshing?: boolean;
 }
 
 export const HomeContadorScreen: React.FC<ContadorProps> = ({
   usuario, tiendas, onLogout, onNavTienda, onNavPerfil,
+  onRefresh, refreshing = false,
 }) => {
   const tc         = useThemeColors();
   const misTiendas = tiendas.filter(t => usuario.tiendas.includes(t.id));
@@ -403,6 +549,11 @@ export const HomeContadorScreen: React.FC<ContadorProps> = ({
       style={{ flex: 1, backgroundColor: tc.bg }}
       contentContainerStyle={{ paddingBottom: 48 }}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#34D399" colors={['#34D399']} />
+        ) : undefined
+      }
     >
       <LinearGradient
         colors={tc.isDark ? ['#041210', '#030D0A', '#030305'] : ['#D1FAE5', '#ECFDF5', '#F4FFF9']}
@@ -420,6 +571,7 @@ export const HomeContadorScreen: React.FC<ContadorProps> = ({
             </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, flexShrink: 0 }}>
+            <NotifBell cedula={usuario.cedula} />
             <TouchableOpacity onPress={onNavPerfil} style={s.headerBtn}>
               <Ionicons name="person-circle-outline" size={20} color={tc.isDark ? 'rgba(255,255,255,0.7)' : 'rgba(4,120,87,0.7)'} />
             </TouchableOpacity>
@@ -520,4 +672,42 @@ const sh = StyleSheet.create({
     fontWeight: '600',
     color:      'rgba(255,255,255,0.88)',
   },
+  // NotifBell
+  headerBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  badge: {
+    position: 'absolute', top: 6, right: 6,
+    minWidth: 14, height: 14, borderRadius: 7,
+    backgroundColor: '#EF4444',
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  badgeTxt: { color: '#fff', fontSize: 8, fontWeight: '900' },
+  panelHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: '#27272A',
+  },
+  panelTitle: { color: '#F4F4F5', fontSize: 15, fontWeight: '800' },
+  newBadge: { backgroundColor: '#7F1D1D33', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  newBadgeTxt: { color: '#F87171', fontSize: 10, fontWeight: '700' },
+  readAllBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: '#3F3F46' },
+  readAllTxt: { color: '#A78BFA', fontSize: 11, fontWeight: '700' },
+  notifRow: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    paddingHorizontal: 20, paddingVertical: 14,
+  },
+  notifRowUnread: { backgroundColor: '#A78BFA08' },
+  notifIconBox: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: '#1C1C1E', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  notifTitle: { color: '#F4F4F5', fontSize: 13, fontWeight: '700', flexShrink: 1 },
+  notifTitleRead: { color: '#A1A1AA', fontWeight: '500' },
+  notifBody: { color: '#71717A', fontSize: 11, marginTop: 2 },
+  notifTime: { color: '#3F3F46', fontSize: 10, marginTop: 4 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#A78BFA', marginTop: 6, flexShrink: 0 },
 });

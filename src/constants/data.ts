@@ -20,6 +20,7 @@ export interface Usuario {
   activo?: boolean;      // false = desactivado por un ADMIN
   creadoPor?: string;    // id del ADMIN que creó este CONTADOR
   fotoUri?: string | null;  // URI de la foto de perfil (almacenado localmente)
+  grupos?: string[];
 }
 
 export interface Tienda {
@@ -32,6 +33,7 @@ export interface Tienda {
   modoInventario?: 'ONLINE' | 'OFFLINE';
   /** Nombre del admin que cerró el inventario (solo cuando modoInventario = 'OFFLINE') */
   cerradoPor?: string;
+  grupoId?: string;
 }
 
 export interface Articulo {
@@ -77,6 +79,17 @@ export interface SobranteSinStock {
   cantidad: number;
   usuarioNombre: string;
   registradoEn: string;
+}
+
+export interface Notification {
+  id:        string;
+  userId:    string;
+  type:      'store_assigned' | 'store_removed' | 'inventory_opened' | 'inventory_closed' | 'inventory_complete' | 'group_assigned';
+  title:     string;
+  body:      string | null;
+  metadata:  Record<string, string>;
+  read:      boolean;
+  createdAt: string;
 }
 
 // ─── TIENDAS ──────────────────────────────────────────────────────────────────

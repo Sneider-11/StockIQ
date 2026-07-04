@@ -54,8 +54,33 @@ export const primerNombre = (nombre: string): string => {
   return nombre.split(' ').filter(w => w.length > 0)[0] ?? '';
 };
 
-export const ahora = (): string => {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+/** ISO 8601 para Supabase — el único formato que acepta el campo timestamp. */
+export const ahora = (): string => new Date().toISOString();
+
+/**
+ * Convierte cualquier fecha (ISO o formato legado dd/MM/yyyy HH:mm:ss) a ISO 8601.
+ * Usado en db.ts para sanear registros guardados con el formato antiguo antes de subirlos.
+ */
+export const toISO = (fecha: string): string => {
+  if (!fecha) return new Date().toISOString();
+  if (/^\d{4}-\d{2}-\d{2}T/.test(fecha)) return fecha; // ya es ISO
+  // Formato legado: dd/MM/yyyy HH:mm:ss
+  const m = fecha.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:${m[6]}.000Z`;
+  return new Date().toISOString();
+};
+
+/**
+ * Formatea una fecha ISO para mostrar en la UI: "18/04/2026 14:30".
+ * También acepta el formato legado dd/MM/yyyy HH:mm:ss.
+ */
+export const formatFechaDisplay = (fecha: string): string => {
+  if (!fecha) return '—';
+  // Legado: ya está en formato display
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(fecha)) return fecha.slice(0, 16);
+  try {
+    const d = new Date(fecha);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch { return fecha; }
 };

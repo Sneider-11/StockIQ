@@ -10,7 +10,8 @@
  */
 
 import { getSupabaseListo, getSupabaseClient } from './supabase';
-import { Usuario, Articulo, Registro, SobranteSinStock, Tienda } from '../constants/data';
+import { Usuario, Articulo, Registro, SobranteSinStock, Tienda, Notification } from '../constants/data';
+import { toISO } from '../utils/helpers';
 
 // Acceso seguro al cliente — devuelve null si no está listo
 function sb() {
@@ -31,6 +32,7 @@ export async function dbGetTiendas(): Promise<Tienda[]> {
     nit:            r.nit            ?? undefined,
     modoInventario: r.modo_inventario ?? undefined,
     cerradoPor:     r.cerrado_por    ?? undefined,
+    grupoId:        r.grupo_id       ?? undefined,
   }));
 }
 
@@ -45,6 +47,7 @@ export async function dbUpsertTienda(t: Tienda): Promise<void> {
       nit:            t.nit            ?? null,
       modo_inventario: t.modoInventario ?? null,
       cerrado_por:    t.cerradoPor     ?? null,
+      grupo_id:       t.grupoId        ?? null,
     },
     { onConflict: 'id' },
   );
@@ -66,7 +69,7 @@ export async function dbGetUsuarios(): Promise<Usuario[]> {
   const c = sb(); if (!c) return [];
   const { data, error } = await c
     .from('usuarios')
-    .select('id,cedula,nombre,rol,tiendas,tiendas_roles,telefono,activo,creado_por');
+    .select('id,cedula,nombre,rol,tiendas,tiendas_roles,telefono,activo,creado_por,grupos');
   if (error || !data) return [];
   return data.map(r => ({
     id:           r.id,
@@ -79,6 +82,7 @@ export async function dbGetUsuarios(): Promise<Usuario[]> {
     telefono:     r.telefono ?? undefined,
     activo:       r.activo ?? true,
     creadoPor:    r.creado_por ?? undefined,
+    grupos:       r.grupos     ?? [],
   }));
 }
 
@@ -107,12 +111,11 @@ export async function dbDeleteUsuario(id: string): Promise<void> {
 
 // ─── REGISTROS ────────────────────────────────────────────────────────────────
 
-export async function dbGetRegistros(): Promise<Registro[]> {
+export async function dbGetRegistros(tiendaIds?: string[]): Promise<Registro[]> {
   const c = sb(); if (!c) return [];
-  const { data, error } = await c
-    .from('registros')
-    .select('*')
-    .order('escaneado_en', { ascending: false });
+  let query = c.from('registros').select('*').order('escaneado_en', { ascending: false });
+  if (tiendaIds && tiendaIds.length > 0) query = query.in('tienda_id', tiendaIds);
+  const { data, error } = await query;
   if (error || !data) return [];
   return data.map(r => ({
     id:            r.id,
@@ -132,8 +135,12 @@ export async function dbGetRegistros(): Promise<Registro[]> {
 }
 
 export async function dbInsertRegistro(r: Registro): Promise<void> {
-  const c = sb(); if (!c) return;
-  await c.from('registros').insert({
+  const c = sb();
+  if (!c) {
+    if (__DEV__) console.warn('[db] dbInsertRegistro: Supabase no inicializado, registro no guardado:', r.id);
+    throw new Error('Supabase no inicializado');
+  }
+  const { error } = await c.from('registros').upsert({
     id:             r.id,
     tienda_id:      r.tiendaId,
     item_id:        r.itemId,
@@ -142,17 +149,32 @@ export async function dbInsertRegistro(r: Registro): Promise<void> {
     stock_sistema:  r.stockSistema,
     costo_unitario: r.costoUnitario,
     cantidad:       r.cantidad,
-    nota:           r.nota || null,
-    foto_uri:       null,
+    nota:           r.nota ?? '',
+    foto_uri:       r.fotoUri || null,
     usuario_nombre: r.usuarioNombre,
-    escaneado_en:   r.escaneadoEn,
+    escaneado_en:   toISO(r.escaneadoEn),
     clasificacion:  r.clasificacion,
-  });
+  }, { onConflict: 'id' });
+  if (error) {
+    if (__DEV__) console.warn('[db] dbInsertRegistro error:', error.message, '| código:', error.code, '| registro:', r.id);
+    throw new Error(error.message);
+  }
 }
 
 export async function dbDeleteRegistro(id: string): Promise<void> {
   const c = sb(); if (!c) return;
   await c.from('registros').delete().eq('id', id);
+}
+
+export async function dbActualizarRegistro(id: string, data: { cantidad: number; nota?: string; usuarioNombre: string; clasificacion: string; escaneadoEn: string }): Promise<void> {
+  const c = sb(); if (!c) return;
+  await c.from('registros').update({
+    cantidad:       data.cantidad,
+    nota:           data.nota ?? '',
+    usuario_nombre: data.usuarioNombre,
+    clasificacion:  data.clasificacion,
+    escaneado_en:   toISO(data.escaneadoEn),
+  }).eq('id', id);
 }
 
 export async function dbLimpiarRegistrosTienda(tiendaId: string): Promise<void> {
@@ -165,6 +187,7 @@ export async function dbReiniciarInventario(tiendaId: string): Promise<void> {
   await Promise.all([
     c.from('registros').delete().eq('tienda_id', tiendaId),
     c.from('sobrantes').delete().eq('tienda_id', tiendaId),
+    c.from('catalogos').delete().eq('tienda_id', tiendaId),
   ]);
 }
 
@@ -241,7 +264,7 @@ export async function dbInsertSobrante(s: SobranteSinStock): Promise<void> {
     precio:         s.precio,
     cantidad:       s.cantidad,
     usuario_nombre: s.usuarioNombre,
-    registrado_en:  s.registradoEn,
+    registrado_en:  toISO(s.registradoEn),
   }, { onConflict: 'id' });
 }
 
@@ -253,4 +276,38 @@ export async function dbDeleteSobrante(id: string): Promise<void> {
 export async function dbUpdateSobranteEstado(id: string, estado: string): Promise<void> {
   const c = sb(); if (!c) return;
   await c.from('sobrantes').update({ estado }).eq('id', id);
+}
+
+// ─── NOTIFICACIONES ───────────────────────────────────────────────────────────
+
+export async function dbGetNotifications(cedula: string): Promise<Notification[]> {
+  const c = sb(); if (!c) return [];
+  const { data, error } = await (c as any)
+    .from('notifications')
+    .select('*')
+    .eq('user_id', cedula)
+    .order('created_at', { ascending: false })
+    .limit(25);
+  if (error || !data) return [];
+  return data.map((r: any) => ({
+    id:        r.id,
+    userId:    r.user_id,
+    type:      r.type,
+    title:     r.title,
+    body:      r.body ?? null,
+    metadata:  r.metadata ?? {},
+    read:      r.read,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function dbMarkNotificationsRead(ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  const c = sb(); if (!c) return;
+  await (c as any).from('notifications').update({ read: true }).in('id', ids);
+}
+
+export async function dbMarkAllNotificationsRead(cedula: string): Promise<void> {
+  const c = sb(); if (!c) return;
+  await (c as any).from('notifications').update({ read: true }).eq('user_id', cedula).eq('read', false);
 }

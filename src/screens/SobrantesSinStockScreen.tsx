@@ -603,6 +603,7 @@ export const SobrantesSinStockScreen: React.FC<Props> = ({
           {perm?.granted && (
             <CameraView
               style={StyleSheet.absoluteFillObject}
+              zoom={0.190}
               onBarcodeScanned={handleScan}
               barcodeScannerSettings={{
                 barcodeTypes: ['qr', 'code128', 'code39', 'ean13', 'ean8', 'upc_a'],

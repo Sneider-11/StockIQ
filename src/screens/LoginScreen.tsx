@@ -7,6 +7,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Usuario } from '../constants/data';
+import { verifyPassword, hashPassword } from '../lib/crypto';
 import { Avatar } from '../components/common';
 import { PRP, IND, VLT, BLK, DRK, MTD, BRD } from '../constants/colors';
 import { useTheme } from '../context/ThemeContext';
@@ -25,12 +26,13 @@ const PTCLS = [
 ];
 
 interface Props {
-  usuarios:      Usuario[];
-  onLogin:       (u: Usuario) => void;
-  mensajeExtra?: string;
+  usuarios:       Usuario[];
+  onLogin:        (u: Usuario) => void;
+  mensajeExtra?:  string;
+  onRehashPass?:  (id: string, hash: string) => void;
 }
 
-export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }) => {
+export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra, onRehashPass }) => {
   const { isDark, toggleTheme } = useTheme();
 
   const [cedula, setCedula]           = useState('');
@@ -128,7 +130,7 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }
   const pressOut = (a: Animated.Value) =>
     Animated.spring(a, { toValue: 1,    tension: 240, friction: 10, useNativeDriver: true }).start();
 
-  const login = () => {
+  const login = async () => {
     setError('');
     if (bloqueadoHasta && Date.now() < bloqueadoHasta) {
       setError(`Demasiados intentos. Espera ${segsRestantes}s.`); doShake(); return;
@@ -140,7 +142,11 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }
     if (!u) { setError('Cédula no registrada. Contacta al administrador.'); doShake(); return; }
     if (u.activo === false) { setError('Tu cuenta está inactiva. Contacta al administrador.'); doShake(); return; }
 
-    if (u.pass !== pass) {
+    setLoading(true);
+    const { valid, needsRehash } = await verifyPassword(pass, u.pass);
+    setLoading(false);
+
+    if (!valid) {
       const nuevo = intentos + 1;
       setIntentos(nuevo);
       if (nuevo >= MAX_INTENTOS) {
@@ -154,6 +160,9 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }
     }
 
     setIntentos(0); setBloqueado(null);
+    if (needsRehash && onRehashPass) {
+      hashPassword(pass).then(hash => onRehashPass(u.id, hash));
+    }
     setLoading(true);
     setTimeout(() => { setLoading(false); onLogin(u); }, 800);
   };
@@ -431,7 +440,7 @@ export const LoginScreen: React.FC<Props> = ({ usuarios, onLogin, mensajeExtra }
           </View>
         )}
 
-        <Text style={[s.ver, { color: t.verColor }]}>v2.3.0 · StockIQ · Grupo Comercial</Text>
+        <Text style={[s.ver, { color: t.verColor }]}>v2.2.0 · StockIQ · Grupo Comercial</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
